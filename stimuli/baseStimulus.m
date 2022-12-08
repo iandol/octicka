@@ -90,7 +90,7 @@ classdef baseStimulus < octickaCore & dynamicprops
 		dY
 	end
 	
-	properties (SetAccess = protected, Transient = true)
+	properties (Hidden = true, Transient = true)
 		%> Our texture pointer for texture-based stimuli
 		texture 
 		%> handles for the GUI
@@ -141,31 +141,18 @@ classdef baseStimulus < octickaCore & dynamicprops
 			'doDots|doMotion|doDrift|doFlash|doAnimator']
 		%> Which properties to not draw in the UI panel
 		ignorePropertiesUIBase = ['animator|fullName']
-	end
-	
-	properties (Access = private)
-		%> properties allowed to be passed on construction
+    %> properties allowed to be passed on construction
 		allowedProperties  = ['xPosition|yPosition|size|colour|verbose|'...
 			'alpha|startPosition|angle|speed|delayTime|mouseOverride|isVisible'...
 			'showOnTracker|animator']
 	end
-
-	%=======================================================================
-	methods (Abstract)%------------------ABSTRACT METHODS
-	%=======================================================================
-		%> initialise the stimulus with the PTB screenManager
-		out = setup(runObject)
-		%>draw to the screen buffer, ready for flip()
-		out = draw(runObject)
-		%> animate the stimulus, normally called after a draw
-		out = animate(runObject)
-		%> update the stimulus, normally called between trials if any
-		%>variables have changed
-		out = update(runObject)
-		%> reset back to pre-setup state (removes the transient cache
-		%> properties, resets the various timers etc.)
-		out = reset(runObject)
-	end %---END ABSTRACT METHODS---%
+	
+	properties (Access = protected)
+		%> properties allowed to be passed on construction
+		allowedPropertiesbs  = ['xPosition|yPosition|size|colour|verbose|'...
+			'alpha|startPosition|angle|speed|delayTime|mouseOverride|isVisible'...
+			'showOnTracker|animator']
+	end
 	
 	%=======================================================================
 	methods %----------------------------PUBLIC METHODS
@@ -179,8 +166,8 @@ classdef baseStimulus < octickaCore & dynamicprops
 		%> @return instance of class.
 		% ===================================================================
 		function me = baseStimulus(varargin)
-			me=me@optickaCore(varargin); %superclass constructor
-			me.parseArgs(varargin, me.allowedProperties);
+			me=me@octickaCore(varargin); %superclass constructor
+			me.parseArgs(varargin, me.allowedPropertiesbs);
 		end
 		
 		% ===================================================================
@@ -208,7 +195,7 @@ classdef baseStimulus < octickaCore & dynamicprops
 			end
 			c(c<0)=0; c(c>1)=1;
 			me.colour = c;
-			if isprop(me,'correctBaseColour') && me.correctBaseColour %#ok<*MCSUP> 
+			if isproperty(me,'correctBaseColour') && me.correctBaseColour %#ok<*MCSUP> 
 				me.baseColour = (me.colour(1:3) + me.colour2(1:3))/2;
 			end
 			me.isInSetColour = false;
@@ -224,10 +211,10 @@ classdef baseStimulus < octickaCore & dynamicprops
 			me.alpha = value;
 			if ~me.isInSetColour
 				me.colour = me.colour(1:3); %force colour to be regenerated
-				if isprop(me,'colour2')
+				if isproperty(me,'colour2')
 					me.colour2 = me.colour2(1:3);
 				end
-				if isprop(me,'baseColour')
+				if isproperty(me,'baseColour')
 					me.baseColour = me.baseColour(1:3);
 				end
 			end
@@ -238,10 +225,10 @@ classdef baseStimulus < octickaCore & dynamicprops
 		%> delta is the normalised number of pixels per frame to move a stimulus
 		% ===================================================================
 		function value = get.delta(me)
-			if isempty(me.findprop('speedOut'))
-				value = (me.speed * me.ppd) * me.screenVals.ifi;
-			else
+			if isproperty(me,'speedOut')
 				value = (me.speedOut * me.ppd) * me.screenVals.ifi;
+			else
+				value = (me.speed * me.ppd) * me.screenVals.ifi;
 			end
 		end
 		
@@ -251,9 +238,9 @@ classdef baseStimulus < octickaCore & dynamicprops
 		% ===================================================================
 		function value = get.dX(me)
 			value = 0;
-			if ~isempty(me.findprop('directionOut'))
+			if isproperty(me,'directionOut')
 				[value,~]=me.updatePosition(me.delta,me.directionOut);
-			elseif ~isempty(me.findprop('angleOut'))
+			elseif isproperty(me,'angleOut')
 				[value,~]=me.updatePosition(me.delta,me.angleOut);
 			end
 		end
@@ -264,9 +251,9 @@ classdef baseStimulus < octickaCore & dynamicprops
 		% ===================================================================
 		function value = get.dY(me)
 			value = 0;
-			if ~isempty(me.findprop('directionOut'))
+			if isproperty(me,'directionOut')
 				[~,value]=me.updatePosition(me.delta,me.directionOut);
-			elseif ~isempty(me.findprop('angleOut'))
+			elseif isproperty(me, 'angleOut')
 				[~,value]=me.updatePosition(me.delta,me.angleOut);
 			end
 		end
@@ -560,7 +547,7 @@ classdef baseStimulus < octickaCore & dynamicprops
 			
 			pr = findAttributesandType(me,'SetAccess','public','notlogical');
 			pr = sort(pr);
-			if isprop(me,'ignorePropertiesUI')
+			if isproperty(me,'ignorePropertiesUI')
 				excl = [me.ignorePropertiesUIBase '|' me.ignorePropertiesUI];
 			else
 				excl = me.ignorePropertiesUIBase;
@@ -592,7 +579,7 @@ classdef baseStimulus < octickaCore & dynamicprops
 					if cur <= length(pr)
 						val = me.(pr{cur});
 						if ischar(val)
-							if isprop(me,[pr{cur} 'List'])
+							if isproperty(me,[pr{cur} 'List'])
 								if strcmp(me.([pr{cur} 'List']),'filerequestor')
 									val = regexprep(val,'\s+','  ');
 									handles.([pr{cur} '_char']) = uieditfield(...
@@ -658,7 +645,7 @@ classdef baseStimulus < octickaCore & dynamicprops
 						else
 							uitextarea('Parent',eval(idx{i}),'BackgroundColor',bgcolor,'Enable','off');
 						end
-						if isprop(me,[pr{cur} 'List'])
+						if isproperty(me,[pr{cur} 'List'])
 							if strcmp(me.([pr{cur} 'List']),'filerequestor')
 								handles.([pr{cur} '_button']) = uibutton(...
 								'Parent',eval(idx{i}),...
@@ -771,25 +758,25 @@ classdef baseStimulus < octickaCore & dynamicprops
 			
 			if strcmpi(tagName,'alpha')
 				me.handles.colour_num.Value = num2str(me.colour, '%g ');
-				if isprop(me,'baseColour') 
+				if isproperty(me,'baseColour') 
 					me.handles.baseColour_num.Value = num2str(me.baseColour, '%g ');
 				end
 			end
 
 			if strcmpi(tagName,'alpha2')
-				if isprop(me,'colour2');me.handles.colour2_num.Value = num2str(me.colour2, '%g ');end
+				if isproperty(me,'colour2');me.handles.colour2_num.Value = num2str(me.colour2, '%g ');end
 			end
 			
 			if strcmpi(tagName,'colour')
 				me.handles.alpha_num.Value = num2str(me.alpha, '%g ');
-				if isprop(me,'correctBaseColour') && me.correctBaseColour
+				if isproperty(me,'correctBaseColour') && me.correctBaseColour
 					me.handles.baseColour_num.Value = num2str(me.baseColour, '%g ');
 				end
 			end
 
 			if strcmpi(tagName,'colour2')
-				if isprop(me,'alpha2');me.handles.alpha2_num.Value = num2str(me.alpha2, '%g ');end
-				if isprop(me,'correctBaseColour') && me.correctBaseColour
+				if isproperty(me,'alpha2');me.handles.alpha2_num.Value = num2str(me.alpha2, '%g ');end
+				if isproperty(me,'correctBaseColour') && me.correctBaseColour
 					me.handles.baseColour_num.Value = num2str(me.baseColour, '%g ');
 				end
 			end
@@ -843,10 +830,10 @@ classdef baseStimulus < octickaCore & dynamicprops
 		%> @return
 		% ===================================================================
 		function cleanHandles(me,varargin)
-			if isprop(me,'handles')
+			if isproperty(me,'handles')
 				me.handles = [];
 			end
-			if isprop(me,'h')
+			if isproperty(me,'h')
 				me.h = [];
 			end
 			me.isGUI = false;
@@ -865,8 +852,8 @@ classdef baseStimulus < octickaCore & dynamicprops
 		%> @return value of property
 		% ===================================================================
 		function [value, name] = getP(me, name, range)
-			if isprop(me, name)
-				if isprop(me,[name 'Out'])
+			if isproperty(me, name)
+				if isproperty(me,[name 'Out'])
 					name = [name 'Out'];
 				end
 				value = me.(name);
@@ -890,8 +877,8 @@ classdef baseStimulus < octickaCore & dynamicprops
 		%> @return value of property
 		% ===================================================================
 		function setP(me, name, value)
-			if isprop(me, name)
-				if isprop(me,[name 'Out'])
+			if isproperty(me, name)
+				if isproperty(me,[name 'Out'])
 					name = [name 'Out'];
 				end
 				me.(name) = value;
@@ -900,6 +887,24 @@ classdef baseStimulus < octickaCore & dynamicprops
 			end
 		end
 
+    % ===================================================================
+		%> @brief Delete method
+		%>
+		%> @param me
+		%> @return
+		% ===================================================================
+		function delete(me)
+			me.handles = [];
+			if ~isempty(me.texture)
+				for i = 1:length(me.texture)
+					if Screen(me.texture, 'WindowKind')~=0 ;try Screen('Close',me.texture); end; end %#ok<*TRYNC>
+				end
+			end
+			if isproperty(me,'buffertex') && ~isempty(me.buffertex)
+				if Screen(me.buffertex, 'WindowKind')~=0 ; try Screen('Close',me.buffertex); end; end
+			end
+			if me.verbose; fprintf('--->>> Delete: %s\n',me.fullName); end
+		end
 		
 	end %---END PUBLIC METHODS---%
 	
@@ -956,27 +961,34 @@ classdef baseStimulus < octickaCore & dynamicprops
 		%> @brief doProperties
 		%> these are transient properties that specify actions during runtime
 		% ===================================================================
-		function doProperties(me)
-			if isempty(me.findprop('doFlash'));p=me.addprop('doFlash');end
-			if isempty(me.findprop('doDots'));p=me.addprop('doDots');end
-			if isempty(me.findprop('doMotion'));p=me.addprop('doMotion');end
-			if isempty(me.findprop('doDrift'));p=me.addprop('doDrift');end
-			if isempty(me.findprop('doAnimator'));p=me.addprop('doAnimator');end
-			
-			me.doDots		= false;
+		function addRuntimeProperties(me)
+			if ~isproperty(me,'doFlash'); me.addprop('doFlash'); end
+			if ~isproperty(me,'doDots'); me.addprop('doDots'); end
+			if ~isproperty(me,'doMotion'); me.addprop('doMotion'); end
+			if ~isproperty(me,'doDrift'); pe.addprop('doDrift'); end
+			if ~isproperty(me,'doAnimator'); me.addprop('doAnimator'); end
+			updateRuntimeProperties(me);
+		end
+    
+    % ===================================================================
+		%> @brief doProperties
+		%> these are transient properties that specify actions during runtime
+		% ===================================================================
+    function updateRuntimeProperties(me)
+      me.doDots		  = false;
 			me.doMotion		= false;
 			me.doDrift		= false;
 			me.doFlash		= false;
 			me.doAnimator	= false;
 			
-			if ~isempty(me.findprop('tf')) && me.tf > 0; me.doDrift = true; end
+			if isproperty(me, 'tf') && me.tf > 0; me.doDrift = true; end
 			if me.speed > 0; me.doMotion = true; end
 			if strcmpi(me.family,'dots'); me.doDots = true; end
 			if strcmpi(me.type,'flash'); me.doFlash = true; end
 			if ~isempty(me.animator) && isa(me.animator,'animationManager')
 				me.doAnimator = true; 
 			end
-		end
+    end
 			
 		% ===================================================================
 		%> @brief setRect
@@ -1059,32 +1071,9 @@ classdef baseStimulus < octickaCore & dynamicprops
 		%> @return
 		% ===================================================================
 		function removeTmpProperties(me)
-			allprops = properties(me);
-			for i=1:numel(allprops)
-        		m = findprop(me, allprops{i});
-        		if isa(m,'meta.DynamicProperty')
-            		delete(m)
-				end
+			if isproperty(me,'dp')
+				me.dp = [];
 			end
-		end
-
-		% ===================================================================
-		%> @brief Delete method
-		%>
-		%> @param me
-		%> @return
-		% ===================================================================
-		function delete(me)
-			me.handles = [];
-			if ~isempty(me.texture)
-				for i = 1:length(me.texture)
-					if Screen(me.texture, 'WindowKind')~=0 ;try Screen('Close',me.texture); end; end %#ok<*TRYNC>
-				end
-			end
-			if isprop(me,'buffertex') && ~isempty(me.buffertex)
-				if Screen(me.buffertex, 'WindowKind')~=0 ; try Screen('Close',me.buffertex); end; end
-			end
-			if me.verbose; fprintf('--->>> Delete: %s\n',me.fullName); end
 		end
 		
 	end%---END PRIVATE METHODS---%

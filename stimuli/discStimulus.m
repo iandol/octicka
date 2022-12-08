@@ -10,19 +10,19 @@ classdef discStimulus < baseStimulus
 		%> type can be "simple" or "flash"
 		type = 'simple'
 		%> colour for flash, empty to inherit from screen background with 0 alpha
-		flashColour double = []
+		flashColour = []
 		%> time to flash on and off in seconds
-		flashTime double {mustBeVector(flashTime)} = [0.25 0.25]
+		flashTime = [0.25 0.25]
 		%> is the ON flash the first flash we see?
-		flashOn logical = true
+		flashOn = true
 		%> contrast scales from foreground to screen background colour
-		contrast double {mustBeInRange(contrast,0,1)} = 1
+		contrast = 1
 		%> cosine smoothing sigma in pixels for mask
-		sigma double = 31.0
+		sigma = 31.0
 		%> use colour or alpha [default] channel for smoothing?
-		useAlpha logical = true
+		useAlpha = true
 		%> use cosine (0), hermite (1, default), or inverse hermite (2)
-		smoothMethod double = 1
+		smoothMethod = 1
 	end
 	
 	properties (SetAccess = protected, GetAccess = public)
@@ -40,7 +40,7 @@ classdef discStimulus < baseStimulus
 		flashSwitch
 	end
 	
-	properties (SetAccess = private, GetAccess = private)
+	properties (SetAccess = protected, GetAccess = protected)
 		%> change blend mode?
 		changeBlend = false
 		%> current flash state
@@ -56,7 +56,7 @@ classdef discStimulus < baseStimulus
 		flashColourOutTemp = [1 1 1]
 		stopLoop = 0
 		scale = 1
-		allowedProperties='type|flashTime|flashOn|flashColour|contrast|sigma|useAlpha|smoothMethod'
+		allowedPropertiesst='type|flashTime|flashOn|flashColour|contrast|sigma|useAlpha|smoothMethod'
 		ignoreProperties = 'flashSwitch';
 	end
 	
@@ -74,15 +74,14 @@ classdef discStimulus < baseStimulus
 		%> @return instance of the class.
 		% ===================================================================
 		function me = discStimulus(varargin)
-			args = optickaCore.addDefaults(varargin,...
+			args = octickaCore.addDefaults(varargin,...
 				struct('name','Disc','colour',[1 1 0 1]));
 			me=me@baseStimulus(args); %we call the superclass constructor first
-			me.parseArgs(args, me.allowedProperties);
+			me.parseArgs(args, me.allowedPropertiesst);
 			
 			me.isRect = true; %uses a rect for drawing?
 			
 			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
-			me.salutation('constructor','Stimulus initialisation complete');
 		end
 		
 		% ===================================================================
@@ -109,34 +108,24 @@ classdef discStimulus < baseStimulus
 			fn = fieldnames(me);
 			for j=1:length(fn)
 				prop = [fn{j} 'Out'];
-				if isempty(me.findprop(prop)) && isempty(regexp(fn{j},me.ignoreProperties, 'once'))%create a temporary dynamic property
+				if isempty(regexp(fn{j}, me.ignoreProperties, 'once'))
 					p = addprop(me, prop);
-					p.Transient = true;
-					if strcmp(fn{j},'size');p.SetMethod = @set_sizeOut;end
-					if strcmp(fn{j},'xPosition');p.SetMethod = @set_xPositionOut;end
-					if strcmp(fn{j},'yPosition');p.SetMethod = @set_yPositionOut;end
-					if strcmp(fn{j},'colour');p.SetMethod = @set_colourOut;end
-					if strcmp(fn{j},'flashColour');p.SetMethod = @set_flashColourOut;end
-					if strcmp(fn{j},'alpha');p.SetMethod = @set_alphaOut;end
-					if strcmp(fn{j},'contrast');p.SetMethod = @set_contrastOut;end
-				end
-				if isempty(regexp(fn{j},me.ignoreProperties, 'once'))
-					me.(prop) = me.(fn{j}); %copy our property value to our tempory copy
+					me.dp.(p) = me.(fn{j}); %copy our property value to our tempory copy
 				end
 			end
 			
-			doProperties(me); % create transient runtime action properties
+			addRuntimeProperties(me); % create transient runtime action properties
 			
-			if isempty(me.findprop('discSize'));p=me.addprop('discSize');p.Transient=true;end
+			if ~isproperty(me,'discSize'); me.addprop('discSize'); end
 			me.discSize = me.ppd * me.size;
 			
-			if isempty(me.findprop('res'));p=me.addprop('res');p.Transient=true;end
+			if ~isproperty(me,'res');me.addprop('res');end
 			me.res = round([me.discSize me.discSize]);
 			
-			if isempty(me.findprop('radius'));p=me.addprop('radius');p.Transient=true;end
+			if ~isproperty(me,'radius');me.addprop('radius'); end
 			me.radius = floor(me.discSize/2);
 			
-			if isempty(me.findprop('texture'));p=me.addprop('texture');p.Transient=true;end
+			if ~isproperty(me,'texture');me.addprop('texture');end
 			
 			me.texture = CreateProceduralSmoothedDisc(me.sM.win, me.res(1), ...
 						me.res(2), [0 0 0 0], me.radius, me.sigmaOut, ...
@@ -162,16 +151,6 @@ classdef discStimulus < baseStimulus
 			setRect(me);
 			if me.doAnimator;setup(me.animator, me);end
 
-			% a super annoying bug in matlab: if set methods are
-			% standard protected or private, they trigger recursions.
-			% Placing them as inline functions like here and they work!
-			function set_sizeOut(me, value)
-				me.sizeOut = value * me.ppd;
-				if isprop(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)
-					me.scale = me.sizeOut / me.discSize;
-					setRect(me);
-				end
-			end
 			function set_alphaOut(me, value)
 				if me.isInSetColour; return; end
 				me.alphaOut = value;
@@ -183,18 +162,9 @@ classdef discStimulus < baseStimulus
 				end
 			end
 			function set_contrastOut(me, value)
-				if iscell(value); value = value{1}; end
-				me.contrastOut = value;
-				if ~me.inSetup && ~me.stopLoop && value < 1
-					computeColour(me);
-				end
+				
 			end
-			function set_xPositionOut(me, value)
-				me.xPositionOut = value * me.ppd;
-			end
-			function set_yPositionOut(me,value)
-				me.yPositionOut = value*me.ppd;
-			end
+	
 			function set_colourOut(me, value)
 				me.isInSetColour = true;
 				[aold,name] = getP(me,'alpha');
@@ -342,15 +312,15 @@ classdef discStimulus < baseStimulus
 			me.flashFG = [];
 			me.flashBG = [];
 			me.flashCounter = [];
-			if isprop(me,'texture')
+			if isproperty(me,'texture')
 				if ~isempty(me.texture) && me.texture > 0 && Screen(me.texture,'WindowKind') == -1
 					try Screen('Close',me.texture); end %#ok<*TRYNC>
 				end
 				me.texture = []; 
 			end
-			if isprop(me,'discSize'); me.discSize = []; end
-			if isprop(me,'radius'); me.radius = []; end
-			if isprop(me,'res'); me.res = []; end
+			if isproperty(me,'discSize'); me.discSize = []; end
+			if isproperty(me,'radius'); me.radius = []; end
+			if isproperty(me,'res'); me.res = []; end
 			me.removeTmpProperties;
 			%if ~isempty(me.findprop('discSize'));delete(me.findprop('discSize'));end
 		end
@@ -366,13 +336,37 @@ classdef discStimulus < baseStimulus
 				flashSwitch = round(me.flashTimeOut(2) / me.sM.screenVals.ifi);
 			end
 		end
+    
+    
+    % ===================================================================
+		%> @brief our fake set methods, hooks into dynamicprops subsasgn
+		%>
+		% ===================================================================
+		function v = setOut(me, S, v)
+      if ~isstruct(S) || ~isfield(S,'subs'); return; end
+      switch S.subs
+        case 'sizeOut'
+          v = v * me.ppd;
+					if isproperty(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)
+						me.scale = v / me.discSize;
+						setRect(me);
+					end
+        case {'xPositionOut' 'yPositionOut'}
+          v = v * me.ppd;
+				case {'contrastOut'}
+					if iscell(v); v = v{1}; end
+					if ~me.inSetup && ~me.stopLoop && v < 1
+						computeColour(me);
+					end
+			end
+    end
 		
 	end %---END PUBLIC METHODS---%
 	
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
 	%=======================================================================
-	
+
 		% ===================================================================
 		%> @brief setRect
 		%> setRect makes the PsychRect based on the texture and screen values
@@ -380,7 +374,6 @@ classdef discStimulus < baseStimulus
 		%> requirements.
 		% ===================================================================
 		function setRect(me)
-			
 			me.dstRect = ScaleRect(Screen('Rect',me.texture), me.scale, me.scale);
 			if me.mouseOverride && me.mouseValid
 					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);

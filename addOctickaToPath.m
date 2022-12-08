@@ -1,7 +1,7 @@
-function addOptickaToPath()
+function addOctickaToPath()
 % adds opticka to path, ignoring at least some of the unneeded folders
 
-t				= tic;
+t				  = tic;
 mpath			= path;
 mpath			= strsplit(mpath, pathsep);
 opath			= fileparts(mfilename('fullpath'));
