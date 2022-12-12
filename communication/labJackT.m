@@ -157,7 +157,7 @@ classdef labJackT < handle
 			if strcmpi(me.name, 'null') %we were deliberately passed null, means go into silent mode
 				me.silentMode	= true;
 				me.openNow		= false;
-				me.log('CONSTRUCTOR Method','labJack running in silent mode...')
+				me.logOutput('CONSTRUCTOR Method','labJack running in silent mode...')
 			end
 			if IsWin
 				me.header = me.winHeader;
@@ -205,7 +205,7 @@ classdef labJackT < handle
 			end
 
 			if isempty(me.devCount) || me.devCount == 0
-				me.log('OPEN','No LabJack devices attached, entering silentMode...',true);
+				me.logOutput('OPEN','No LabJack devices attached, entering silentMode...',true);
 				me.close();
 				me.silentMode = true;
 				me.device = [];
@@ -236,7 +236,7 @@ classdef labJackT < handle
 			end
 			me.checkError(err);
 			if err > 0
-				me.log('OPEN','Error opening device, entering silentMode...',true);
+				me.logOutput('OPEN','Error opening device, entering silentMode...',true);
 				me.close();
 				me.silentMode = true; me.device = [];
 				return
@@ -247,7 +247,7 @@ classdef labJackT < handle
 			end
 
 			err = calllib(me.libName, 'LJM_WriteLibraryConfigS', 'LJM_SEND_RECEIVE_TIMEOUT_MS', 500);
-			if err == 0; me.log('OPEN method','Set timeout to 500ms!'); end
+			if err == 0; me.logOutput('OPEN method','Set timeout to 500ms!'); end
 
 			[~, ~, vals] = calllib(me.libName, 'LJM_eReadNames', me.handle,...
 				3, {'SERIAL_NUMBER','FIRMWARE_VERSION','TEST'}, [0 0 0], 0);
@@ -262,7 +262,7 @@ classdef labJackT < handle
 
 			me.isValid = me.isHandleValid;
 
-			if ~me.silentMode;me.log('OPEN method',sprintf('Loading the LabJackT in %.2fsecs: success!',toc(tS)));end	
+			if ~me.silentMode;me.logOutput('OPEN method',sprintf('Loading the LabJackT in %.2fsecs: success!',toc(tS)));end	
 		end
 		
 		% ===================================================================
@@ -275,10 +275,10 @@ classdef labJackT < handle
 				if ~isempty(me.functionList)
 					err =  calllib(me.libName,'LJM_Close',me.handle);
 					if err > 0 
-						me.log('CLOSE method','LabJack Handle not valid');
+						me.logOutput('CLOSE method','LabJack Handle not valid');
 						try calllib(me.libName,'LJM_CloseAll'); end %#ok<*TRYNC,NOSEMI>
 					else
-						me.log('CLOSE method','LabJack Handle has been closed');
+						me.logOutput('CLOSE method','LabJack Handle has been closed');
 					end
 				end
 				%me.devCount = [];
@@ -287,7 +287,7 @@ classdef labJackT < handle
 				me.isOpen = false;
 				me.isValid = false;
 			else
-				me.log('CLOSE method','No handle to close, closeAll called...');
+				me.logOutput('CLOSE method','No handle to close, closeAll called...');
 				try calllib(me.libName,'LJM_CloseAll');end
 				me.devCount = [];
 				me.devTypes = [];
@@ -822,7 +822,7 @@ classdef labJackT < handle
 		%>
 		% ===================================================================
 		function delete(me)
-			me.log('DELETE Method','labJackT object Cleaning up...')
+			me.logOutput('DELETE Method','labJackT object Cleaning up...')
 			me.close;
 		end
 		
@@ -871,7 +871,7 @@ classdef labJackT < handle
 			fnames = fieldnames(args); %find our argument names
 			for i=1:length(fnames)
 				if regexp(fnames{i},allowedProperties) %only set if allowed property
-					me.log(fnames{i},'Configuring setting in constructor');
+					me.logOutput(fnames{i},'Configuring setting in constructor');
 					me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
 				end
 			end

@@ -1,4 +1,4 @@
-classdef touchManager < optickaCore
+classdef touchManager < octickaCore
 	%UNTITLED Summary of this class goes here
 	%   Detailed explanation goes here
 
@@ -29,8 +29,8 @@ classdef touchManager < optickaCore
 		%> parsed.
 		%> @return instance of the class.
 		% ===================================================================
-			args = optickaCore.addDefaults(varargin,struct('name','touchManager'));
-			me = me@optickaCore(args); %superclass constructor
+			args = octickaCore.addDefaults(varargin,struct('name','touchManager'));
+			me = me@octickaCore(args); %superclass constructor
 % 			me.parseArgs(args,me.allowedProperties);
 % 			[me.devices,me.names,me.allinfo] = GetTouchDeviceIndices([], 1);
 			

@@ -1,5 +1,5 @@
 % ========================================================================
-classdef runExperiment < optickaCore
+classdef runExperiment < octickaCore
 %> @class runExperiment
 %> @brief The main experiment manager.
 %>
@@ -12,7 +12,7 @@ classdef runExperiment < optickaCore
 %>
 %> There are 2 main experiment types:
 %>  1) MOC (method of constants) tasks -- uses stimuli and task objects
-%>     directly to run standard randomised variable tasks. See optickatest.m
+%>     directly to run standard randomised variable tasks. See octickatest.m
 %>     for an example. Does not use the «stateMachine».
 %>  2) Behavioural tasks that use state machines for control logic. These
 %>     tasks still use stimuli and task objects to provide stimuli and
@@ -88,9 +88,9 @@ classdef runExperiment < optickaCore
 	end
 	
 	properties (Transient = true)
-		%> structure for screenManager on initialisation and info from opticka
+		%> structure for screenManager on initialisation and info from octicka
 		screenSettings struct		= struct()
-		%> this lets the opticka UI leave commands to runExperiment
+		%> this lets the octicka UI leave commands to runExperiment
 		uiCommand char				= ''
 	end
 	
@@ -113,8 +113,8 @@ classdef runExperiment < optickaCore
 		tobiisettings				= []
 		%> turn diary on for runTask, saved to the same folder as the data
 		diaryMode logical			= false
-		%> opticka version, passed on first use by opticka
-		optickaVersion char
+		%> octicka version, passed on first use by octicka
+		octickaVersion char
 		logStateTimers				= false
 		%> our old stimulus structure used to be a simple cell, now we use metaStimulus
 		stimulus
@@ -221,8 +221,8 @@ classdef runExperiment < optickaCore
 		%> @param varargin can be passed as a structure or name,arg pairs
 		%> @return instance of the class.
 		% ===================================================================
-			args = optickaCore.addDefaults(varargin,struct('name','Run Experiment'));
-			me=me@optickaCore(args); %superclass constructor
+			args = octickaCore.addDefaults(varargin,struct('name','Run Experiment'));
+			me=me@octickaCore(args); %superclass constructor
 			me.parseArgs(args,me.allowedProperties);
 		end
 		
@@ -1309,7 +1309,7 @@ classdef runExperiment < optickaCore
 					me.stimuli{i}.verbose = value;
 				end
 			end
-			if value; me.log(sprintf('Cascaded Verbose = %i to all objects...',value),[],true); end
+			if value; me.logOutput(sprintf('Cascaded Verbose = %i to all objects...',value),[],true); end
 		end
 		
 		% ===================================================================
@@ -1696,11 +1696,11 @@ classdef runExperiment < optickaCore
 				
 % 		% ===================================================================
 % 		function out = saveobj(me)
-% 		%> @brief called on save, removes opticka handle
+% 		%> @brief called on save, removes octicka handle
 % 		%>
 % 		%> @param
 % 		% ===================================================================
-%  			me.screenSettings.optickahandle = [];
+%  			me.screenSettings.octickahandle = [];
 %  			fprintf('===> Saving runExperiment object...\n')
 %  			out = me;
 %  		end

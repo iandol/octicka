@@ -1,5 +1,5 @@
 % ========================================================================
-classdef taskSequence < optickaCore & dynamicprops
+classdef taskSequence < octickaCore & dynamicprops
 %> @class taskSequence
 %> @brief Block-based variable randomisation manager
 %>
@@ -178,8 +178,8 @@ classdef taskSequence < optickaCore & dynamicprops
 		%> parsed.
 		%> @return instance of the class.
 		% ===================================================================
-			args = optickaCore.addDefaults(varargin,struct('name','taskSequence'));
-			me = me@optickaCore(args); %superclass constructor
+			args = octickaCore.addDefaults(varargin,struct('name','taskSequence'));
+			me = me@octickaCore(args); %superclass constructor
 			me.parseArgs(args,me.allowedProperties);
 			
 			me.nVar = me.varTemplate;
@@ -242,7 +242,7 @@ classdef taskSequence < optickaCore & dynamicprops
 		%> trialVar and perform the randomisation and balancing.
 		% ===================================================================
 			if me.nVars == 0
-				me.log('randomise','No variables to randomise...',true);
+				me.logOutput('randomise','No variables to randomise...',true);
 				me.outIndex = 1; %there is only one stimulus, no variables
 				me.outValues = [];
 				me.outVars = {};
@@ -409,7 +409,7 @@ classdef taskSequence < optickaCore & dynamicprops
 			end
 			
 			buildTable(me); %for display
-			me.log('randomiseTask', sprintf('Took %g ms',toc(rSTime)*1000), true);
+			me.logOutput('randomiseTask', sprintf('Took %g ms',toc(rSTime)*1000), true);
 			
 		end
 		
@@ -475,7 +475,7 @@ classdef taskSequence < optickaCore & dynamicprops
 			end
 
 			if me.verbose
-				me.log(sprintf('Trial = %i Response = %.2g @ %.2g secs',...
+				me.logOutput(sprintf('Trial = %i Response = %.2g @ %.2g secs',...
 					me.totalRuns, thisResponse, me.runTimeList(me.totalRuns)));
 			end
 			

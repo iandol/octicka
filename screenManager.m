@@ -227,10 +227,10 @@ classdef screenManager < octickaCore
 			try
 				AssertOpenGL
 				me.isPTB = true;
-				me.log('PTB + OpenGL supported!')
+				me.logOutput('PTB + OpenGL supported!')
 			catch %#ok<*CTCH>
 				me.isPTB = false;
-				me.log('CONSTRUCTOR','OpenGL support needed for PTB!!!',true)
+				me.logOutput('CONSTRUCTOR','OpenGL support needed for PTB!!!',true)
 			end
 			prepareScreen(me);
 		end
@@ -1616,7 +1616,7 @@ classdef screenManager < octickaCore
 					clear mimg
 				end
 			else
-				me.log('playMovie method','Playing failed!',true);
+				me.logOutput('playMovie method','Playing failed!',true);
 			end
 		end
 		
@@ -1627,7 +1627,7 @@ classdef screenManager < octickaCore
 		function delete(me)
 			if me.isOpen
 				me.close();
-				me.log('DELETE method','Screen closed');
+				me.logOutput('DELETE method','Screen closed');
 			end
 		end	
 	end

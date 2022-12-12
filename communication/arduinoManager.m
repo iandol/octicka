@@ -7,7 +7,7 @@
 %>
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
-classdef arduinoManager < optickaCore
+classdef arduinoManager < octickaCore
 	% ARDUINOMANAGER Connects and manages arduino communication. By default it
 	% connects using arduinoIOPort and the adio.ino arduino sketch (the legacy
 	% arduino interface by Mathworks), which provide much better performance
@@ -60,8 +60,8 @@ classdef arduinoManager < optickaCore
 		%==============CONSTRUCTOR============%
 		function me = arduinoManager(varargin)
 		% arduinoManager Construct an instance of this class
-			args = optickaCore.addDefaults(varargin,struct('name','arduino manager'));
-			me=me@optickaCore(args); %we call the superclass constructor first
+			args = octickaCore.addDefaults(varargin,struct('name','arduino manager'));
+			me=me@octickaCore(args); %we call the superclass constructor first
 			me.parseArgs(args, me.allowedProperties);
 			if isempty(me.port)
 				if ~verLessThan('matlab','9.7')	% use the nice serialport list command
@@ -79,7 +79,7 @@ classdef arduinoManager < optickaCore
 				end
 			end
 			if ~exist('arduinoIOPort','file')
-				me.comment = 'Cannot find arduinoIOPort, check opticka path!';
+				me.comment = 'Cannot find arduinoIOPort, check octicka path!';
 				warning(me.comment)
 				me.silentMode = true;
 			end

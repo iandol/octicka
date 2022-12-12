@@ -52,40 +52,40 @@
 %>
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
-classdef stateMachine < optickaCore
+classdef stateMachine < octickaCore
 	
 	properties
 		%> our main state list, stored as a structure
-		stateList struct			= struct([])
+		stateList			= struct([])
 		%> timedelta for time > ticks calculation, assume 1e-4 by default
 		%> can set to IFI of display.
-		timeDelta double			= 1e-4
+		timeDelta			= 1e-4
 		%> use real time (true) or ticks (false) to mark state time. Real time is more
 		%> accurate, and robust against unexpected delays. Ticks uses timeDelta per tick and a
 		%> tick timer (each loop is 1 tick) for time measurement. This is simpler, can be
 		%> controlled by an external driver that deals with timing, and without supervision
 		%> but delays may accumulate vs real timer.
-		realTime logical			= false
+		realTime			= false
 		%> clock function to use (GetSecs from PTB is optimal…)
-		clockFcn function_handle	= @GetSecs
+		clockFcn	= @GetSecs
 		%> N x 2 cell array of strings to compare, list to skip the current -> next state's exit functions; for example
 		%> skipExitStates = {'fixate',{'incorrect','breakfix'}}; means that if the currentstate is
 		%> 'fixate' and the next state is either incorrect OR breakfix, then skip the FIXATE exit
 		%> state. Add multiple rows for skipping multiple state's exit states.
-		skipExitStates cell			= {}
+		skipExitStates			= {}
 		%> for a state transition you can override the next state,
 		%> but this is reset on the transition, so you need logic at runtime
 		%> to set this value each time. This can be used in an experiment
 		%> where you set this when you are in state A, and based on a
 		%> probability you can transition to state B or state C for
 		%> example...
-		tempNextState char			= ''
+		tempNextState			= ''
 		%> verbose logging to command window?
 		verbose						= false
 		%> pause function (WaitSecs from PTB is optimal…)
-		waitFcn function_handle		= @WaitSecs
+		waitFcn		= @WaitSecs
 		%> do we run timers for function evaluations?
-		fnTimers logical			= true
+		fnTimers			= true
 	end
 	
 	properties (SetAccess = protected, GetAccess = public, Transient = true)
@@ -95,19 +95,19 @@ classdef stateMachine < optickaCore
 	
 	properties (SetAccess = protected, GetAccess = public)
 		%> total number of ticks, updated via runBriefly() and update()
-		totalTicks double
+		totalTicks
 		%> time at start of stateMachine
-		startTime double
+		startTime
 		%> final time a finish
-		finalTime double
+		finalTime
 		%> final ticks at finish
-		finalTick double
+		finalTick
 		%> current state
 		currentState
 		%> current state name
-		currentName char
+		currentName
 		%> current state uuid
-		currentUUID char
+		currentUUID
 		%> current state index
 		currentIndex
 		%> ticks within the current state
@@ -138,28 +138,18 @@ classdef stateMachine < optickaCore
 		%> feval logging
 		fevalTime
 		%> is tops data logger present?
-		isTops logical = false
+		isTops = false
 		%> should we run the finish function
-		isFinishing logical = false
+		isFinishing = false
 		%> field names of allStates struct array, defining state behaviors
-		stateFields cell = { 'name', 'next', 'entryFcn', 'withinFcn', 'time', 'transitionFcn','exitFcn', 'skipExitFcn' }
+		stateFields = { 'name', 'next', 'entryFcn', 'withinFcn', 'time', ...
+		'transitionFcn','exitFcn', 'skipExitFcn' }
 		%> default values of allStates struct array fields
-		stateDefaults cell = { '', '', {}, {}, 1, {}, {}, false }
+		stateDefaults = { '', '', {}, {}, 1, {}, {}, false }
 		%> properties allowed during construction
-		allowedProperties char = ['name|realTime|verbose|clockFcn|waitFcn|'...
-			'timeDelta|skipExitStates|tempNextState']
+		allowedProperties = {'name','realTime','verbose','clockFcn','waitFcn',...
+		'timeDelta','skipExitStates','tempNextState'}
 	end
-	
-	%events
-		%> called at run start
-		%runStart
-		%> called at run end
-		%runFinish
-		%> entering state
-		%enterState
-		%> exiting state
-		%exitState
-	%end
 	
 	%=======================================================================
 	methods %------------------PUBLIC METHODS
@@ -176,8 +166,8 @@ classdef stateMachine < optickaCore
 		% ===================================================================
 		function me = stateMachine(varargin)
 			
-			args = optickaCore.addDefaults(varargin,struct('name','state machine'));
-			me=me@optickaCore(args); %superclass constructor
+			args = octickaCore.addDefaults(varargin,struct('name','state machine'));
+			me=me@octickaCore(args); %superclass constructor
 			me.parseArgs(args,me.allowedProperties);
 			
 			%initialise the statelist index
@@ -336,7 +326,7 @@ classdef stateMachine < optickaCore
 				me.totalTicks = me.totalTicks + 1;
 				
 			else
-				me.log('update method','stateMachine has not been started yet',true)
+				me.logOutput('update method','stateMachine has not been started yet',true)
 			end
 		end
 		
@@ -348,12 +338,12 @@ classdef stateMachine < optickaCore
 		function forceTransition(me,stateName)
 			if me.isRunning == true
 				if isStateName(me,stateName)
-					%me.log('forceTransition method',['stateMachine forced to: ' stateName],false)
+					%me.logOutput('forceTransition method',['stateMachine forced to: ' stateName],false)
 					transitionToStateWithName(me, stateName)
 					return
 				end
 			else
-				me.log('forceTransition method','stateMachine has not been started yet',true)
+				me.logOutput('forceTransition method','stateMachine has not been started yet',true)
 			end
 		end
 		
@@ -375,7 +365,7 @@ classdef stateMachine < optickaCore
 				me.startTime = feval(me.clockFcn);
 				me.enterStateAtIndex(1);
 			else
-				me.log('start method','stateMachine already started...',true)
+				me.logOutput('start method','stateMachine already started...',true)
 			end
 		end
 		
@@ -394,7 +384,7 @@ classdef stateMachine < optickaCore
 				fprintf('\n--->>> Total time to do state traversal: %g secs \n', me.finalTime);
 				fprintf('--->>> Loops: %i thus %g ms per loop\n',me.finalTick, (me.finalTime/me.finalTick)*1000);
 			else
-				me.log('finish method','stateMachine not running...',true)
+				me.logOutput('finish method','stateMachine not running...',true)
 			end
 		end
 		
@@ -415,7 +405,7 @@ classdef stateMachine < optickaCore
 				end
 				finish(me);
 			else
-				me.log('run method','stateMachine already running...',true)
+				me.logOutput('run method','stateMachine already running...',true)
 			end
 		end
 		
@@ -622,7 +612,7 @@ classdef stateMachine < optickaCore
 				exitCurrentState(me);
 				enterStateAtIndex(me, index);
 			else
-				me.log('transitionToStateWithName method', 'ERROR, default to return to first state!!!\n',true)
+				me.logOutput('transitionToStateWithName method', 'ERROR, default to return to first state!!!\n',true)
 				enterStateAtIndex(me, 1);
 			end
 			
@@ -649,7 +639,7 @@ classdef stateMachine < optickaCore
 			me.nextTickOut = [];
 			me.nextTimeOut = [];
 			
-			if me.verbose; me.log(['Exit state: ' me.currentState.name ' @ ' num2str(me.log(end).tnow-me.startTime) 's | ' num2str(me.log(end).stateTimeToNow) 'secs | ' num2str(me.log(end).tick) '/' num2str(me.totalTicks) 'ticks'],'',false); end
+			if me.verbose; me.logOutput(['Exit state: ' me.currentState.name ' @ ' num2str(me.log(end).tnow-me.startTime) 's | ' num2str(me.log(end).stateTimeToNow) 'secs | ' num2str(me.log(end).tick) '/' num2str(me.totalTicks) 'ticks'],''); end
 		end
 		
 		% ===================================================================
@@ -688,10 +678,9 @@ classdef stateMachine < optickaCore
 				end
 				if me.fnTimers; me.fevalTime.enter = toc(tt)*1000; end
 				
-				if me.verbose; me.log(['Enter state: ' me.currentName ' @ ' num2str(me.currentEntryTime-me.startTime) 'secs / ' num2str(me.totalTicks) 'ticks'],'',false); end
-
+				if me.verbose; me.logOutput(['Enter state: ' me.currentName ' @ ' num2str(me.currentEntryTime-me.startTime) 'secs / ' num2str(me.totalTicks) 'ticks'],'',false); end
 			else
-				if me.verbose; me.log('enterStateAtIndex method', 'newIndex is greater than stateList length'); end
+				if me.verbose; me.logOutput('enterStateAtIndex method', 'newIndex is greater than stateList length'); end
 				me.finish();
 			end
 		end

@@ -16,7 +16,7 @@ classdef arduinoIOPort < handle
 %> Also added a timedTTL function, which performs the TTL timing on the arduino
 %> and allows PTB to continue its display loop without interupption.
 %> Requires a compatible arduino sketch: 
-%>   https://github.com/iandol/opticka/blob/master/communication/arduino/adio/adio.ino
+%>   https://github.com/iandol/octicka/blob/master/communication/arduino/adio/adio.ino
 %>
 %> We also define a startPin and endPin so we can use it with other boards
 %> like the Xiao which has a different pin number...

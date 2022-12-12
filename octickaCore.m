@@ -244,12 +244,12 @@ classdef octickaCore < handle
 				fnames = fieldnames(args); %find our argument names
 				for i=1:length(fnames)
 					if ismember(fnames{i},allowedProperties) %only set if allowed property
-						me.log(fnames{i},'Parsing input argument',true);
+						me.logOutput(fnames{i},'Parsing input argument',true);
 						fprintf('Original = %s | New = %s\n', class(me.(fnames{i})), class(args.(fnames{i})))
 						try
 							me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
 						catch
-							me.log(fnames{i},'Propery invalid!',true);
+							me.logOutput(fnames{i},'Propery invalid!',true);
 						end
 					end
 				end
@@ -269,9 +269,9 @@ classdef octickaCore < handle
 				for i=1:length(fnames)
 					try
 						me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
-						me.log(fnames{i},'SET property')
+						me.logOutput(fnames{i},'SET property')
 					catch
-						me.log(fnames{i},'Property INVALID!',true);
+						me.logOutput(fnames{i},'Property INVALID!',true);
 					end
 				end
 			end
@@ -353,7 +353,7 @@ classdef octickaCore < handle
 		
 		
 		% ===================================================================
-		function log(me, in, message, override)
+		function logOutput(me, in, message, override)
 		%> @brief Prints messages dependent on verbosity
 		%>
 		%> Prints messages dependent on verbosity
@@ -363,13 +363,13 @@ classdef octickaCore < handle
 		%> @param override force logging if true even if verbose is false
 		% ===================================================================
 			if ~exist('override','var');override = false;end
-			if me.verbose==true || override == true
-				if isnumeric(in);disp('num!!!');in=num2str(in);end
-				if ~exist('message','var') || isempty(message) || ~ischar(message)
-					fprintf(['---> ' me.fullName_ ': ' in '\n']);
-				else
-					fprintf(['---> ' me.fullName_ ': ' message ' | ' in '\n']);
-				end
+			if ~me.verbose || ~override; return; end
+			if ~exist('in','var'); in = 'Unknown'; end
+			if isnumeric(in);in=num2str(in);end
+			if ~exist('message','var') || isempty(message) || ~ischar(message)
+				fprintf(['---> ' me.fullName_ ': ' in '\n']);
+			else
+				fprintf(['---> ' me.fullName_ ': ' message ' | ' in '\n']);
 			end
 		end
 		

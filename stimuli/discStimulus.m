@@ -131,8 +131,8 @@ classdef discStimulus < baseStimulus
 						me.useAlpha, me.smoothMethod);
 			
 			if me.doFlash
-				if ~isempty(me.flashColourOut)
-					me.flashBG = [me.flashColourOut(1:3) me.alphaOut];
+				if ~isempty(me.dp.flashColourOut)
+					me.flashBG = [me.dp.flashColourOut(1:3) me.dp.alphaOut];
 				else
 					me.flashBG = [me.sM.backgroundColour(1:3) 0]; %make sure alpha is 0
 				end
@@ -185,11 +185,11 @@ classdef discStimulus < baseStimulus
 				if me.changeBlend;Screen('BlendFunction', me.sM.win, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');end
 				if me.doFlash == false
 					Screen('DrawTexture', me.sM.win, me.texture, [], me.mvRect,...
-					me.angleOut, [], [], me.colourOut, [], [],...
+					me.dp.angleOut, [], [], me.dp.colourOut, [], [],...
 					[]);
 				else
 					Screen('DrawTexture', me.sM.win, me.texture, [], me.mvRect,...
-					me.angleOut, [], [], me.currentColour, [], [],...
+					me.dp.angleOut, [], [], me.currentColour, [], [],...
 					[]);
 				end
 				if me.changeBlend;Screen('BlendFunction', me.sM.win, me.sM.srcMode, me.sM.dstMode);end
@@ -264,9 +264,9 @@ classdef discStimulus < baseStimulus
 		% ===================================================================
 		function flashSwitch = get.flashSwitch(me)
 			if me.flashState
-				flashSwitch = round(me.flashTimeOut(1) / me.sM.screenVals.ifi);
+				flashSwitch = round(me.dp.flashTimeOut(1) / me.sM.screenVals.ifi);
 			else
-				flashSwitch = round(me.flashTimeOut(2) / me.sM.screenVals.ifi);
+				flashSwitch = round(me.dp.flashTimeOut(2) / me.sM.screenVals.ifi);
 			end
 		end
     
@@ -310,16 +310,16 @@ classdef discStimulus < baseStimulus
 			if me.mouseOverride && me.mouseValid
 					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
 			else
-				if isempty(me.findprop('angleOut'))
-					[sx, sy]=pol2cart(me.d2r(me.angle),me.startPosition);
+				if isProperty(me, 'angleOut')
+					[sx, sy]=pol2cart(me.d2r(me.dp.angleOut),me.startPosition);
 				else
-					[sx, sy]=pol2cart(me.d2r(me.angleOut),me.startPosition);
+					[sx, sy]=pol2cart(me.d2r(me.angle),me.startPosition);
 				end
 				me.dstRect=CenterRectOnPointd(me.dstRect,me.sM.xCenter,me.sM.yCenter);
-				if isempty(me.findprop('xPositionOut'))
-					me.dstRect=OffsetRect(me.dstRect,(me.xPosition)*me.ppd,(me.yPosition)*me.ppd);
+				if isProperty(me, 'xPositionOut')
+					me.dstRect=OffsetRect(me.dstRect,(me.dp.xPositionOut)*me.ppd,(me.dp.yPositionOut)*me.ppd);
 				else
-					me.dstRect=OffsetRect(me.dstRect,me.xPositionOut+(sx*me.ppd),me.yPositionOut+(sy*me.ppd));
+					me.dstRect=OffsetRect(me.dstRect,me.xPosition+(sx*me.ppd),me.yPosition+(sy*me.ppd));
 				end
 			end
 			me.mvRect=me.dstRect;
@@ -334,9 +334,9 @@ classdef discStimulus < baseStimulus
 		function computeColour(me,~,~)
 			if me.inSetup || me.stopLoop; return; end
 			me.stopLoop = true;
-			me.colourOut = [me.mix(me.colourOutTemp(1:3)) me.alphaOut];
+			me.dp.colourOut = [me.mix(me.dp.colourOutTemp(1:3)) me.dp.alphaOut];
 			if ~isempty(me.flashColourOut)
-				me.flashColourOut = [me.mix(me.flashColourOutTemp(1:3)) me.alphaOut];
+				me.dp.flashColourOut = [me.mix(me.dp.flashColourOutTemp(1:3)) me.dp.alphaOut];
 			end
 			me.stopLoop = false;
 			me.setupFlash();
@@ -348,7 +348,7 @@ classdef discStimulus < baseStimulus
 		% ===================================================================
 		function setupFlash(me)
 			me.flashState = me.flashOn;
-			me.flashFG = me.colourOut;
+			me.flashFG = me.dp.colourOut;
 			me.flashCounter = 1;
 			if me.flashState
 				me.currentColour = me.flashFG;
@@ -362,7 +362,7 @@ classdef discStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function out = mix(me,c)
-			out = me.sM.backgroundColour(1:3) * (1 - me.contrastOut) + c(1:3) * me.contrastOut;
+			out = me.sM.backgroundColour(1:3) * (1 - me.dp.contrastOut) + c(1:3) * me.dp.contrastOut;
 		end
 		
 	end

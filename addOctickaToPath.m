@@ -1,5 +1,5 @@
 function addOctickaToPath()
-% adds opticka to path, ignoring at least some of the unneeded folders
+% adds octicka to path, ignoring at least some of the unneeded folders
 
 t				  = tic;
 mpath			= path;

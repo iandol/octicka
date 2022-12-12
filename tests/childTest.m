@@ -28,6 +28,15 @@ classdef childTest < baseTest
 			end
 		end
 		
+		function callMe(me)
+			
+			if isProperty(me, 'sizeOut')
+				s = me.dp.sizeOut;
+				fprintf('callMe: Size = %.2f\n',s);
+			end
+			
+		end
+		
 		% ===================================================================
 		function v = setOut(me, S, v)
       if strcmp(S(1).type, '.')

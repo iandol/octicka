@@ -1,5 +1,5 @@
 % ========================================================================
-%> @brief baseStimulus is the superclass for all opticka stimulus objects
+%> @brief baseStimulus is the superclass for all octicka stimulus objects
 %>
 %> Superclass providing basic structure for all stimulus classes. This is a dynamic properties
 %> descendant, allowing for the temporary run variables used, which get appended "name"Out, i.e.
@@ -409,7 +409,7 @@ classdef baseStimulus < octickaCore
 					s.blend = true;
 					s.disableSyncTests = true;
 					s.visualDebug = true;
-					s.bitDepth = 'FloatingPoint32BitIfPossible';
+					s.bitDepth = '8bit';
 				end
 				if ~exist('forceScreen','var') || isempty(forceScreen); forceScreen = -1; end
 				if ~exist('showVBL','var') || isempty(showVBL); showVBL = false; end
@@ -510,10 +510,9 @@ classdef baseStimulus < octickaCore
 				warning on
 			catch ME
 				warning on
-				getReport(ME)
 				Priority(0);
 				if exist('s','var') && isa(s,'screenManager')
-					close(s);
+					try close(s); end
 				end
 				clear fps benchmark runtime b bb i; %clear up a bit
 				reset(me); %reset our stimulus ready for use again
@@ -674,8 +673,8 @@ classdef baseStimulus < octickaCore
 		% ===================================================================
 		%> @brief setRect
 		%> setRect makes the PsychRect based on the texture and screen
-		%> values, you should call computePosition() first to get xOut and
-		%> yOut
+		%> values, you should call computePosition() first to get xFinal and
+		%> yFinal
 		% ===================================================================
 		function setRect(me)
 			if ~isempty(me.texture)
@@ -683,7 +682,7 @@ classdef baseStimulus < octickaCore
 				if me.mouseOverride && me.mouseValid
 					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
 				else
-					me.dstRect=CenterRectOnPointd(me.dstRect, me.xOut, me.yOut);
+					me.dstRect=CenterRectOnPointd(me.dstRect, me.xFinal, me.yFinal);
 				end
 				me.mvRect=me.dstRect;
 			end
@@ -704,21 +703,21 @@ classdef baseStimulus < octickaCore
 		end
 		
 		% ===================================================================
-		%> @brief compute xOut and yOut
+		%> @brief compute xFinal and yFinal
 		%>
 		% ===================================================================
 		function computePosition(me)
 			if me.mouseOverride && me.mouseValid
-				me.xOut = me.mouseX; me.yOut = me.mouseY;
+				me.xFinal = me.mouseX; me.yFinal = me.mouseY;
 			else
 				if isempty(getP(me, 'angleOut'))
 					[dx, dy]=pol2cart(me.d2r(me.angle),me.startPosition);
 				else
 					[dx, dy]=pol2cart(me.d2r(me.dp.angleOut),me.startPositionOut);
 				end
-				me.xOut = me.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
-				me.yOut = me.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
-				if me.verbose; fprintf('---> computePosition: %s X = %gpx / %gpx / %gdeg | Y = %gpx / %gpx / %gdeg\n',me.fullName, me.xOut, me.xPositionOut, dx, me.yOut, me.yPositionOut, dy); end
+				me.xFinal = me.dp.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
+				me.yFinal = me.dp.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
+				if me.verbose; fprintf('---> computePosition: %s X = %gpx / %gpx / %gdeg | Y = %gpx / %gpx / %gdeg\n',me.fullName, me.xFinal, me.dp.xPositionOut, dx, me.yFinal, me.dp.yPositionOut, dy); end
 			end
 			setAnimationDelta(me);
 		end

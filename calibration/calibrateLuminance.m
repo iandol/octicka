@@ -59,7 +59,7 @@ classdef calibrateLuminance < handle
 		%> methods list to fit to raw luminance values, first is always
 		%> gamma
 		analysisMethods cell = {'gamma';'pchipinterp';'cubicspline'}
-		%> which model should opticka select: 1 is simple gamma,
+		%> which model should octicka select: 1 is simple gamma,
 		%> 2:n are the analysisMethods chosen; 2=pchipinterp
 		choice double = 2
 		%> Target (centered square that will be measured) size in pixels
@@ -160,7 +160,7 @@ classdef calibrateLuminance < handle
 					fnames = fieldnames(args); %find our argument names
 					for i=1:length(fnames)
 						if regexp(fnames{i},me.allowedPropertiesBase) %only set if allowed property
-							me.log(fnames{i},'Configuring property constructor');
+							me.logOutput(fnames{i},'Configuring property constructor');
 							me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
 						end
 					end
@@ -634,7 +634,7 @@ classdef calibrateLuminance < handle
 				[fittedmodel, gof, output] = fit(rampNorm',inputValuesNorm',g,fo);
 				me.displayGamma(loop) = fittedmodel.g;
 				me.gammaTable{1,loop} = ((([0:1/(me.tableLength-1):1]'))).^(1/fittedmodel.g);
-				me.log('Analyse','gammaTable 1 = simple fitted gamma');
+				me.logOutput('Analyse','gammaTable 1 = simple fitted gamma');
 				
 				me.modelFit{1,loop}.method = 'Gamma';
 				me.modelFit{1,loop}.model = fittedmodel;
@@ -660,7 +660,7 @@ classdef calibrateLuminance < handle
 					g = fittedmodel([0:1/(me.tableLength-1):1]');
 					%g = me.normalize(g); %make sure we are from 0 to 1
 					me.gammaTable{i+1,loop} = g;
-					me.log('Analyse',sprintf('gammaTable %i = %s model',i+1,method));
+					me.logOutput('Analyse',sprintf('gammaTable %i = %s model',i+1,method));
 				end
 				
 			end
@@ -1375,7 +1375,7 @@ classdef calibrateLuminance < handle
 			me.verbose=true;
 			me.closeSpectroCAL();
 			me.closeScreen();
-			me.log('DELETE Method',['Deleting: ' me.uuid],true);
+			me.logOutput('DELETE Method',['Deleting: ' me.uuid],true);
 			me.plotHandle = [];
 			me.p = [];
 		end
@@ -1386,7 +1386,7 @@ classdef calibrateLuminance < handle
 		%>
 		% ===================================================================
 		function me = saveobj(me)
-			me.log('SAVE Method','Saving calibrateLuminance object')
+			me.logOutput('SAVE Method','Saving calibrateLuminance object')
 			me.plotHandle = [];
 			me.p = []; %remove the panel object, useless on reload
 		end

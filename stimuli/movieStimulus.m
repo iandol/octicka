@@ -10,18 +10,18 @@ classdef movieStimulus < baseStimulus
 		type = 'movie'
 		%> the direction of the whole object - i.e. the motion direction 
 		%> object can move in (different to the angle).
-		direction double  = 0
+		direction  = 0
 		%> do we lock the texture angle to the direction? If so what is the offset
 		%(0 = parallel, 90 = orthogonal etc.)
-		lockAngle double = []
+		lockAngle = []
 		%> the name and path of the movie file, if empty a default will be used
-		fileName char = ''
+		fileName = ''
 		%> do we block when getting a frame? This is important, as if it is 1
 		%> then you will drop frames waiting for the the synced video frame.
 		%> Set to 0 this class uses double buffering to keep drawing the previous frame
 		%> unitl a new frame is ready, ensuring other stimuli animate
 		%> smoothly alongside the video. 
-		blocking double = 0
+		blocking = 0
 		%> pixel format for opening movie? 6 is more efficient if H264
 		%> used. 1 = Luminance/Greyscale image, 2 = Luminance+Alpha, 
 		%> 3 = RGB 8 bit per channel, 4 = RGBA8, 5 = YUV 4:2:2 packed pixel format 
@@ -29,9 +29,9 @@ classdef movieStimulus < baseStimulus
 		%> for color space conversion on suitable graphics cards. 
 		%> 7 or 8 = Y8-Y800 planar format, using GLSL shaders, 
 		%> 9 = 16 bit Luminance, 10 = 16 bpc RGBA image
-		pixelFormat double = []
+		pixelFormat = []
 		%> how many seconds to preload, -1 tries all
-		preloadSecs double = -1
+		preloadSecs = -1
 		%> additional special flags, numbers can be added together
 		%> 1 = Use YUV video decoding instead of RGBA
 		%> 2 = linux with psychportaudio
@@ -42,25 +42,25 @@ classdef movieStimulus < baseStimulus
 		%> 256 = revent automatic deinterlacing of video
 		%> 512 = marks the movie as encoded in Psychtoolbox's own proprietary 16 bpc high precision format
 		%> 1024 = video frames are encoded as raw Bayer sensor data
-		specialFlagsOpen double = []
-        %> special flags for 'GetMovieImage'
-        %> 1 = use GL_TEXTURE_2D
-        %> 2 = high precision
-        %> 8 = no mipmap with GL_TEXTURE_2D
-        %> 32 = prevent closing the texture by a call to Screen('Close')
-        specialFlagsFrame double = []
-        %> special flags for 'GetMovieImage'
-        %> 1 = don't return any time info (maybe slightly faster?)
-        %> 2 = don't return any textures, for bechmarking.
-        specialFlags2Frame double = 1;
+		specialFlagsOpen = []
+		%> special flags for 'GetMovieImage'
+		%> 1 = use GL_TEXTURE_2D
+		%> 2 = high precision
+		%> 8 = no mipmap with GL_TEXTURE_2D
+		%> 32 = prevent closing the texture by a call to Screen('Close')
+		specialFlagsFrame = []
+		%> special flags for 'GetMovieImage'
+		%> 1 = don't return any time info (maybe slightly faster?)
+		%> 2 = don't return any textures, for bechmarking.
+		specialFlags2Frame = 1;
 		%> how to handle looping (1=PTB default)
-		loopStrategy double = 1
+		loopStrategy = 1
 		%> mask out a colour? e.g. [0 0 0]
-		mask double = []
+		mask = []
 		%> mask tolerance
-		maskTolerance double = [];
+		maskTolerance = [];
 		%> if movie has transparency, enforce opengl blending?
-		enforceBlending logical = false
+		enforceBlending = false
 	end
 	
 	properties (SetAccess = protected, GetAccess = public)
@@ -98,9 +98,13 @@ classdef movieStimulus < baseStimulus
 		msrcMode			= 'GL_SRC_ALPHA'
 		mdstMode			= 'GL_ONE_MINUS_SRC_ALPHA'
 		%> allowed properties passed to object upon construction
-		allowedProperties='fileName|blocking|pixelFormat|preloadSecs|specialFlagsOpen|specialFlagsFrame|specialFlags2Frame|loopStrategy|mask|maskTolerance|enforceBlending|direction';
+		allowedProperties=['fileName','blocking','pixelFormat','preloadSecs','specialFlagsOpen',...
+		'specialFlagsFrame','specialFlags2Frame','loopStrategy','mask','maskTolerance',...
+		'enforceBlending','direction'];
 		%> properties to not create transient copies of during setup phase
-		ignoreProperties = 'buffertex|shader|screenVals|movie|duration|fps|width|height|count|scale|fileName|pixelFormat|preloadSecs|specialFlagsOpen|specialFlagsFrame|specialFlags2Frame|loopStrategy'
+		ignoreProperties = ['buffertex','shader','screenVals','movie','duration','fps',...
+		'width','height','count','scale','fileName','pixelFormat','preloadSecs',...
+		'specialFlagsOpen','specialFlagsFrame','specialFlags2Frame','loopStrategy']
 	end
 	
 	%=======================================================================
@@ -115,10 +119,10 @@ classdef movieStimulus < baseStimulus
 		%> @param varargin are passed as a list of parametoer or a structure 
 		%> of properties which is parsed.
 		%>
-		%> @return instance of opticka class.
+		%> @return instance of octicka class.
 		% ===================================================================
 		function me = movieStimulus(varargin)
-			args = optickaCore.addDefaults(varargin,...
+			args = octickaCore.addDefaults(varargin,...
 				struct('name','movie','size',0));
 			me=me@baseStimulus(args); %we call the superclass constructor first
 			me.parseArgs(args, me.allowedProperties);
@@ -127,8 +131,8 @@ classdef movieStimulus < baseStimulus
 			
 			checkFileName(me);
 			
-			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
-			me.log('constructor','Movie Stimulus initialisation complete');
+			me.ignoreProperties = [ me.ignorePropertiesBase   me.ignoreProperties ];
+			me.logOutput('constructor','Movie Stimulus initialisation complete');
 		end
 		
 		% ===================================================================
@@ -147,30 +151,25 @@ classdef movieStimulus < baseStimulus
 		% ===================================================================
 		function setup(me, sM)
 			
-			if ~exist('sM','var') && ~isempty(me.sM); sM = me.sM; end
-			
 			reset(me);
 			me.inSetup = true;
+			if isempty(me.isVisible); me.show; end
+			
+			me.sM = sM;
+			if ~sM.isOpen; error('Screen needs to be Open!'); end
 			
 			checkFileName(me);
 			
-			if isempty(me.isVisible)
-				me.show;
-			end
-			
-			me.sM = sM;
 			me.ppd=sM.ppd;
-
+			me.screenVals = sM.screenVals;
+			me.texture = []; %we need to reset this
+			me.dp = struct;
 			fn = fieldnames(me);
 			for j=1:length(fn)
-				if isempty(me.findprop([fn{j} 'Out'])) && isempty(regexp(fn{j},me.ignoreProperties, 'once')) %create a temporary dynamic property
-					p=me.addprop([fn{j} 'Out']);
-					p.Transient = true;%p.Hidden = true;
-					if strcmp(fn{j},'xPosition');p.SetMethod = @set_xPositionOut;end
-					if strcmp(fn{j},'yPosition');p.SetMethod = @set_yPositionOut;end
-				end
-				if isempty(regexp(fn{j},me.ignoreProperties, 'once'))
-					me.([fn{j} 'Out']) = me.(fn{j}); %copy our property value to our tempory copy
+				if ~ismember(fn{j}, me.ignoreProperties)
+					prop = [fn{j} 'Out'];
+					p = addProperty(me, prop);
+					me.dp.(p) = me.(fn{j}); %copy our property value to our tempory copy
 				end
 			end
 			
@@ -184,8 +183,8 @@ classdef movieStimulus < baseStimulus
 			fprintf('\tBlocking: %i | Loop: %i | Preloadsecs: %i | Pixelformat: %i | Flags: %i\n', me.blocking, ...
 				me.loopStrategy, me.preloadSecs, me.pixelFormat, me.specialFlagsOpen);
 			
-			if me.sizeOut > 0
-				me.scale = me.sizeOut / (me.width / me.ppd);
+			if me.dp.sizeOut > 0
+				me.scale = me.dp.sizeOut / (me.width / me.ppd);
 			end
 			
 			me.shader = [];
@@ -198,12 +197,6 @@ classdef movieStimulus < baseStimulus
 			computePosition(me)
 			setRect(me);
 
-			function set_xPositionOut(me, value)
-				me.xPositionOut = value * me.ppd;
-			end
-			function set_yPositionOut(me,value)
-				me.yPositionOut = value*me.ppd; 
-			end
 		end
 
 		% ===================================================================
@@ -219,8 +212,8 @@ classdef movieStimulus < baseStimulus
 				try Screen('Close',me.buffertex); end 
 			end
 			me.texture = []; me.buffertex = [];
-			if me.sizeOut > 0
-				me.scale = me.sizeOut / (me.width / me.ppd);
+			if me.dp.sizeOut > 0
+				me.scale = me.dp.sizeOut / (me.width / me.ppd);
 			end
 			resetTicks(me);
 			computePosition(me);
@@ -228,14 +221,31 @@ classdef movieStimulus < baseStimulus
 		end
 		
 		% ===================================================================
+		%> @brief our fake set methods, hooks into dynamicprops subsasgn
+		%>
+		% ===================================================================
+		function v = setOut(me, S, v)
+      if ~isstruct(S) || ~strcmp(S(1).type, '.') || ~isfield(S,'subs'); return; end
+      switch S(1).subs
+        case {'sizeOut','xPositionOut' 'yPositionOut'}
+          v = v * me.ppd;
+				case {'contrastOut'}
+					if iscell(v); v = v{1}; end
+					if ~me.inSetup && ~me.stopLoop && v < 1
+						computeColour(me);
+					end
+			end
+    end
+		
+		% ===================================================================
 		%> @brief Update only position info, faster and doesn't reset movie
 		%>
 		% ===================================================================
 		function updatePositions(me,x,y)
-			me.xOut = x;
-			me.yOut = y;
+			me.xFinal = x;
+			me.yFinal = y;
 			if length(me.mvRect) == 4
-				me.mvRect=CenterRectOnPointd(me.mvRect, me.xOut, me.yOut);
+				me.mvRect=CenterRectOnPointd(me.mvRect, me.xFinal, me.yFinal);
 			else
 				fprintf('--->>> movieStimulus invalid mvRect\n');
 			end
@@ -255,7 +265,7 @@ classdef movieStimulus < baseStimulus
 				elseif me.mouseOverride && me.mouseValid
 					fprintf('XX %i\n',me.tick)
 				end
-				if ~isempty(me.lockAngle); angle = me.directionOut+me.lockAngle; else; angle = me.angleOut; end
+				if ~isempty(me.lockAngle); angle = me.dp.directionOut+me.lockAngle; else; angle = me.dp.angleOut; end
 				if me.enforceBlending; Screen('BlendFunction', me.sM.win, me.msrcMode, me.mdstMode); end
 				me.texture = Screen('GetMovieImage', me.sM.win, me.movie, me.blocking);
 				if me.texture > 0
@@ -359,7 +369,7 @@ classdef movieStimulus < baseStimulus
 				if me.mouseOverride && me.mouseValid
 					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
 				else
-					me.dstRect=CenterRectOnPointd(me.dstRect, me.xOut, me.yOut);
+					me.dstRect=CenterRectOnPointd(me.dstRect, me.xFinal, me.yFinal);
 				end
 				if me.verbose
 					fprintf('---> stimulus TEXTURE dstRect = %5.5g %5.5g %5.5g %5.5g\n',me.dstRect(1), me.dstRect(2),me.dstRect(3),me.dstRect(4));
@@ -376,7 +386,7 @@ classdef movieStimulus < baseStimulus
 			if isempty(me.fileName) || exist(me.fileName,'file') ~= 2
 				p = mfilename('fullpath');
 				p = fileparts(p);
-				me.fileName = [p filesep 'monkey-dance.avi'];
+				me.fileName = [p filesep 'monkey.mp4'];
 			end
 		end
 		

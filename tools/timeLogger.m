@@ -1,4 +1,4 @@
-classdef timeLogger < optickaCore
+classdef timeLogger < octickaCore
 	%TIMELOGGER Simple class used to store the timing data from an experiment
 	%  timeLogger stores timing data for a taskrun and optionally graphs the
 	%  result.
