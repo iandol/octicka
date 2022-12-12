@@ -90,14 +90,12 @@ classdef octickaCore < handle
 		end
     
     % ===================================================================
-    function ret = isproperty(me, prop);
-      f = fieldnames(me);
-      if any(strcmp(f, 'dp'))
-        if ~isempty(me.dp)
-          disp('Has dynamic props');
-          ff = fieldnames(me.dp);
-          f = [f;ff];
-        end
+    function ret = isProperty(me, prop);
+			persistent f
+			if isempty(f);f = fieldnames(me);end
+      if any(strcmp(f, 'dp')) && ~isempty(me.dp)
+         ff = fieldnames(me.dp);
+         f = [f;ff];
       end
       ret = any(strcmp(f, prop));
     end
@@ -111,7 +109,7 @@ classdef octickaCore < handle
 		%> @param property — the property to change
 		%> @param value — the value to change it to
 		% ===================================================================
-			if isproperty(me,property)
+			if isProperty(me,property)
 				me.(property) = value;
 			end
 		end

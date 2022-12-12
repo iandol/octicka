@@ -48,7 +48,7 @@ function names = fieldnames (obj)
   if (nargin < 1)
     print_usage ();
   endif
-
+	if isempty(obj) || isnumeric(obj); names = []; return; end
   if (isstruct (obj))
     names = __fieldnames__ (obj);
   elseif (isobject (obj))
@@ -69,7 +69,7 @@ function names = fieldnames (obj)
     names_str = javaMethod ("getFields", "org.octave.ClassHelper", obj);
     names = ostrsplit (names_str, ';');
   else
-    error ("fieldnames: Invalid input argument");
+	  warning("fieldnames: Invalid input argument");
   endif
 
 endfunction

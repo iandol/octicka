@@ -41,6 +41,9 @@ classdef discStimulus < baseStimulus
 	end
 	
 	properties (SetAccess = protected, GetAccess = protected)
+		res
+		discSize
+		radius
 		%> change blend mode?
 		changeBlend = false
 		%> current flash state
@@ -56,7 +59,7 @@ classdef discStimulus < baseStimulus
 		flashColourOutTemp = [1 1 1]
 		stopLoop = 0
 		scale = 1
-		allowedPropertiesst='type|flashTime|flashOn|flashColour|contrast|sigma|useAlpha|smoothMethod'
+		allowedProperties='type|flashTime|flashOn|flashColour|contrast|sigma|useAlpha|smoothMethod'
 		ignoreProperties = 'flashSwitch';
 	end
 	
@@ -77,7 +80,7 @@ classdef discStimulus < baseStimulus
 			args = octickaCore.addDefaults(varargin,...
 				struct('name','Disc','colour',[1 1 0 1]));
 			me=me@baseStimulus(args); %we call the superclass constructor first
-			me.parseArgs(args, me.allowedPropertiesst);
+			me.parseArgs(args, me.allowedProperties);
 			
 			me.isRect = true; %uses a rect for drawing?
 			
@@ -102,13 +105,13 @@ classdef discStimulus < baseStimulus
 			me.sM = sM;
 			if ~sM.isOpen; warning('Screen needs to be Open!'); end
 			me.ppd=sM.ppd;
-			
+			me.screenVals = sM.screenVals;
 			me.texture = []; %we need to reset this
 			
 			fn = fieldnames(me);
 			for j=1:length(fn)
-				prop = [fn{j} 'Out'];
 				if isempty(regexp(fn{j}, me.ignoreProperties, 'once'))
+					prop = [fn{j} 'Out'];
 					p = addprop(me, prop);
 					me.dp.(p) = me.(fn{j}); %copy our property value to our tempory copy
 				end
@@ -116,19 +119,14 @@ classdef discStimulus < baseStimulus
 			
 			addRuntimeProperties(me); % create transient runtime action properties
 			
-			if ~isproperty(me,'discSize'); me.addprop('discSize'); end
 			me.discSize = me.ppd * me.size;
 			
-			if ~isproperty(me,'res');me.addprop('res');end
 			me.res = round([me.discSize me.discSize]);
 			
-			if ~isproperty(me,'radius');me.addprop('radius'); end
 			me.radius = floor(me.discSize/2);
 			
-			if ~isproperty(me,'texture');me.addprop('texture');end
-			
 			me.texture = CreateProceduralSmoothedDisc(me.sM.win, me.res(1), ...
-						me.res(2), [0 0 0 0], me.radius, me.sigmaOut, ...
+						me.res(2), [0 0 0 0], me.radius, me.sigma, ...
 						me.useAlpha, me.smoothMethod);
 			
 			if me.doFlash
@@ -150,68 +148,6 @@ classdef discStimulus < baseStimulus
 			computePosition(me);
 			setRect(me);
 			if me.doAnimator;setup(me.animator, me);end
-
-			function set_alphaOut(me, value)
-				if me.isInSetColour; return; end
-				me.alphaOut = value;
-				[~,name] = getP(me,'colour');
-				me.(name) = [me.(name)(1:3) value];
-				[val,name] = getP(me,'flashColour');
-				if ~isempty(val)
-					me.(name) = [me.(name)(1:3) value];
-				end
-			end
-			function set_contrastOut(me, value)
-				
-			end
-	
-			function set_colourOut(me, value)
-				me.isInSetColour = true;
-				[aold,name] = getP(me,'alpha');
-				if length(value)==4 && value(4) ~= aold
-					alpha = value(4);
-				else
-					alpha = aold;
-				end
-				switch length(value)
-					case 4
-						if alpha ~= aold; me.(name) = alpha; end
-					case 3
-						value = [value(1:3) alpha];
-					case 1
-						value = [value value value alpha];
-				end
-				if isempty(me.colourOutTemp);me.colourOutTemp = value;end
-				me.colourOut = value;
-				me.isInSetColour = false;
-				contrast = getP(me,'contrast');
-				if ~me.inSetup && ~me.stopLoop && contrast < 1
-					computeColour(me);
-				end
-			end
-			function set_flashColourOut(me, value)
-				if isempty(value);me.flashColourOut=value;me.setLoop = 0;return;end
-				me.isInSetColour = true;
-				[aold,name] = getP(me,'alpha');
-				if length(value)==4 && value(4) ~= aold
-					alpha = value(4);
-				else
-					alpha = aold;
-				end
-				switch length(value)
-					case 3
-						value = [value(1:3) alpha];
-					case 1
-						value = [value value value alpha];
-				end
-				if isempty(me.flashColourOutTemp);me.flashColourOutTemp = value;end
-				me.flashColourOut = value;
-				me.isInSetColour = false;
-				contrast = getP(me,'contrast');
-				if ~isempty(value) && ~me.inSetup && ~me.stopLoop && contrast < 1
-					computeColour(me);
-				end
-			end
 			
 		end
 		
@@ -312,17 +248,13 @@ classdef discStimulus < baseStimulus
 			me.flashFG = [];
 			me.flashBG = [];
 			me.flashCounter = [];
-			if isproperty(me,'texture')
+			if isProperty(me,'texture')
 				if ~isempty(me.texture) && me.texture > 0 && Screen(me.texture,'WindowKind') == -1
 					try Screen('Close',me.texture); end %#ok<*TRYNC>
 				end
 				me.texture = []; 
 			end
-			if isproperty(me,'discSize'); me.discSize = []; end
-			if isproperty(me,'radius'); me.radius = []; end
-			if isproperty(me,'res'); me.res = []; end
 			me.removeTmpProperties;
-			%if ~isempty(me.findprop('discSize'));delete(me.findprop('discSize'));end
 		end
 		
 		% ===================================================================
@@ -347,7 +279,7 @@ classdef discStimulus < baseStimulus
       switch S.subs
         case 'sizeOut'
           v = v * me.ppd;
-					if isproperty(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)
+					if isProperty(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)
 						me.scale = v / me.discSize;
 						setRect(me);
 					end
