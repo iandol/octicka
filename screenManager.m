@@ -188,9 +188,9 @@ classdef screenManager < octickaCore
 		%> we cache ppd as it is used frequently
 		ppd_ 
 		%> properties allowed to be modified during construction
-		allowedProperties = ['colorMode|overlayWin|specialFlags|syncVariance|disableSyncTests|displayPPRefresh|screenToHead|'...
-			'gammaTable|useRetina|bitDepth|pixelsPerCm|distance|screen|windowed|backgroundColour|'...
-			'screenXOffset|screenYOffset|blend|srcMode|dstMode|antiAlias|debug|photoDiode|verbose|hideFlash']
+		allowedProperties = {'colorMode','overlayWin','specialFlags','syncVariance','disableSyncTests','displayPPRefresh',...
+		'screenToHead','gammaTable','useRetina','bitDepth','pixelsPerCm','distance','screen','windowed','backgroundColour',''...
+		'screenXOffset','screenYOffset','blend','srcMode','dstMode','antiAlias','debug','photoDiode','verbose','hideFlash'}
 		%> the photoDiode rectangle in pixel values
 		photoDiodeRect			= [0, 0, 45, 45]
 		%> the values computed to draw the 1deg dotted grid in visualDebug mode
@@ -227,10 +227,10 @@ classdef screenManager < octickaCore
 			try
 				AssertOpenGL
 				me.isPTB = true;
-				me.salutation('PTB + OpenGL supported!')
+				me.log('PTB + OpenGL supported!')
 			catch %#ok<*CTCH>
 				me.isPTB = false;
-				me.salutation('CONSTRUCTOR','OpenGL support needed for PTB!!!',true)
+				me.log('CONSTRUCTOR','OpenGL support needed for PTB!!!',true)
 			end
 			prepareScreen(me);
 		end
@@ -1616,7 +1616,7 @@ classdef screenManager < octickaCore
 					clear mimg
 				end
 			else
-				me.salutation('playMovie method','Playing failed!',true);
+				me.log('playMovie method','Playing failed!',true);
 			end
 		end
 		
@@ -1627,7 +1627,7 @@ classdef screenManager < octickaCore
 		function delete(me)
 			if me.isOpen
 				me.close();
-				me.salutation('DELETE method','Screen closed');
+				me.log('DELETE method','Screen closed');
 			end
 		end	
 	end

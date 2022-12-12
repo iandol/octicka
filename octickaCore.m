@@ -25,33 +25,33 @@ classdef octickaCore < handle
 	%--------------------VISIBLE PROPERTIES-----------%
 	properties (SetAccess = protected, GetAccess = public)
 		%> clock() dateStamp set on construction
-		dateStamp 
+		dateStamp = []
 		%> universal ID
-		uuid 
+		uuid = ''
 		%> storage of various paths
-		paths 
+		paths = []
 	end
 	
 	%--------------------TRANSIENT PROPERTIES----------%
-	properties (SetAccess = protected, GetAccess = protected, Transient = true)
+	properties (Access = protected, Transient = true)
 		%> Octave version number, this is transient so it is not saved
 		oversion  = 0
 	end
 	
 	%--------------------PROTECTED PROPERTIES----------%
-	properties (SetAccess = protected, GetAccess = protected)
+	properties (Access = protected)
 		%> class name
 		className  = ''
 		%> save prefix generated from clock time
-		savePrefix
+		savePrefix = ''
 	end
 	
 	%--------------------PRIVATE PROPERTIES----------%
 	properties (Access = private)
 		%> allowed properties passed to object upon construction
-		allowedPropertiesCore  = 'name|comment|cloning'
+		allowedPropertiesCore  = {'name','comment','cloning'}
 		%> cached full name
-		fullName_
+		fullName_ = ''
 	end
 	
 	%=======================================================================
@@ -70,8 +70,8 @@ classdef octickaCore < handle
 		%>
 		%> @return instance of class.
 		% ===================================================================
-			args = me.addDefaults(varargin);
-			me.parseArgs(args,me.allowedPropertiesCore);
+			args = octickaCore.addDefaults(varargin);
+			me.parseArgs(args, me.allowedPropertiesCore);
 			me.dateStamp = clock();
 			me.className = class(me);
 			me.uuid = num2str(dec2hex(floor((now - floor(now))*1e10))); %me.uuid = char(java.util.UUID.randomUUID)%128bit uuid
@@ -88,17 +88,6 @@ classdef octickaCore < handle
 		% ===================================================================
 			me.addArgs(props);
 		end
-    
-    % ===================================================================
-    function ret = isProperty(me, prop);
-			persistent f
-			if isempty(f);f = fieldnames(me);end
-      if any(strcmp(f, 'dp')) && ~isempty(me.dp)
-         ff = fieldnames(me.dp);
-         f = [f;ff];
-      end
-      ret = any(strcmp(f, prop));
-    end
 		
 		% ===================================================================
 		function setProp(me, property, value)
@@ -218,7 +207,6 @@ classdef octickaCore < handle
 		function args = addDefaults(args, defs)
 		%> @brief add default options to arg input
 		%> 
-		%>
 		%> @param args input structure from varargin
 		%> @param defs extra default settings
 		%> @return args structure
@@ -251,24 +239,21 @@ classdef octickaCore < handle
 		%> @param args input structure
 		%> @param allowedProperties properties possible to set on construction
 		% ===================================================================
-			allowedProperties = ['^(' allowedProperties ')$'];
-			
 			args = octickaCore.makeArgs(args);
-
 			if isstruct(args)
 				fnames = fieldnames(args); %find our argument names
 				for i=1:length(fnames)
-					if regexpi(fnames{i},allowedProperties) %only set if allowed property
-						me.salutation(fnames{i},'Parsing input argument');
+					if ismember(fnames{i},allowedProperties) %only set if allowed property
+						me.log(fnames{i},'Parsing input argument',true);
+						fprintf('Original = %s | New = %s\n', class(me.(fnames{i})), class(args.(fnames{i})))
 						try
 							me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
 						catch
-							me.salutation(fnames{i},'Propery invalid!',true);
+							me.log(fnames{i},'Propery invalid!',true);
 						end
 					end
 				end
 			end
-			
 		end
 		
 		% ===================================================================
@@ -284,9 +269,9 @@ classdef octickaCore < handle
 				for i=1:length(fnames)
 					try
 						me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
-						me.salutation(fnames{i},'SET property')
+						me.log(fnames{i},'SET property')
 					catch
-						me.salutation(fnames{i},'Property INVALID!',true);
+						me.log(fnames{i},'Property INVALID!',true);
 					end
 				end
 			end
@@ -368,7 +353,7 @@ classdef octickaCore < handle
 		
 		
 		% ===================================================================
-		function salutation(me, in, message, override)
+		function log(me, in, message, override)
 		%> @brief Prints messages dependent on verbosity
 		%>
 		%> Prints messages dependent on verbosity
@@ -379,7 +364,8 @@ classdef octickaCore < handle
 		% ===================================================================
 			if ~exist('override','var');override = false;end
 			if me.verbose==true || override == true
-				if ~exist('message','var') || isempty(message)
+				if isnumeric(in);disp('num!!!');in=num2str(in);end
+				if ~exist('message','var') || isempty(message) || ~ischar(message)
 					fprintf(['---> ' me.fullName_ ': ' in '\n']);
 				else
 					fprintf(['---> ' me.fullName_ ': ' message ' | ' in '\n']);

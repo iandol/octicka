@@ -336,7 +336,7 @@ classdef stateMachine < optickaCore
 				me.totalTicks = me.totalTicks + 1;
 				
 			else
-				me.salutation('update method','stateMachine has not been started yet',true)
+				me.log('update method','stateMachine has not been started yet',true)
 			end
 		end
 		
@@ -348,12 +348,12 @@ classdef stateMachine < optickaCore
 		function forceTransition(me,stateName)
 			if me.isRunning == true
 				if isStateName(me,stateName)
-					%me.salutation('forceTransition method',['stateMachine forced to: ' stateName],false)
+					%me.log('forceTransition method',['stateMachine forced to: ' stateName],false)
 					transitionToStateWithName(me, stateName)
 					return
 				end
 			else
-				me.salutation('forceTransition method','stateMachine has not been started yet',true)
+				me.log('forceTransition method','stateMachine has not been started yet',true)
 			end
 		end
 		
@@ -375,7 +375,7 @@ classdef stateMachine < optickaCore
 				me.startTime = feval(me.clockFcn);
 				me.enterStateAtIndex(1);
 			else
-				me.salutation('start method','stateMachine already started...',true)
+				me.log('start method','stateMachine already started...',true)
 			end
 		end
 		
@@ -394,7 +394,7 @@ classdef stateMachine < optickaCore
 				fprintf('\n--->>> Total time to do state traversal: %g secs \n', me.finalTime);
 				fprintf('--->>> Loops: %i thus %g ms per loop\n',me.finalTick, (me.finalTime/me.finalTick)*1000);
 			else
-				me.salutation('finish method','stateMachine not running...',true)
+				me.log('finish method','stateMachine not running...',true)
 			end
 		end
 		
@@ -415,7 +415,7 @@ classdef stateMachine < optickaCore
 				end
 				finish(me);
 			else
-				me.salutation('run method','stateMachine already running...',true)
+				me.log('run method','stateMachine already running...',true)
 			end
 		end
 		
@@ -622,7 +622,7 @@ classdef stateMachine < optickaCore
 				exitCurrentState(me);
 				enterStateAtIndex(me, index);
 			else
-				me.salutation('transitionToStateWithName method', 'ERROR, default to return to first state!!!\n',true)
+				me.log('transitionToStateWithName method', 'ERROR, default to return to first state!!!\n',true)
 				enterStateAtIndex(me, 1);
 			end
 			
@@ -649,7 +649,7 @@ classdef stateMachine < optickaCore
 			me.nextTickOut = [];
 			me.nextTimeOut = [];
 			
-			if me.verbose; me.salutation(['Exit state: ' me.currentState.name ' @ ' num2str(me.log(end).tnow-me.startTime) 's | ' num2str(me.log(end).stateTimeToNow) 'secs | ' num2str(me.log(end).tick) '/' num2str(me.totalTicks) 'ticks'],'',false); end
+			if me.verbose; me.log(['Exit state: ' me.currentState.name ' @ ' num2str(me.log(end).tnow-me.startTime) 's | ' num2str(me.log(end).stateTimeToNow) 'secs | ' num2str(me.log(end).tick) '/' num2str(me.totalTicks) 'ticks'],'',false); end
 		end
 		
 		% ===================================================================
@@ -688,10 +688,10 @@ classdef stateMachine < optickaCore
 				end
 				if me.fnTimers; me.fevalTime.enter = toc(tt)*1000; end
 				
-				if me.verbose; me.salutation(['Enter state: ' me.currentName ' @ ' num2str(me.currentEntryTime-me.startTime) 'secs / ' num2str(me.totalTicks) 'ticks'],'',false); end
+				if me.verbose; me.log(['Enter state: ' me.currentName ' @ ' num2str(me.currentEntryTime-me.startTime) 'secs / ' num2str(me.totalTicks) 'ticks'],'',false); end
 
 			else
-				if me.verbose; me.salutation('enterStateAtIndex method', 'newIndex is greater than stateList length'); end
+				if me.verbose; me.log('enterStateAtIndex method', 'newIndex is greater than stateList length'); end
 				me.finish();
 			end
 		end

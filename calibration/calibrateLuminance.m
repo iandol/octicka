@@ -160,7 +160,7 @@ classdef calibrateLuminance < handle
 					fnames = fieldnames(args); %find our argument names
 					for i=1:length(fnames)
 						if regexp(fnames{i},me.allowedPropertiesBase) %only set if allowed property
-							me.salutation(fnames{i},'Configuring property constructor');
+							me.log(fnames{i},'Configuring property constructor');
 							me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
 						end
 					end
@@ -634,7 +634,7 @@ classdef calibrateLuminance < handle
 				[fittedmodel, gof, output] = fit(rampNorm',inputValuesNorm',g,fo);
 				me.displayGamma(loop) = fittedmodel.g;
 				me.gammaTable{1,loop} = ((([0:1/(me.tableLength-1):1]'))).^(1/fittedmodel.g);
-				me.salutation('Analyse','gammaTable 1 = simple fitted gamma');
+				me.log('Analyse','gammaTable 1 = simple fitted gamma');
 				
 				me.modelFit{1,loop}.method = 'Gamma';
 				me.modelFit{1,loop}.model = fittedmodel;
@@ -660,7 +660,7 @@ classdef calibrateLuminance < handle
 					g = fittedmodel([0:1/(me.tableLength-1):1]');
 					%g = me.normalize(g); %make sure we are from 0 to 1
 					me.gammaTable{i+1,loop} = g;
-					me.salutation('Analyse',sprintf('gammaTable %i = %s model',i+1,method));
+					me.log('Analyse',sprintf('gammaTable %i = %s model',i+1,method));
 				end
 				
 			end
@@ -1375,7 +1375,7 @@ classdef calibrateLuminance < handle
 			me.verbose=true;
 			me.closeSpectroCAL();
 			me.closeScreen();
-			me.salutation('DELETE Method',['Deleting: ' me.uuid],true);
+			me.log('DELETE Method',['Deleting: ' me.uuid],true);
 			me.plotHandle = [];
 			me.p = [];
 		end
@@ -1386,7 +1386,7 @@ classdef calibrateLuminance < handle
 		%>
 		% ===================================================================
 		function me = saveobj(me)
-			me.salutation('SAVE Method','Saving calibrateLuminance object')
+			me.log('SAVE Method','Saving calibrateLuminance object')
 			me.plotHandle = [];
 			me.p = []; %remove the panel object, useless on reload
 		end
@@ -1452,8 +1452,8 @@ classdef calibrateLuminance < handle
 			end
 		end
 		
-		%===========Salutation==========%
-		function salutation(me,in,message,override)
+		%===========log==========%
+		function log(me,in,message,override)
 			if ~exist('override','var') || isempty(override); override = false; end
 			if me.verbose > 0 || override
 				if ~exist('in','var') || isempty(in); in = 'General Message'; end

@@ -59,8 +59,9 @@ classdef discStimulus < baseStimulus
 		flashColourOutTemp = [1 1 1]
 		stopLoop = 0
 		scale = 1
-		allowedProperties='type|flashTime|flashOn|flashColour|contrast|sigma|useAlpha|smoothMethod'
-		ignoreProperties = 'flashSwitch';
+		allowedProperties = {'type','flashTime','flashOn','flashColour','contrast',...
+			'sigma','useAlpha','smoothMethod'}
+		ignoreProperties = {'flashSwitch','smoothMethod'};
 	end
 	
 	%=======================================================================
@@ -84,7 +85,7 @@ classdef discStimulus < baseStimulus
 			
 			me.isRect = true; %uses a rect for drawing?
 			
-			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
+			me.ignoreProperties = [ me.ignorePropertiesBase me.ignoreProperties ];
 		end
 		
 		% ===================================================================
@@ -103,16 +104,16 @@ classdef discStimulus < baseStimulus
 			if isempty(me.isVisible); me.show; end
 			
 			me.sM = sM;
-			if ~sM.isOpen; warning('Screen needs to be Open!'); end
+			if ~sM.isOpen; error('Screen needs to be Open!'); end
 			me.ppd=sM.ppd;
 			me.screenVals = sM.screenVals;
 			me.texture = []; %we need to reset this
-			
+			me.dp = struct;
 			fn = fieldnames(me);
 			for j=1:length(fn)
-				if isempty(regexp(fn{j}, me.ignoreProperties, 'once'))
+				if ~ismember(fn{j}, me.ignoreProperties)
 					prop = [fn{j} 'Out'];
-					p = addprop(me, prop);
+					p = addProperty(me, prop);
 					me.dp.(p) = me.(fn{j}); %copy our property value to our tempory copy
 				end
 			end
@@ -125,7 +126,7 @@ classdef discStimulus < baseStimulus
 			
 			me.radius = floor(me.discSize/2);
 			
-			me.texture = CreateProceduralSmoothedDisc(me.sM.win, me.res(1), ...
+			me.texture = CreateProceduralSmoothedDisc(sM.win, me.res(1), ...
 						me.res(2), [0 0 0 0], me.radius, me.sigma, ...
 						me.useAlpha, me.smoothMethod);
 			
@@ -269,14 +270,13 @@ classdef discStimulus < baseStimulus
 			end
 		end
     
-    
     % ===================================================================
 		%> @brief our fake set methods, hooks into dynamicprops subsasgn
 		%>
 		% ===================================================================
 		function v = setOut(me, S, v)
-      if ~isstruct(S) || ~isfield(S,'subs'); return; end
-      switch S.subs
+      if ~isstruct(S) || ~strcmp(S(1).type, '.') || ~isfield(S,'subs'); return; end
+      switch S(1).subs
         case 'sizeOut'
           v = v * me.ppd;
 					if isProperty(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)

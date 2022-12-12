@@ -128,7 +128,7 @@ classdef movieStimulus < baseStimulus
 			checkFileName(me);
 			
 			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
-			me.salutation('constructor','Movie Stimulus initialisation complete');
+			me.log('constructor','Movie Stimulus initialisation complete');
 		end
 		
 		% ===================================================================

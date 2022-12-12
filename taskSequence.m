@@ -242,7 +242,7 @@ classdef taskSequence < optickaCore & dynamicprops
 		%> trialVar and perform the randomisation and balancing.
 		% ===================================================================
 			if me.nVars == 0
-				me.salutation('randomise','No variables to randomise...',true);
+				me.log('randomise','No variables to randomise...',true);
 				me.outIndex = 1; %there is only one stimulus, no variables
 				me.outValues = [];
 				me.outVars = {};
@@ -409,7 +409,7 @@ classdef taskSequence < optickaCore & dynamicprops
 			end
 			
 			buildTable(me); %for display
-			me.salutation('randomiseTask', sprintf('Took %g ms',toc(rSTime)*1000), true);
+			me.log('randomiseTask', sprintf('Took %g ms',toc(rSTime)*1000), true);
 			
 		end
 		
@@ -475,7 +475,7 @@ classdef taskSequence < optickaCore & dynamicprops
 			end
 
 			if me.verbose
-				me.salutation(sprintf('Trial = %i Response = %.2g @ %.2g secs',...
+				me.log(sprintf('Trial = %i Response = %.2g @ %.2g secs',...
 					me.totalRuns, thisResponse, me.runTimeList(me.totalRuns)));
 			end
 			

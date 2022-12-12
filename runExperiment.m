@@ -1309,7 +1309,7 @@ classdef runExperiment < optickaCore
 					me.stimuli{i}.verbose = value;
 				end
 			end
-			if value; me.salutation(sprintf('Cascaded Verbose = %i to all objects...',value),[],true); end
+			if value; me.log(sprintf('Cascaded Verbose = %i to all objects...',value),[],true); end
 		end
 		
 		% ===================================================================

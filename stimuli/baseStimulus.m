@@ -140,17 +140,15 @@ classdef baseStimulus < octickaCore
 		setLoop = 0;
 		%> Which properties to ignore to clone when making transient copies in
 		%> the setup method
-		ignorePropertiesBase  = ['dp|animator|handles|ppd|sM|name|comment|fullName|'...
-			'family|type|dX|dY|delta|verbose|texture|dstRect|xFinal|yFinal|'...
-			'isVisible|dateStamp|paths|uuid|tick|mouseOverride|isRect|'...
-			'dstRect|mvRect|sM|screenVals|isSetup|isGUI|showOnTracker|'...
-			'doDots|doMotion|doDrift|doFlash|doAnimator']
-		%> Which properties to not draw in the UI panel
-		ignorePropertiesUIBase = ['animator|fullName']
-    %> properties allowed to be passed on construction
-		allowedProperties  = ['xPosition|yPosition|size|colour|verbose|'...
-			'alpha|startPosition|angle|speed|delayTime|mouseOverride|isVisible'...
-			'showOnTracker|animator']
+		ignorePropertiesBase  = {'dp','animator','handles','ppd','sM','name','comment','fullName',''...
+			'family','type','dX','dY','delta','verbose','texture','dstRect','xFinal','yFinal',''...
+			'isVisible','dateStamp','paths','uuid','tick','mouseOverride','isRect',''...
+			'dstRect','mvRect','sM','screenVals','isSetup','isGUI','showOnTracker',''...
+			'doDots','doMotion','doDrift','doFlash','doAnimator'}
+    	%> properties allowed to be passed on construction
+		allowedPropertiesBase  = {'xPosition','yPosition','size','colour','verbose',''...
+			'alpha','startPosition','angle','speed','delayTime','mouseOverride','isVisible'...
+			'showOnTracker','animator'}
 	end
 	
 	
@@ -167,7 +165,60 @@ classdef baseStimulus < octickaCore
 		% ===================================================================
 		function me = baseStimulus(varargin)
 			me=me@octickaCore(varargin); %superclass constructor
-			me.parseArgs(varargin, me.allowedProperties);
+			me.parseArgs(varargin, me.allowedPropertiesBase);
+		end
+		
+		% ===================================================================
+		function ret = isProperty(me, prop);
+			persistent f
+			if isempty(f);f = fieldnames(me);end
+			if any(strcmp(f, 'dp')) && ~isempty(me.dp)
+				ff = fieldnames(me.dp);
+				f = [f;ff];
+			end
+			ret = any(strcmp(f, prop));
+		end
+		
+		% ===================================================================
+		function prop = addProperty(me, prop)  
+		if nargin < 2 || ~ischar(prop) || isempty(prop) || isempty(me)
+			error([ mfilename ': addprop: Parameter must be a string.' ]); 
+		end
+		if isempty(me.dp); me.dp = struct(); end
+		prop = prop(:)';
+		if ~isvarname(prop)
+			error([ mfilename ': addprop: Parameter must be a valid property name.' ]); 
+		end
+		me.dp.(prop)=[];
+		end
+		
+		% ===================================================================
+		function v = subsref(me,S)
+			S = subs_added(me, S);
+			v = builtin('subsref', me, S);
+		end
+    
+    % ===================================================================
+		function a=subsasgn(me, S, v)
+			if ismethod(me, 'setOut')
+				fprintf('We are modifying the Value for %s\n',S(1).subs);
+				v = me.setOut(S, v); % this is a pseudo Set method
+			end
+			S = subs_added(me,S);
+			a = builtin('subsasgn', me, S, v);
+		end
+		
+		% ===================================================================
+		function S = subs_added(me, S)
+			if isempty(S); return; end
+			if ischar(S); S=struct('type', '.', 'subs', S); end
+			f = fieldnames(me.dp);
+			if isempty(f); return; end
+			if strcmp(S(1).type, '.') && ismember(S(1).subs, f)
+				fprintf('We are modifying the Assign for %s\n',S(1).subs);
+				S0 = struct('type', '.', 'subs', 'dp');
+				S = [ S0 S ];
+			end
 		end
 		
 		% ===================================================================
@@ -255,42 +306,6 @@ classdef baseStimulus < octickaCore
 				[~,value]=me.updatePosition(me.delta,me.dp.directionOut);
 			elseif isProperty(me, 'angleOut')
 				[~,value]=me.updatePosition(me.delta,me.dp.angleOut);
-			end
-		end
-		
-		% ===================================================================
-		%> @brief 
-		%> 
-		% ===================================================================
-		function v = subsref(me,S)
-      S = subs_added(me, S);
-      v = builtin('subsref', me, S);
-    end
-    
-    % ===================================================================
-		%> @brief 
-		%> 
-		% ===================================================================
-		function a=subsasgn(me,S, v)
-      if ismethod(me, 'setOut')
-        v = me.setOut(S,v); % this is a fake Set method
-      end
-      S = subs_added(me,S);
-      a = builtin('subsasgn', me, S, v);
-    end
-		
-		% ===================================================================
-		%> @brief 
-		%> 
-		% ===================================================================
-		function S = subs_added(me,S)
-      if isempty(S); return; end
-      if ischar(S); S=struct('type', '.', 'subs', S); end
-      f = fieldnames(me.dp);
-			if isempty(f); return; end
-      if strcmp(S(1).type, '.') && ismember(S(1).subs, f)
-        S0 = struct('type', '.', 'subs', 'dp');
-        S = [ S0 S ];
 			end
 		end
 		
@@ -519,11 +534,14 @@ classdef baseStimulus < octickaCore
 		%> @return value of property
 		% ===================================================================
 		function [value, name] = getP(me, name, range)
+			value = [];
 			if isProperty(me, name)
-				if isProperty(me,[name 'Out'])
+				if isProperty(me, [name 'Out'])
 					name = [name 'Out'];
+					try value = me.dp.(name); end
+				else
+					try value = me.(name); end
 				end
-				value = me.(name);
 				if exist('range','var'); value = value(range); end
 			else
 				warning('Property %s doesn''t exist!!!',name)
@@ -547,8 +565,10 @@ classdef baseStimulus < octickaCore
 			if isProperty(me, name)
 				if isProperty(me,[name 'Out'])
 					name = [name 'Out'];
+					try me.dp.(name) = value; end
+				else
+					try me.(name) = value; end
 				end
-				me.(name) = value;
 			else
 				warning('Property %s doesn''t exist!!!',name)
 			end
@@ -560,33 +580,17 @@ classdef baseStimulus < octickaCore
 		%> @param me
 		%> @return
 		% ===================================================================
-		function delete(me)
-			if ~isempty(me.texture)
-				for i = 1:length(me.texture)
-					if Screen(me.texture, 'WindowKind')~=0 ;try Screen('Close',me.texture); end; end %#ok<*TRYNC>
-				end
-			end
-			if ~isempty(me.buffertex)
-				if Screen(me.buffertex, 'WindowKind')~=0 ; try Screen('Close',me.buffertex); end; end
-			end
-			if me.verbose; fprintf('--->>> Delete: %s\n',me.fullName); end
-		end
-		
-		% ===================================================================
-		%> @brief addprop
-		%> these are transient properties that specify actions during runtime
-		% ===================================================================
-		function prop = addprop(me, prop)  
-      if nargin < 2 || ~ischar(prop) || isempty(prop) || isempty(me)
-        error([ mfilename ': addprop: Parameter must be a string.' ]); 
-      end
-			if isempty(me.dp); me.dp = struct(); end
-      prop = prop(:)';
-      if ~isvarname(prop)
-        error([ mfilename ': addprop: Parameter must be a valid property name.' ]); 
-      end
-      me.dp.(prop)=[];
-    end ## addprop
+##		function delete(me)
+##			if ~isempty(me.texture)
+##				for i = 1:length(me.texture)
+##					if Screen(me.texture, 'WindowKind')~=0 ;try Screen('Close',me.texture); end; end %#ok<*TRYNC>
+##				end
+##			end
+##			if ~isempty(me.buffertex)
+##				if Screen(me.buffertex, 'WindowKind')~=0 ; try Screen('Close',me.buffertex); end; end
+##			end
+##			if me.verbose; fprintf('--->>> Delete: %s\n',me.fullName); end
+##		end
 		
 	end %---END PUBLIC METHODS---%
 	
@@ -710,7 +714,7 @@ classdef baseStimulus < octickaCore
 				if isempty(getP(me, 'angleOut'))
 					[dx, dy]=pol2cart(me.d2r(me.angle),me.startPosition);
 				else
-					[dx, dy]=pol2cart(me.d2r(me.angleOut),me.startPositionOut);
+					[dx, dy]=pol2cart(me.d2r(me.dp.angleOut),me.startPositionOut);
 				end
 				me.xOut = me.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
 				me.yOut = me.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
