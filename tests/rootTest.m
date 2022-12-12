@@ -56,6 +56,7 @@ classdef rootTest < handle
     % ===================================================================
     function a=subsasgn(me,S, v)
       if ismethod(me, 'setOut')
+				fprintf('We are modifying the Value for %s\n',S(1).subs);
         v = me.setOut(S,v); % this is a fake Set method
       end
       S = subs_added(me,S);
@@ -69,6 +70,7 @@ classdef rootTest < handle
       f = fieldnames(me.dp);
 			if isempty(f); return; end
       if strcmp(S(1).type, '.') && ismember(S(1).subs, f)
+				fprintf('We are modifying the Assign for %s\n',S(1).subs);
         S0 = struct('type', '.', 'subs', 'dp');
         S = [ S0 S ];
 			end

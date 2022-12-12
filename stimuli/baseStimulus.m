@@ -258,12 +258,20 @@ classdef baseStimulus < octickaCore
 			end
 		end
 		
+		% ===================================================================
+		%> @brief 
+		%> 
+		% ===================================================================
 		function v = subsref(me,S)
       S = subs_added(me, S);
       v = builtin('subsref', me, S);
     end
     
-    function a=subsasgn(me,S, v)
+    % ===================================================================
+		%> @brief 
+		%> 
+		% ===================================================================
+		function a=subsasgn(me,S, v)
       if ismethod(me, 'setOut')
         v = me.setOut(S,v); % this is a fake Set method
       end
@@ -271,6 +279,10 @@ classdef baseStimulus < octickaCore
       a = builtin('subsasgn', me, S, v);
     end
 		
+		% ===================================================================
+		%> @brief 
+		%> 
+		% ===================================================================
 		function S = subs_added(me,S)
       if isempty(S); return; end
       if ischar(S); S=struct('type', '.', 'subs', S); end
