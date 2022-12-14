@@ -48,8 +48,8 @@ classdef screenManager < octickaCore
 		%> doublebuffering is enabled)
 		doubleBuffer			= 1
 		%> Mirror the content to a second window. In this case we need a
-		%screen 0 and screen 1 and the main output to screen 1. We will get
-		%and overlay window for this too we can draw to
+		%> screen 0 and screen 1 and the main output to screen 1. We will get
+		%> an overlay window for this too we can draw to. New PTB feature...
 		mirrorDisplay			= false
 		%> float precision and bitDepth of framebuffer/output: '8bit' is
 		%> best for old GPUs, but choose 'FloatingPoint32BitIfPossible' for
@@ -60,28 +60,28 @@ classdef screenManager < octickaCore
 		%> 'EnableBits++Mono++Output', 'EnableBits++Mono++OutputWithOverlay'
 		%> or 'EnableBits++Color++Output' 'EnableDataPixxM16Output',
 		%> 'EnableDataPixxC48Output'
-		bitDepth				= 'FloatingPoint32BitIfPossible'
+		bitDepth					= '8bit'
 		%> timestamping mode 1=beamposition,kernel fallback | 2=beamposition
 		%> crossvalidate with kernel
-		timestampingMode				= 1
+		timestampingMode			= 1
 		%> multisampling sent to the graphics card, try values 0[disabled], 4, 8
 		%> and 16 -- useful for textures to minimise aliasing, but this does
 		%> provide extra work for the GPU
-		antiAlias 				= 0
+		antiAlias 					= 0
 		%> background RGBA of display during stimulus presentation
-		backgroundColour		= [0.5 0.5 0.5 1.0]
+		backgroundColour			= [0.5 0.5 0.5 1.0]
 		%> use OpenGL blending mode
 		blend						= false
 		%> OpenGL blending source mode 'GL_ZERO'; 'GL_ONE';'GL_DST_COLOR'; 'GL_ONE_MINUS_DST_COLOR';'GL_SRC_ALPHA'; 'GL_ONE_MINUS_SRC_ALPHA'; 'GL_DST_ALPHA';'GL_ONE_MINUS_DST_ALPHA'; 'GL_SRC_ALPHA_SATURATE'
-		srcMode = 'GL_SRC_ALPHA'
+		srcMode 					= 'GL_SRC_ALPHA'
 		%> OpenGL blending dst mode
-		dstMode = 'GL_ONE_MINUS_SRC_ALPHA'
+		dstMode 					= 'GL_ONE_MINUS_SRC_ALPHA'
 		%> shunt center by X degrees (coordinates are in degrees from centre of
 		%> monitor)
-		screenXOffset	= 0
+		screenXOffset				= 0
 		%> shunt center by Y degrees (coordinates are in degrees from centre of
 		%> monitor)
-		screenYOffset	= 0
+		screenYOffset				= 0
 		%> show a white square in the top-right corner to trigger a photodiode
 		%> attached to screen. This is only displayed when the stimulus is
 		%> shown, not during the blank and can therefore be used for timing
@@ -91,13 +91,13 @@ classdef screenManager < octickaCore
 		%> gamma correction info saved as a calibrateLuminance object
 		gammaTable
 		%> settings for movie output
-		movieSettings						= []
+		movieSettings				= []
 		%> populated on window open; useful screen info, initial gamma tables 
 		%> and the like
 		screenVals					= struct('ifi',1/60,'fps',60,...
 											'winRect',[0 0 1920 1080])
 		%> verbose output?
-		verbose								= false
+		verbose						= false
 		%> level of PTB verbosity, set to 10 for full PTB logging
 		verbosityLevel				= 3
 		%> Use retina resolution natively (worse performance but double
@@ -106,10 +106,10 @@ classdef screenManager < octickaCore
 		%> Screen To Head Mapping, a Nx3 vector: Screen('Preference',
 		%> 'ScreenToHead', screen, head, crtc); Each N should be a different
 		%> display
-		screenToHead						= []
+		screenToHead				= []
 		%> force framerate for Display++ (120Hz or 100Hz, empty uses the default
 		%> OS setup)
-		displayPPRefresh				= []
+		displayPPRefresh			= []
 		%> hide the black flash as PTB tests its refresh timing, uses a gamma
 		%> trick from Mario
 		hideFlash					= false
@@ -148,21 +148,20 @@ classdef screenManager < octickaCore
 	
 	properties (Hidden = true)
 		%> The mode to use for color++ mode
-		colorMode						= 2
-		%> for some development macOS and windows machines we have to disable
-		%> sync tests, but we hide this as we should remember this is for
-		%> development ONLY!
-		disableSyncTests 				= false
+		colorMode					= 2
+		%> for some development machines we have to disable
+		%> sync tests.
+		disableSyncTests 			= true
 		%> The acceptable variance in flip timing tests performed when
 		%> screen opens, set with Screen('Preference', 'SyncTestSettings',
 		%> syncVariance) AMD cards under Ubuntu are very low variance, PTB
 		%> default is 2e-04. DO NOT change this unless you know what you are
 		%> doing.
-		syncVariance 					= 2e-04
+		syncVariance 				= 2e-04
 		%> overlay window if mirrorDisplay was enabled
-		overlayWin						= -1
+		overlayWin					= -1
 		%> e.g. kPsychGUIWindow
-		specialFlags						= []
+		specialFlags				= []
 	end
 	
 	properties (SetAccess = private, GetAccess = public)
@@ -192,7 +191,7 @@ classdef screenManager < octickaCore
 		'screenToHead','gammaTable','useRetina','bitDepth','pixelsPerCm','distance','screen','windowed','backgroundColour',''...
 		'screenXOffset','screenYOffset','blend','srcMode','dstMode','antiAlias','debug','photoDiode','verbose','hideFlash'}
 		%> the photoDiode rectangle in pixel values
-		photoDiodeRect			= [0, 0, 45, 45]
+		photoDiodeRect						= [0, 0, 45, 45]
 		%> the values computed to draw the 1deg dotted grid in visualDebug mode
 		grid
 		%> the movie pointer
@@ -652,14 +651,13 @@ classdef screenManager < octickaCore
 		% ===================================================================
 			if ~me.isOpen
 				stim = dotsStimulus('mask',true,'size',10,'speed',4);
-				prepareScreen(me);
 				open(me);
-				disp('--->>> screenManager running a quick demo...')
+				disp('--->>> screenManager running a quick demo...');
 				disp(me.screenVals);
 				setup(stim, me);
 				vbl = flip(me);
 				for i = 1:me.screenVals.fps*2
-					drawText(me,'Running a quick demo of screenManager...')
+					drawText(me,'Running a quick demo of screenManager...');
 					draw(stim);
 					finishDrawing(me);
 					animate(stim);
@@ -858,7 +856,7 @@ classdef screenManager < octickaCore
 				case 4
 					me.backgroundColour = value;
 				otherwise
-					error('Wrong colour values given, enter 1, 3 or 4 values')
+					error('Wrong colour values given, enter 1, 3 or 4 values');
 			end
 		end
 		
@@ -904,8 +902,8 @@ classdef screenManager < octickaCore
 			if any(check)
 				me.dstMode = me.blendModes{check};
 			else
-				disp(me.blendModes)
-				error('Wrong value given, select from list above')
+				disp(me.blendModes);
+				error('Wrong value given, select from list above');
 			end
 		end
 		
@@ -916,7 +914,7 @@ classdef screenManager < octickaCore
 		%>
 		%> @param value
 		% ===================================================================
-			assert(value > 0,'Distance must be greater than 0!')
+			assert(value > 0,'Distance must be greater than 0!');
 			me.distance = value;
 			me.makeGrid();
 		end

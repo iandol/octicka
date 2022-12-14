@@ -14,22 +14,22 @@ classdef arduinoManager < octickaCore
 	% than MATLAB's hardware package.
 	properties
 		%> arduino port, if left empty it will make a guess during open()
-		port char				= ''
+		port 				= ''
 		%> board type; uno [default] is a generic arduino, xiao is the seeduino xiao
-		board char {mustBeMember(board,{'Uno','Xiao'})}	= 'Uno' 
+		board	= 'Uno' 
 		%> run with no arduino attached, useful for debugging
-		silentMode logical		= false
+		silentMode		= false
 		%> output logging info
 		verbose					= false
 		%> open a GUI to drive a reward directly
-		openGUI logical			= false
+		openGUI			= false
 		%> which pin to trigger the reward TTL by default?
-		rewardPin double		= 2
+		rewardPin		= 2
 		%> time of the TTL sent by default?
-		rewardTime double		= 300
+		rewardTime		= 300
 		%> specify the available pins to use; 2-13 is the default for an Uno
 		%> 0-10 for the xiao (though xiao pins 11-14 can control LEDS)
-		availablePins cell		= {2,3,4,5,6,7,8,9,10,11,12,13}
+		availablePins		= {2,3,4,5,6,7,8,9,10,11,12,13}
 		%> the arduinoIOPort device object, you can call the methods
 		%> directly if required.
 		device					= []
@@ -40,7 +40,7 @@ classdef arduinoManager < octickaCore
 		%> which ports are available
 		ports
 		%> could we succesfully open the arduino?
-		isOpen logical			= false
+		isOpen			= false
 		%> ID from device
 		deviceID				= ''
 	end
@@ -51,8 +51,8 @@ classdef arduinoManager < octickaCore
 		screen screenManager
 	end
 	properties (SetAccess = private, GetAccess = private)
-		allowedProperties char	= ['availablePins|rewardPin|rewardTime|openGUI|board|'...
-			'port|silentMode|verbose']
+		allowedProperties = {'availablePins','rewardPin','rewardTime','openGUI','board',...
+			'port','silentMode','verbose'}
 	end
 	
 	methods%------------------PUBLIC METHODS--------------%

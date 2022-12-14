@@ -98,13 +98,13 @@ classdef movieStimulus < baseStimulus
 		msrcMode			= 'GL_SRC_ALPHA'
 		mdstMode			= 'GL_ONE_MINUS_SRC_ALPHA'
 		%> allowed properties passed to object upon construction
-		allowedProperties=['fileName','blocking','pixelFormat','preloadSecs','specialFlagsOpen',...
+		allowedProperties={'fileName','blocking','pixelFormat','preloadSecs','specialFlagsOpen',...
 		'specialFlagsFrame','specialFlags2Frame','loopStrategy','mask','maskTolerance',...
-		'enforceBlending','direction'];
+		'enforceBlending','direction'};
 		%> properties to not create transient copies of during setup phase
-		ignoreProperties = ['buffertex','shader','screenVals','movie','duration','fps',...
+		ignoreProperties = {'buffertex','shader','screenVals','movie','duration','fps',...
 		'width','height','count','scale','fileName','pixelFormat','preloadSecs',...
-		'specialFlagsOpen','specialFlagsFrame','specialFlags2Frame','loopStrategy']
+		'specialFlagsOpen','specialFlagsFrame','specialFlags2Frame','loopStrategy'}
 	end
 	
 	%=======================================================================
@@ -160,9 +160,17 @@ classdef movieStimulus < baseStimulus
 			
 			checkFileName(me);
 			
+			% On ARM set the default pixelFormat to 6 for shader based decode.
+			% On a RaspberryPi-4 this makes a world of difference when playing
+			% HD movies, between slow-motion 2 fps and proper 24 fps playback.
+			if isempty(me.pixelFormat) && IsARM
+				me.pixelFormat = 6;
+			end
+			
 			me.ppd=sM.ppd;
 			me.screenVals = sM.screenVals;
 			me.texture = []; %we need to reset this
+			
 			me.dp = struct;
 			fn = fieldnames(me);
 			for j=1:length(fn)
@@ -225,15 +233,15 @@ classdef movieStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function v = setOut(me, S, v)
-      if ~isstruct(S) || ~strcmp(S(1).type, '.') || ~isfield(S,'subs'); return; end
-      switch S(1).subs
-        case {'sizeOut','xPositionOut' 'yPositionOut'}
-          v = v * me.ppd;
-				case {'contrastOut'}
-					if iscell(v); v = v{1}; end
-					if ~me.inSetup && ~me.stopLoop && v < 1
-						computeColour(me);
-					end
+		if ~isstruct(S) || ~strcmp(S(1).type, '.') || ~isfield(S,'subs'); return; end
+		switch S(1).subs
+			case {'sizeOut','xPositionOut' 'yPositionOut'}
+				v = v * me.ppd;
+			case {'contrastOut'}
+				if iscell(v); v = v{1}; end
+				if ~me.inSetup && ~me.stopLoop && v < 1
+					computeColour(me);
+				end
 			end
     end
 		
@@ -364,8 +372,7 @@ classdef movieStimulus < baseStimulus
 		% ===================================================================
 		function setRect(me)
 			if ~isempty(me.movie)
-				me.dstRect = CenterRect([0 0 me.width me.height],me.sM.winRect);
-				me.dstRect = ScaleRect(me.dstRect, me.scale, me.scale);
+				me.dstRect = ScaleRect([0 0 me.width me.height], me.scale, me.scale);
 				if me.mouseOverride && me.mouseValid
 					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
 				else

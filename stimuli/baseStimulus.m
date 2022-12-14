@@ -132,12 +132,7 @@ classdef baseStimulus < octickaCore
 		dY_ = []
 		% deal with interaction of colour and alpha
 		isInSetColour  = false
-		% workaround set method bug for dynamic properties. In theory a set
-		% method should not trigger the same set method, but there is a
-		% hard to trigger bug where indeed we get a recursion error. Here
-		% we use a loop limit so only the fisrt loop will set the value.
-		% See commit #a8bdb368928a9c5ebdb40cc66ec02be0534ce0d5
-		setLoop = 0;
+		setLoop = 0
 		%> Which properties to ignore to clone when making transient copies in
 		%> the setup method
 		ignorePropertiesBase  = {'dp','animator','handles','ppd','sM','name','comment','fullName',''...
@@ -710,7 +705,7 @@ classdef baseStimulus < octickaCore
 			if me.mouseOverride && me.mouseValid
 				me.xFinal = me.mouseX; me.yFinal = me.mouseY;
 			else
-				if isempty(getP(me, 'angleOut'))
+				if isProperty(me, 'angleOut')
 					[dx, dy]=pol2cart(me.d2r(me.angle),me.startPosition);
 				else
 					[dx, dy]=pol2cart(me.d2r(me.dp.angleOut),me.startPositionOut);

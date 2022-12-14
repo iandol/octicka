@@ -30,6 +30,7 @@ classdef octickaCore < handle
 		uuid = ''
 		%> storage of various paths
 		paths = []
+		fullName = ''
 	end
 	
 	%--------------------TRANSIENT PROPERTIES----------%
@@ -37,21 +38,21 @@ classdef octickaCore < handle
 		%> Octave version number, this is transient so it is not saved
 		oversion  = 0
 	end
-	
+
 	%--------------------PROTECTED PROPERTIES----------%
 	properties (Access = protected)
 		%> class name
 		className  = ''
 		%> save prefix generated from clock time
 		savePrefix = ''
+		%> cached full name
+		fullName_ = ''
 	end
 	
 	%--------------------PRIVATE PROPERTIES----------%
 	properties (Access = private)
 		%> allowed properties passed to object upon construction
 		allowedPropertiesCore  = {'name','comment','cloning'}
-		%> cached full name
-		fullName_ = ''
 	end
 	
 	%=======================================================================
@@ -75,8 +76,10 @@ classdef octickaCore < handle
 			me.dateStamp = clock();
 			me.className = class(me);
 			me.uuid = num2str(dec2hex(floor((now - floor(now))*1e10))); %me.uuid = char(java.util.UUID.randomUUID)%128bit uuid
-			me.oversion = str2double(regexp(version,'(?<ver>^\d\.\d[\d]?)','match','once'));
-			setPaths(me)
+			me.fullName = [me.name '<' me.uuid '>'];
+			me.fullName_ = me.fullName;
+			me.oversion = str2double(regexp(version,'^\d\.\d+','match','once'));
+			setPaths(me);
 		end
 		
 		% ===================================================================
@@ -102,6 +105,7 @@ classdef octickaCore < handle
 				me.(property) = value;
 			end
 		end
+		
 	end
 	
 	%=======================================================================
@@ -140,7 +144,7 @@ classdef octickaCore < handle
 						me.dir = p;
 						
 					else
-						warning('Can''t find valid source directory')
+						warning('Can''t find valid source directory');
 					end
 				end
 			end
@@ -160,7 +164,7 @@ classdef octickaCore < handle
 						if p ~= 0
 							me.matdir = p;
 						else
-							warning('Can''t find valid source directory')
+							warning('Can''t find valid source directory');
 						end
 					end
 				end
@@ -199,7 +203,7 @@ classdef octickaCore < handle
 			elseif isstruct(args)
 				return
 			else
-				error('---> makeArgs: You need to pass name:value pairs / structure of name:value fields!')
+				error('---> makeArgs: You need to pass name:value pairs / structure of name:value fields!');
 			end
 		end
 		
@@ -244,8 +248,7 @@ classdef octickaCore < handle
 				fnames = fieldnames(args); %find our argument names
 				for i=1:length(fnames)
 					if ismember(fnames{i},allowedProperties) %only set if allowed property
-						me.logOutput(fnames{i},'Parsing input argument',true);
-						fprintf('Original = %s | New = %s\n', class(me.(fnames{i})), class(args.(fnames{i})))
+						me.logOutput(fnames{i},sprintf('Parsing: old = %s | New = %s', class(me.(fnames{i})), class(args.(fnames{i}))));
 						try
 							me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
 						catch
@@ -269,7 +272,7 @@ classdef octickaCore < handle
 				for i=1:length(fnames)
 					try
 						me.(fnames{i})=args.(fnames{i}); %we set up the properies from the arguments as a structure
-						me.logOutput(fnames{i},'SET property')
+						me.logOutput(fnames{i},'SET property');
 					catch
 						me.logOutput(fnames{i},'Property INVALID!',true);
 					end
@@ -363,7 +366,7 @@ classdef octickaCore < handle
 		%> @param override force logging if true even if verbose is false
 		% ===================================================================
 			if ~exist('override','var');override = false;end
-			if ~me.verbose || ~override; return; end
+			if override==false && me.verbose==false; return; end
 			if ~exist('in','var'); in = 'Unknown'; end
 			if isnumeric(in);in=num2str(in);end
 			if ~exist('message','var') || isempty(message) || ~ischar(message)
