@@ -14,13 +14,13 @@ classdef arduinoManager < octickaCore
 	% than MATLAB's hardware package.
 	properties
 		%> arduino port, if left empty it will make a guess during open()
-		port 				= ''
+		port 			= ''
 		%> board type; uno [default] is a generic arduino, xiao is the seeduino xiao
-		board	= 'Uno' 
+		board			= 'Uno' 
 		%> run with no arduino attached, useful for debugging
 		silentMode		= false
 		%> output logging info
-		verbose					= false
+		verbose			= false
 		%> open a GUI to drive a reward directly
 		openGUI			= false
 		%> which pin to trigger the reward TTL by default?
@@ -29,26 +29,26 @@ classdef arduinoManager < octickaCore
 		rewardTime		= 300
 		%> specify the available pins to use; 2-13 is the default for an Uno
 		%> 0-10 for the xiao (though xiao pins 11-14 can control LEDS)
-		availablePins		= {2,3,4,5,6,7,8,9,10,11,12,13}
+		availablePins	= {2,3,4,5,6,7,8,9,10,11,12,13}
 		%> the arduinoIOPort device object, you can call the methods
 		%> directly if required.
-		device					= []
+		device			= []
 		%> for the stepper specify the delay between digital writes
-		delaylength             = 0.03;
+		delaylength		= 0.03;
 	end
 	properties (SetAccess = private, GetAccess = public)
 		%> which ports are available
-		ports
+		ports			= []
 		%> could we succesfully open the arduino?
 		isOpen			= false
 		%> ID from device
-		deviceID				= ''
+		deviceID		= ''
 	end
 	properties (SetAccess = private, GetAccess = private, Transient = true)
 		%> handles for the optional UI
-		handles					= []
+		handles			= []
 		%> a screen object to bind to
-		screen screenManager
+		screen			= []
 	end
 	properties (SetAccess = private, GetAccess = private)
 		allowedProperties = {'availablePins','rewardPin','rewardTime','openGUI','board',...
@@ -64,13 +64,9 @@ classdef arduinoManager < octickaCore
 			me=me@octickaCore(args); %we call the superclass constructor first
 			me.parseArgs(args, me.allowedProperties);
 			if isempty(me.port)
-				if ~verLessThan('matlab','9.7')	% use the nice serialport list command
-					me.ports = serialportlist('available');
-				else
-					me.ports = seriallist; %#ok<SERLL> 
-				end
+				checkPorts(me);
 				if ~isempty(me.ports)
-					fprintf('--->arduinoManager: Ports available: %s\n',me.ports);
+					fprintf('--->arduinoManager: Ports available: %s\n',disp(me.ports));
 					if isempty(me.port); me.port = char(me.ports{end}); end
 				else
 					me.comment = 'No Serial Ports are available, going into silent mode';
@@ -90,7 +86,7 @@ classdef arduinoManager < octickaCore
 			if me.isOpen || ~isempty(me.device);disp('-->arduinoManager: Already open!');return;end
 			if me.silentMode;disp('-->arduinoManager: In silent mode, try to close() then open()!');me.isOpen=false;return;end
 			if isempty(me.port);warning('--->arduinoManager: Better specify the port to use; will try to select one from available ports!');return;end
-			close(me); me.ports = serialportlist('available');
+			close(me); checkPorts(me);
 			try
 				if IsWin && ~isempty(regexp(me.port, '^/dev/', 'once'))
 					warning('--->arduinoManager: Linux/macOS port specified but running on windows!')
@@ -124,8 +120,8 @@ classdef arduinoManager < octickaCore
 				me.silentMode = false;
 			catch ME
 				me.silentMode = true; me.isOpen = false;
-				fprintf('\n\nCouldn''t open Arduino: %s\n',ME.message)
-				getReport(ME)
+				fprintf('\n\n!!!Couldn''t open Arduino!!!\n');
+				rethrow(ME);
 			end
 		end
 
@@ -133,15 +129,11 @@ classdef arduinoManager < octickaCore
 		function close(me)
 			try me.device = []; end %#ok<*TRYNC> 
 			try close(me.handles.parent); me.handles=[];end
-			me.deviceID = '';
-			me.availablePins = '';
+			try me.deviceID = ''; end
+			try me.availablePins = ''; end
 			me.isOpen = false;
 			me.silentMode = false;
-			if ~verLessThan('matlab','9.7')
-				me.ports = serialportlist('available');
-			else
-				me.ports = seriallist; %#ok<SERLL> 
-			end
+			checkPorts(me);
 		end
 		
 		%===============RESET================%
@@ -309,6 +301,7 @@ classdef arduinoManager < octickaCore
 			end
 			stopStepper(me)
 		end
+		
 		%================STEPPER CYCLR==========
 		function  cycleStepper(me)
 			me.digitalWrite(9, 0);    %//ENABLE CH A
@@ -335,6 +328,7 @@ classdef arduinoManager < octickaCore
 			me.digitalWrite(11,1);  %//Moves CH B
 			WaitSecs('YieldSecs',me.delaylength);
 		end
+		
 		%================STOP STEPPER================
 		function stopStepper(me)
 			me.digitalWrite(9,1);        %//DISABLE CH A
@@ -344,366 +338,28 @@ classdef arduinoManager < octickaCore
 			WaitSecs('YieldSecs',me.delaylength);
 		end
 		
-		%===============Manual Reward GUI================%
-		function GUI(me)
-			if me.silentMode || ~me.isOpen; return; end
-			if ~isempty(me.handles) && isfield(me.handles,'parent') && ishandle(me.handles.parent)
-				disp('--->>> arduinoManager: GUI already open...\n')
-				return;
-			end
-			
-			bgcolor = [0.91 0.91 0.91];
-			bgcoloredit = [0.95 0.95 0.95];
-			if ismac
-				SansFont = 'Avenir next';
-				MonoFont = 'Menlo';
-				fontSize = 12;
-			elseif ispc
-				SansFont = 'Calibri';
-				MonoFont = 'Consolas';
-				fontSize = 12;
-			else %linux
-				SansFont = 'Liberation Sans';
-				MonoFont = 'Liberation Mono';
-				fontSize = 8;
-			end
-			
-			handles.parent = figure('Tag','aFig',...
-				'Name', 'arduinoManager GUI', ...
-				'MenuBar', 'none', ...
-				'Color', bgcolor, ...
-				'Position',[0 0 255 150],...
-				'NumberTitle', 'off');
-			
-			handles.value = uicontrol('Style','edit',...
-				'Parent',handles.parent,...
-				'Tag','RewardValue',...
-				'String',me.rewardTime,...
-				'FontName',MonoFont,...
-				'FontSize', fontSize,...
-				'Position',[5 115 95 25],...
-				'BackgroundColor',bgcoloredit);
-			
-			handles.t1 = uicontrol('Style','text',...
-				'Parent',handles.parent,...
-				'String','Time (ms)',...
-				'FontName',SansFont,...
-				'FontSize', fontSize-3,...
-				'Position',[10 95 90 20],...
-				'BackgroundColor',bgcolor);
-			
-			handles.pin = uicontrol('Style','edit',...
-				'Parent',handles.parent,...
-				'Tag','RewardPin',...
-				'String',me.rewardPin,...
-				'FontName',MonoFont,...
-				'FontSize', fontSize,...
-				'Position',[140 115 95 25],...
-				'BackgroundColor',bgcoloredit);
-			
-			handles.t1 = uicontrol('Style','text',...
-				'Parent',handles.parent,...
-				'String','Pin',...
-				'FontName',SansFont,...
-				'FontSize', fontSize-3,...
-				'Position',[145 95 90 20],...
-				'BackgroundColor',bgcolor);
-			
-			handles.menu = uicontrol('Style','popupmenu',...
-				'Parent',handles.parent,...
-				'Tag','TTLMethod',...
-				'String',{'Single TTL','Double TTL'},...
-				'Value',1,...
-				'FontName',SansFont,...
-				'FontSize', fontSize,...
-				'Position',[5 80 240 20],...
-				'BackgroundColor',bgcolor);
-			
-			handles.readButton = uicontrol('Style','pushbutton',...
-				'Parent',handles.parent,...
-				'Tag','goButton',...
-				'Callback',@doReward,...
-				'FontName',SansFont,...
-				'ForegroundColor',[1 0 0],...
-				'FontSize',fontSize+2,...
-				'Position',[5 5 145 55],...
-				'String','REWARD!');
-			
-			handles.loopButton = uicontrol('Style','pushbutton',...
-				'Parent',handles.parent,...
-				'Tag','l1Button',...
-				'Callback',@doLoop,...
-				'FontName',SansFont,...
-				'ForegroundColor',[1 0.5 0],...
-				'FontSize',fontSize+2,...
-				'Position',[155 5 40 55],...
-				'TooltipString','1-8 to give diff reward sizes, 0 to exit. Use bluetooth keyboard with manual training',...
-				'String','L1');
-			
-			handles.loop2Button = uicontrol('Style','pushbutton',...
-				'Parent',handles.parent,...
-				'Tag','l2Button',...
-				'Callback',@doLoop2,...
-				'FontName',SansFont,...
-				'ForegroundColor',[1 0.5 0],...
-				'FontSize',fontSize+2,...
-				'Position',[205 5 40 55],...
-				'TooltipString','1-8 to show movie+reward, 0 to exit. Use bluetooth keyboard and manual training',...
-				'String','L2');
-			
-			me.handles = handles;
-			
-			% internal function to engage timedTTL
-			function doReward(varargin)
-				if me.silentMode || ~me.isOpen; disp('Not open!'); return; end
-				val = str2num(get(me.handles.value,'String'));
-				pin = str2num(get(me.handles.pin,'String'));
-				method = get(me.handles.menu,'Value');
-				if method == 1
-					try
-						me.timedTTL(pin,val);
-					end
-				elseif method == 2
-					try
-						me.timedDoubleTTL(pin,val);
-					end
+		%===========Check Ports==========%
+		function checkPorts(me)
+			if IsOctave
+				if ~verLessThan('instrument-control','0.7')
+					me.ports = serialportlist('available');
+				else
+					me.ports = [];
+				end
+			else
+				if ~verLessThan('matlab','9.7')	% use the nice serialport list command
+					me.ports = serialportlist('available');
+				else
+					me.ports = seriallist; %#ok<SERLL> 
 				end
 			end
+		end
 			
-			% simple loop controlled using bluetooth keyboard
-			function doLoop(varargin)
-				if me.silentMode || ~me.isOpen; disp('Not open!'); return; end
-				fprintf('===>>> Entering Loop mode, press - to exit!!!\n');
-				set(me.handles.loopButton,'ForegroundColor',[0.2 0.7 0]);drawnow;
-				val = str2num(get(me.handles.value,'String'));
-				pin = str2num(get(me.handles.pin,'String'));
-				nl = [];
-				for nn = 0:9
-					nl = [nl KbName(num2str(nn))];
-				end
-				nl = [nl KbName('q') KbName('0)') KbName('-_') KbName('1!')];
-				oldkeys=RestrictKeysForKbCheck(nl);
-				doLoop = true;
-				fInc = 6;
-				tick = 0;
-				kTick = 0;
-				ListenChar(-1);
-				while doLoop
-					tick = tick + 1;
-					[~, keyCode] = KbWait(-1);
-					if any(keyCode)
-						rchar = KbName(keyCode); if iscell(rchar);rchar=rchar{1};end
-						switch lower(rchar)
-							case {'q','0','0)','-_','-'}
-								doLoop = false;
-							case{'1','1!'}
-								if tick > kTick
-									me.timedTTL(pin,250);
-									kTick = tick + fInc;
-								end
-							case{'2','2@'}
-								if tick > kTick
-									me.timedTTL(pin,300);
-									kTick = tick + fInc;
-								end
-							case{'3','3#'}
-								if tick > kTick
-									me.timedTTL(pin,400);
-									kTick = tick + fInc;
-								end
-							case{'4','4$'}
-								if tick > kTick
-									me.timedTTL(pin,500);
-									kTick = tick + fInc;
-								end
-							case{'5','5%'}
-								if tick > kTick
-									me.timedTTL(pin,600);
-									kTick = tick + fInc;
-								end
-							case{'6','6^'}
-								if tick > kTick
-									me.timedTTL(pin,700);
-									kTick = tick + fInc;
-								end
-							case{'7'}
-								if tick > kTick
-									me.timedTTL(pin,800);
-									kTick = tick + fInc;
-								end
-							case{'8'}
-								if tick > kTick
-									me.timedTTL(pin,900);
-									kTick = tick + fInc;
-								end
-						end
-					end
-					WaitSecs('YieldSecs',0.02);
-				end
-				ListenChar(0);
-				fprintf('===>>> Exit pressed!!!\n');
-				RestrictKeysForKbCheck([]);
-				set(me.handles.loopButton,'ForegroundColor',[1 0.5 0]);
-			end
-			
-			% training loop with stimulus controlled using keyboard
-			function doLoop2(varargin)
-				if me.silentMode || ~me.isOpen; disp('Not open!'); return; end
-				PsychDefaultSetup(2);
-				fprintf('===>>> Entering Loop mode, press - to exit!!!\n');
-				set(me.handles.loop2Button,'ForegroundColor',[0.2 0.7 0]);drawnow;
-				val = str2num(get(me.handles.value,'String'));
-				pin = str2num(get(me.handles.pin,'String'));
-				nl = [];
-				for nn = 0:9
-					nl = [nl KbName(num2str(nn))];
-				end
-				nl = [nl KbName('q') KbName('-') KbName('+') KbName('0)') KbName('-_') KbName('1!')];
-				oldkeys=RestrictKeysForKbCheck(nl);
-				doLoop = true;
-				
-				sM = screenManager();
-				sM.backgroundColour = [0.1 0.1 0.1];
-				sM.open();
-				
-				global aM
-				if isempty(aM) || ~isa('aM','audioManager')
-					aM = audioManager();aM.close();
-				end
-				if IsLinux
-					aM.device = [];
-				elseif IsWin
-					aM.device = 6;
-				end
-				aM.open();aM.loadSamples();
-				
-				mv = movieStimulus();
-				mv.setup(sM);
-				
-				fInc = 6;
-				tick = 0;
-				kTick = 1;
-				
-				ListenChar(-1);
-				while doLoop
-					tick = tick + 1;
-					[isDown, ~, keyCode] = KbCheck(-1);
-					if isDown
-						rchar = KbName(keyCode); if iscell(rchar);rchar=rchar{1};end
-						switch lower(rchar)
-							case {'q','0','0)','-_','-'}
-								doLoop = false;
-							case{'1','1!','kp_end'}
-								if tick > kTick
-									mv.xPositionOut = 0;
-									mv.yPositionOut = 0;
-									update(mv);
-									start = flip(sM); vbl = start;
-									play(aM);
-									me.timedTTL(pin,val);
-									i=1;
-									while vbl < start + 2
-										draw(mv); sM.drawCross([],[],0,0);
-										finishDrawing(sM);
-										vbl = flip(sM);
-										if i == 60; me.timedTTL(pin,val); end
-										i=i+1;
-									end
-									me.timedTTL(pin,val);
-									kTick = tick + fInc;
-								end
-							case{'2','2@','kp_down'}
-								mv.xPositionOut = 16;
-								mv.yPositionOut = 10;
-								update(mv);
-								start = flip(sM); vbl = start;
-								play(aM);
-								me.timedTTL(pin,val);
-								i=1;
-								while vbl < start + 2
-									draw(mv); sM.drawCross([],[],16,10);
-									sM.finishDrawing;
-									vbl = flip(sM);
-									if i == 60; me.timedTTL(pin,val); end
-									i=i+1;
-								end
-								me.timedTTL(pin,val);
-							case{'3','3#','kp_next'}
-								mv.xPositionOut = -16;
-								mv.yPositionOut = -10;
-								update(mv);
-								start = flip(sM); vbl = start;
-								play(aM);
-								me.timedTTL(pin,val);
-								i=1;
-								while vbl < start + 2
-									draw(mv); sM.drawCross([],[],-16,-10);
-									sM.finishDrawing;
-									vbl = flip(sM);
-									if i == 60; me.timedTTL(pin,val); end
-									i=i+1;
-								end
-								me.timedTTL(pin,val);
-							case{'4','4$','kp_left'}
-								mv.xPositionOut = 16;
-								mv.yPositionOut = -10;
-								update(mv);
-								start = flip(sM); vbl = start;
-								play(aM);
-								me.timedTTL(pin,200);
-								i=1;
-								while vbl < start + 2
-									draw(mv); sM.drawCross([],[],16,-10);
-									sM.finishDrawing;
-									vbl = flip(sM);
-									if i == 60; me.timedTTL(pin,val); end
-									i=i+1;
-								end
-								me.timedTTL(pin,val);
-							case{'5','5%','kp_begin'}
-								mv.xPositionOut = -16;
-								mv.yPositionOut = 10;
-								update(mv);
-								start = flip(sM); vbl = start;
-								play(aM);
-								me.timedTTL(pin,200);
-								i=1;
-								while vbl < start + 2
-									draw(mv); sM.drawCross([],[],-16,10);
-									sM.finishDrawing;
-									vbl = flip(sM);
-									if i == 60; me.timedTTL(pin,val); end
-									i=i+1;
-								end
-								me.timedTTL(pin,val);
-							case{'6','6^','kp_right'}
-								if tick > kTick
-									me.timedTTL(pin,val);
-									kTick = tick + fInc;
-								end
-							case{'7','7&','kp_home'}
-								if tick > kTick
-									me.timedTTL(pin,val);
-									kTick = tick + fInc;
-								end
-							case{'8','8*','kp_up'}
-								if tick > kTick
-									me.timedTTL(pin,val);
-									kTick = tick + fInc;
-								end
-						end
-
-					end
-					flip(sM);
-				end
-				ListenChar(0);
-				aM.close; mv.reset;
-				sM.close;
-				fprintf('===>>> Exit pressed!!!\n');
-				RestrictKeysForKbCheck([]);
-				set(me.handles.loop2Button,'ForegroundColor',[1 0.5 0]);
-			end
-		end	
+		%===========Delete Method==========%
+		function delete(me)
+			fprintf('arduinoManager: closing connection if open...\n');
+			try me.close; end
+		end
 	end
 	
 	methods ( Access = private ) %----------PRIVATE METHODS---------%
@@ -724,12 +380,6 @@ classdef arduinoManager < octickaCore
 				me.device.pinMode(i,'output');
 				me.device.digitalWrite(i,0);
 			end
-		end
-
-		%===========Delete Method==========%
-		function delete(me)
-			fprintf('arduinoManager Delete method will automagically close connection if open...\n');
-			me.close;
 		end
 		
 	end
