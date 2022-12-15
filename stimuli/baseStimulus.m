@@ -195,8 +195,8 @@ classdef baseStimulus < octickaCore
     % ===================================================================
 		function a=subsasgn(me, S, v)
 			if ismethod(me, 'setOut')
-				fprintf('We are modifying the Value for %s\n',S(1).subs);
 				v = me.setOut(S, v); % this is a pseudo Set method
+				if me.verbose; fprintf('Modifying the Value for %s\n',S(1).subs); end
 			end
 			S = subs_added(me,S);
 			a = builtin('subsasgn', me, S, v);
@@ -209,7 +209,7 @@ classdef baseStimulus < octickaCore
 			f = fieldnames(me.dp);
 			if isempty(f); return; end
 			if strcmp(S(1).type, '.') && ismember(S(1).subs, f)
-				fprintf('We are modifying the Assign for %s\n',S(1).subs);
+				if me.verbose; fprintf('Modifying the Assign for %s\n',S(1).subs); end
 				S0 = struct('type', '.', 'subs', 'dp');
 				S = [ S0 S ];
 			end
@@ -648,8 +648,8 @@ classdef baseStimulus < octickaCore
 		%> @brief doProperties
 		%> these are transient properties that specify actions during runtime
 		% ===================================================================
-    function updateRuntimeProperties(me)
-      me.doDots		  = false;
+		function updateRuntimeProperties(me)
+			me.doDots		  = false;
 			me.doMotion		= false;
 			me.doDrift		= false;
 			me.doFlash		= false;
@@ -662,7 +662,7 @@ classdef baseStimulus < octickaCore
 			if ~isempty(me.animator) && isa(me.animator,'animationManager')
 				me.doAnimator = true; 
 			end
-    end
+		end
 			
 		% ===================================================================
 		%> @brief setRect
@@ -707,7 +707,7 @@ classdef baseStimulus < octickaCore
 				if isProperty(me, 'angleOut')
 					[dx, dy]=pol2cart(me.d2r(me.angle),me.startPosition);
 				else
-					[dx, dy]=pol2cart(me.d2r(me.dp.angleOut),me.startPositionOut);
+					[dx, dy]=pol2cart(me.d2r(me.dp.angleOut),me.dp.startPositionOut);
 				end
 				me.xFinal = me.dp.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
 				me.yFinal = me.dp.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
@@ -745,9 +745,9 @@ classdef baseStimulus < octickaCore
 		%> @return
 		% ===================================================================
 		function removeTmpProperties(me)
-			%if isProperty(me,'dp')
-			%	me.dp = [];
-			%end
+			if isProperty(me,'dp')
+				me.dp = [];
+			end
 		end
 		
 	end%---END PRIVATE METHODS---%

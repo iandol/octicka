@@ -100,7 +100,7 @@ classdef discStimulus < baseStimulus
 		function setup(me,sM)
 			
 			reset(me);
-			me.inSetup = true;
+			me.inSetup = true; me.isSetup = false;
 			if isempty(me.isVisible); me.show; end
 			
 			me.sM = sM;
@@ -114,7 +114,8 @@ classdef discStimulus < baseStimulus
 				if ~ismember(fn{j}, me.ignoreProperties)
 					prop = [fn{j} 'Out'];
 					p = addProperty(me, prop);
-					me.dp.(p) = me.(fn{j}); %copy our property value to our tempory copy
+					v = me.setOut(p, me.(fn{j})); % our pseudo set method
+					me.dp.(p) = v; %copy our property value to our tempory copy
 				end
 			end
 			
@@ -145,10 +146,9 @@ classdef discStimulus < baseStimulus
 				me.changeBlend = true;
 			end
 			
-			me.inSetup = false;
 			computePosition(me);
 			setRect(me);
-			if me.doAnimator;setup(me.animator, me);end
+			me.inSetup = false; me.isSetup = true;
 			
 		end
 		
@@ -275,23 +275,29 @@ classdef discStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function v = setOut(me, S, v)
-      if ~isstruct(S) || ~strcmp(S(1).type, '.') || ~isfield(S,'subs'); return; end
-      switch S(1).subs
-        case 'sizeOut'
-          v = v * me.ppd;
+			if ischar(S)
+				prop = S; 
+			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
+				prop = S(1).subs;
+			else
+				return;
+			end
+			switch prop
+				case 'sizeOut'
+					v = v * me.ppd;
 					if isProperty(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)
 						me.scale = v / me.discSize;
 						setRect(me);
 					end
-        case {'xPositionOut' 'yPositionOut'}
-          v = v * me.ppd;
+				case {'xPositionOut' 'yPositionOut'}
+					v = v * me.ppd;
 				case {'contrastOut'}
 					if iscell(v); v = v{1}; end
 					if ~me.inSetup && ~me.stopLoop && v < 1
 						computeColour(me);
 					end
 			end
-    end
+		end
 		
 	end %---END PUBLIC METHODS---%
 	
@@ -315,11 +321,11 @@ classdef discStimulus < baseStimulus
 				else
 					[sx, sy]=pol2cart(me.d2r(me.angle),me.startPosition);
 				end
-				me.dstRect=CenterRectOnPointd(me.dstRect,me.sM.xCenter,me.sM.yCenter);
 				if isProperty(me, 'xPositionOut')
-					me.dstRect=OffsetRect(me.dstRect,(me.dp.xPositionOut)*me.ppd,(me.dp.yPositionOut)*me.ppd);
+					me.dstRect=me.dstRect=CenterRectOnPointd(me.dstRect,me.xFinal,me.yFinal);
 				else
-					me.dstRect=OffsetRect(me.dstRect,me.xPosition+(sx*me.ppd),me.yPosition+(sy*me.ppd));
+					me.dstRect=me.dstRect=CenterRectOnPointd(me.dstRect,me.sM.xCenter,me.sM.yCenter);
+					me.dstRect=OffsetRect(me.dstRect,me.xPosition*me.ppd+(sx*me.ppd),me.yPosition*me.ppd+(sy*me.ppd));
 				end
 			end
 			me.mvRect=me.dstRect;

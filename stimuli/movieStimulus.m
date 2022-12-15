@@ -177,7 +177,8 @@ classdef movieStimulus < baseStimulus
 				if ~ismember(fn{j}, me.ignoreProperties)
 					prop = [fn{j} 'Out'];
 					p = addProperty(me, prop);
-					me.dp.(p) = me.(fn{j}); %copy our property value to our tempory copy
+					v = me.setOut(prop,me.(fn{j})); % our pseudo set method
+					me.dp.(p) = v; %copy our property value to our tempory copy
 				end
 			end
 			
@@ -233,17 +234,23 @@ classdef movieStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function v = setOut(me, S, v)
-		if ~isstruct(S) || ~strcmp(S(1).type, '.') || ~isfield(S,'subs'); return; end
-		switch S(1).subs
-			case {'sizeOut','xPositionOut' 'yPositionOut'}
-				v = v * me.ppd;
-			case {'contrastOut'}
-				if iscell(v); v = v{1}; end
-				if ~me.inSetup && ~me.stopLoop && v < 1
-					computeColour(me);
-				end
+			if ischar(S)
+				prop = S; 
+			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
+				prop = S(1).subs;
+			else
+				return;
 			end
-    end
+			switch prop
+				case {'sizeOut','xPositionOut' 'yPositionOut'}
+					v = v * me.ppd;
+				case {'contrastOut'}
+					if iscell(v); v = v{1}; end
+					if ~me.inSetup && ~me.stopLoop && v < 1
+						computeColour(me);
+					end
+			end
+		end
 		
 		% ===================================================================
 		%> @brief Update only position info, faster and doesn't reset movie
@@ -390,10 +397,12 @@ classdef movieStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function checkFileName(me)
+			me.fileName = regexprep(me.fileName, '^~\/', [getenv('HOME') filesep]);
 			if isempty(me.fileName) || exist(me.fileName,'file') ~= 2
 				p = mfilename('fullpath');
 				p = fileparts(p);
 				me.fileName = [p filesep 'monkey.mp4'];
+				warning('Didn''t find specified file so replacing with default movie!');
 			end
 		end
 		
