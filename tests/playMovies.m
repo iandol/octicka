@@ -1,12 +1,22 @@
 function playMovies(folder)
 	
+	rewardPort = '/dev/ttyACM0';
+	debug = false;
+	if debug
+		windowed = [0 0 1200 800]; sf = 32;
+		dummy = true;
+	else
+		windowed = []; sf = [];
+		dummy = false;
+	end
+	
 	% ============================movie / position list
 	movieList = {'/home/cog/Code/octicka/tests/ball.mkv','/home/cog/Code/octicka/tests/ball.mkv'};
 	positionList = {-4, 4};
 	
 	try 
 		% ============================screen
-		s = screenManager('blend',true,'pixelsPerCm',80,'windowed',[0 0 1200 800],'specialFlags', [32]);
+		s = screenManager('blend',true,'pixelsPerCm',80,'windowed',windowed,'specialFlags',sf);
 		
 		% s============================timuli
 		rn = 1;
@@ -16,10 +26,10 @@ function playMovies(folder)
 		c3 = discStimulus('xPosition',-4,'yPosition',-positionList{rn},'size',4,'colour',[0 1 1 0.75]);
 
 		% t============================ouch
-		t = touchManager('isDummy',true);
+		t = touchManager('isDummy',dummy);
 		
 		% ============================reward
-		rM = arduinoManager('port','/dev/ttyACM0');
+		rM = arduinoManager('port',rewardPort);
 		open(rM);		
 		
 		% ============================setup
