@@ -32,10 +32,11 @@ classdef arduinoManager < octickaCore
 		availablePins	= {2,3,4,5,6,7,8,9,10,11,12,13}
 		%> the arduinoIOPort device object, you can call the methods
 		%> directly if required.
-		device					= []
-		delaylength             = 0.03;
-		shield  char            = '';
-		linePwm double          = 3;
+		device							= []
+		% motor shield settings
+		delaylength					= 0.03
+		shield              = ''
+		linePwm							= 3
 	end
 	properties (SetAccess = private, GetAccess = public)
 		%> which ports are available
@@ -224,7 +225,7 @@ classdef arduinoManager < octickaCore
 		function strobeWord(me, value)
 			if ~me.isOpen; return; end
 			if ~me.silentMode
-				strobeWord(me.device, value);
+					strobeWord(me.device, value);
 				if me.verbose;fprintf('===>>> STROBED WORD: %i sent to pins 2-8\n',value);end
 			end
 		end
