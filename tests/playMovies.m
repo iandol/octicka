@@ -1,7 +1,7 @@
 function playMovies(folder)
 	
 	rewardPort = '/dev/ttyACM0';
-	debug = false;
+	debug = true;
 	if debug
 		windowed = [0 0 1200 800]; sf = 32;
 		dummy = true;
@@ -9,6 +9,8 @@ function playMovies(folder)
 		windowed = []; sf = [];
 		dummy = false;
 	end
+	
+	if IsOctave; try pkg load instrument-control; end; end
 	
 	% ============================movie / position list
 	movieList = {'/home/cog/Code/octicka/tests/ball.mkv','/home/cog/Code/octicka/tests/ball.mkv'};
@@ -18,7 +20,7 @@ function playMovies(folder)
 		% ============================screen
 		s = screenManager('blend',true,'pixelsPerCm',80,'windowed',windowed,'specialFlags',sf);
 		
-		% s============================timuli
+		% s============================stimuli
 		rn = 1;
 		m = movieStimulus('fileName',movieList{rn},'angle',90);
 		c1 = discStimulus('size',4);
@@ -42,6 +44,10 @@ function playMovies(folder)
 		createQueue(t);
 		start(t);
 		
+		% ==============================save file name
+		svn = initialiseSaveFile(s);
+		saveName = [ s.paths.savedData filesep 'IntPhys-' svn '.mat'];
+		
 		% ============================settings
 		quitKey = KbName('escape');
 		RestrictKeysForKbCheck([quitKey]);
@@ -50,16 +56,24 @@ function playMovies(folder)
 		txt = 'Waiting for touch...';
 		keepRunning = true
 		trialN = 0;
+		presentationTime=m.duration;
+		responseTime = 2;
+		timeOut = 2;
+		trials = struct;
 		
 		while keepRunning	
 			%make our touch window around stimulus c1
 			t.window = struct('X',c1.xPosition,'Y',c1.yPosition,'radius',c1.size/2);
 			x = []; y = []; touched = false; touchedResponse = false;
 			trialN = trialN + 1;
+			trials(trialN).movieName = m.fileName;
+			trials(trialN).targetPosition = c2.yPositionOut;
 			touchStart = false;
 			fprintf('\n===> START TRIAL: %i\n');
 			flush(t);
-			% wait for an initiate touch
+			
+			%=======================================================wait for an initiate touch
+			vbl = flip(s); vblInit = vbl;
 			while ~touchStart
 				drawText(s, txt);
 				draw(c1);
@@ -67,7 +81,7 @@ function playMovies(folder)
 					[xy] = s.toPixels([x y]);
 					Screen('glPoint', s.win, [1 0 0], xy(1), xy(2), 10);
 				end
-				flip(s);
+				vbl = flip(s);
 				[touched, x, y] = checkTouchWindow(t);
 				txt = sprintf('Touch = %i x=%.2f y=%.2f',touched,x,y);
 				flush(t);
@@ -77,35 +91,44 @@ function playMovies(folder)
 				[~,~,c] = KbCheck(-1);
 				if c(quitKey); keepRunning=false; break; end
 			end
-			
-			flip(s)
+			trials(trialN).initTime = vbl - vblInit;
+			flip(s);
+			if ~keepRunning; break; end
 			WaitSecs(0.5);
-			
 			if keepRunning == false; break; end
 			
-			%show movie
-			for iLoop = 1:sv.fps*2;
+			%================================================show movie
+			vbl = flip(s);
+			vblInit = vbl;
+			while vbl <= vblInit + presentationTime
 				draw(m);
-				animate(m);
-				flip(s);
+				vbl = flip(s);
 			end
+			
+			trials(trialN).presentationTime = vbl - vblInit;
+			
+			WaitSecs(0.5);
+			flip(s);
+			WaitSecs(0.5);
 			
 			x = s.toDegrees(c2.xFinal,'x');
 			y = s.toDegrees(c2.yFinal,'y');
 			t.window = struct('X',x,'Y',y,'radius',c2.size/2);
 			fprintf('===> Choice window: X = %.1f Y = %.1f\n',x,y);
-			flip(s);
-			WaitSecs(0.1);
 			flush(t);
-			x = []; y = []; touched = false;
-			%get response
-			for iLoop = 1 : sv.fps*2;
+			x = []; y = []; touched = false; txt = ''
+			
+			%=============================================get response
+			vbl = flip(s);
+			vblInit = vbl;
+			while vbl <= vblInit + responseTime
+				drawText(s, txt);
 				draw(c2); draw(c3);
 				if ~isempty(x) && ~isempty(y)
 					[xy] = s.toPixels([x y]);
 					Screen('glPoint', s.win, [1 0 0], xy(1), xy(2), 10);
 				end
-				flip(s);
+				vbl = flip(s);
 				[touchedResponse, x, y] = checkTouchWindow(t);
 				txt = sprintf('x=%.2f y=%.2f', x, y);
 				flush(t);
@@ -116,31 +139,48 @@ function playMovies(folder)
 					break;
 				end
 			end
+			trials(trialN).responseTime = vbl - vblInit;
+			trials(trialN).correct = touchedResponse;
 			
+			% get a new movie from the list
 			rn = randi(length(movieList));
 			reset(m);
 			m.fileName = movieList{rn};
 			setup(m,s);
+			presentationTime = m.duration;
+			
+			% update our response targets
 			c2.yPositionOut = positionList{rn};
 			c3.yPositionOut = -positionList{rn};
 			update(c2); update(c3);
+			
 			fprintf('===> Choosing Movie %i = %s\n',rn, m.fileName);
 			fprintf('===> S:%i c2 Y = %.1f | c3 Y = %.1f\n',rn,c2.yPositionOut,c3.yPositionOut);
 			
+			% save trial data
+			save('-v7', saveName, 'trials')
+			
+			%===========================================time out
 			if ~touchedResponse
 				drawBackground(s,[1 0 0]);
 				drawTextNow(s,'TIMEOUT!');
 				WaitSecs(2);
-				drawBackground(s,s.backgroundColour);
+				drawBackground(s);
 				flip(s);
 			end
 		end
 
 		drawText(s, 'FINISHED!');
 		flip(s);
+		
+		% save trial data
+		fprintf('===> Saving data to %s\n',saveName)
+		save('-v7', saveName, 'trials')
+			
 		try Listenchar(0); end
 		try Priority(0); end
 		WaitSecs(0.5);
+		try Priority(0); end
 		try reset(m); reset(c1); reset(c2); reset(c3); end
 		close(s);
 		close(t);

@@ -152,7 +152,7 @@ classdef movieStimulus < baseStimulus
 		function setup(me, sM)
 			
 			reset(me);
-			me.inSetup = true;
+			me.inSetup = true; me.isSetup = false;
 			if isempty(me.isVisible); me.show; end
 			
 			me.sM = sM;
@@ -185,12 +185,13 @@ classdef movieStimulus < baseStimulus
 			addRuntimeProperties(me);
 			
 			t=tic;
-			[me.movie, me.duration, me.fps, me.width, me.height] = Screen('OpenMovie', ...
+			[me.movie, me.duration, me.fps, me.width, me.height, me.count] = Screen('OpenMovie', ...
 				me.sM.win, me.fileName, [], me.preloadSecs, me.specialFlagsOpen, me.pixelFormat);
-			fprintf('\n--->>> movieStimulus: %s\n\t%.2f seconds duration, %f fps, w x h = %i x %i, in %ims\n', ...
-				me.fileName, me.duration, me.fps, me.width, me.height, round(toc(t)*1e3));
+			fprintf('\n--->>> movieStimulus: %s\n\t%.2f seconds duration, %i frames @ %f fps, w x h = %i x %i, in %ims\n', ...
+				me.fileName, me.duration, me.count, me.fps, me.width, me.height, round(toc(t)*1e3));
 			fprintf('\tBlocking: %i | Loop: %i | Preloadsecs: %i | Pixelformat: %i | Flags: %i\n', me.blocking, ...
 				me.loopStrategy, me.preloadSecs, me.pixelFormat, me.specialFlagsOpen);
+			if exist('md','var');disp(md);end
 			
 			if me.dp.sizeOut > 0
 				me.scale = me.dp.sizeOut / (me.width / me.ppd);
@@ -201,8 +202,7 @@ classdef movieStimulus < baseStimulus
 				me.shader = CreateSinglePassImageProcessingShader(me.sM.win, 'BackgroundMaskOut', me.mask, me.maskTolerance);
 			end
 			
-			me.inSetup = false;
-			me.isSetup = true;
+			me.inSetup = false; me.isSetup = true;
 			computePosition(me)
 			setRect(me);
 
@@ -351,7 +351,7 @@ classdef movieStimulus < baseStimulus
 			me.fps = [];
 			me.width = [];
 			me.height = [];
-			me.isSetup = false;
+			me.inSetup = false; me.isSetup = false;
 		end
 		
 		% ===================================================================

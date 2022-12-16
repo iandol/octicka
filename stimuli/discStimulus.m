@@ -146,9 +146,10 @@ classdef discStimulus < baseStimulus
 				me.changeBlend = true;
 			end
 			
+			me.inSetup = false; me.isSetup = true;
+			
 			computePosition(me);
 			setRect(me);
-			me.inSetup = false; me.isSetup = true;
 			
 		end
 		
@@ -316,14 +317,10 @@ classdef discStimulus < baseStimulus
 			if me.mouseOverride && me.mouseValid
 					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
 			else
-				if isProperty(me, 'angleOut')
-					[sx, sy]=pol2cart(me.d2r(me.dp.angleOut),me.startPosition);
-				else
-					[sx, sy]=pol2cart(me.d2r(me.angle),me.startPosition);
-				end
-				if isProperty(me, 'xPositionOut')
+				if me.isSetup
 					me.dstRect=me.dstRect=CenterRectOnPointd(me.dstRect,me.xFinal,me.yFinal);
 				else
+					[sx, sy]=pol2cart(me.d2r(me.angle),me.startPosition);
 					me.dstRect=me.dstRect=CenterRectOnPointd(me.dstRect,me.sM.xCenter,me.sM.yCenter);
 					me.dstRect=OffsetRect(me.dstRect,me.xPosition*me.ppd+(sx*me.ppd),me.yPosition*me.ppd+(sy*me.ppd));
 				end

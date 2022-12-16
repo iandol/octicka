@@ -790,19 +790,21 @@ classdef screenManager < octickaCore
 		%> @return
 		% ===================================================================
 			if ~me.isPTB; return; end
-			Priority(0); ListenChar(0); ShowCursor;
+			try Priority(0); end
+			try ListenChar(0); end
+			ShowCursor; 
 			if me.screenVals.resetGamma && isfield(me.screenVals,'originalGamma') && ~isempty(me.screenVals.originalGamma)
 				Screen('LoadNormalizedGammaTable', me.win, me.screenVals.originalGamma);
 				fprintf('\n---> screenManager: REVERT GAMMA TABLES\n');
 			end
 			if me.isInAsync 
-				Screen('ASyncFlipEnd',me.win);
+				try Screen('ASyncFlipEnd',me.win); end
 			end
 			me.isInAsync = false;
 			if me.isPlusPlus
 				try BitsPlusPlus('Close'); end
 			end
-			me.finaliseMovie(); me.moviePtr = [];
+			try me.finaliseMovie(); me.moviePtr = []; end
 			kind = Screen(me.win, 'WindowKind');
 			try
 				if kind == 1 
@@ -810,11 +812,9 @@ classdef screenManager < octickaCore
 					Screen('Close',me.win);
 				end
 			catch ME
-				if me.verbose 
-					getReport(ME) 
-				end
+					disp(ME.message) 
 			end
-			me.win=[]; 
+			me.win=[];
 			if isfield(me.screenVals,'win');me.screenVals=rmfield(me.screenVals,'win');end
 			me.isOpen = false;
 			me.isPlusPlus = false;

@@ -1,4 +1,4 @@
-classdef childTest < baseTest
+classdef childTest2 < baseTest
 	
 	properties
 		angle = 0
@@ -11,7 +11,7 @@ classdef childTest < baseTest
 	methods
 		
 		% ===================================================================
-		function me = childTest(varargin)
+		function me = childTest2(varargin)
 			%me=me@baseTest(varargin); %superclass constructor
 		end
 		
@@ -36,7 +36,6 @@ classdef childTest < baseTest
 			end
 			
 		end
-		
 		
 		% ===================================================================
 		function v = setOut(me, S, v)

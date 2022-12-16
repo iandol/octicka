@@ -45,13 +45,11 @@ classdef arduinoManager < octickaCore
 		deviceID		= ''
 	end
 	properties (SetAccess = private, GetAccess = private, Transient = true)
-		%> handles for the optional UI
-		handles			= []
 		%> a screen object to bind to
 		screen			= []
 	end
 	properties (SetAccess = private, GetAccess = private)
-		allowedProperties = {'availablePins','rewardPin','rewardTime','openGUI','board',...
+		allowedProperties = {'availablePins','rewardPin','rewardTime','board',...
 			'port','silentMode','verbose'}
 	end
 	
@@ -106,7 +104,13 @@ classdef arduinoManager < octickaCore
 				end
 				endPin = max(cell2mat(me.availablePins));
 				startPin = min(cell2mat(me.availablePins));
-				me.device = arduinoIOPort(me.port,endPin,startPin);
+				
+				try
+					me.device = arduinoIOPort(me.port,endPin,startPin);
+				catch
+					me.device.isDemo = true;
+				end
+				
 				if me.device.isDemo
 					me.isOpen = false; me.silentMode = true;
 					warning('--->arduinoManager: IOport couldn''t open the port, going into silent mode!');
@@ -114,9 +118,7 @@ classdef arduinoManager < octickaCore
 				else
 					me.deviceID = me.port;
 					me.isOpen = true;
-
 				end
-				if me.openGUI; GUI(me); end
 				me.silentMode = false;
 			catch ME
 				me.silentMode = true; me.isOpen = false;
@@ -341,6 +343,7 @@ classdef arduinoManager < octickaCore
 		%===========Check Ports==========%
 		function checkPorts(me)
 			if IsOctave
+				if ~exist('serialportlist','file'); try pkg load instrument-control; end; end
 				if ~verLessThan('instrument-control','0.7')
 					me.ports = serialportlist('available');
 				else

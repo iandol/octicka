@@ -107,11 +107,16 @@ classdef baseStimulus < octickaCore
 	end
 	
 	properties (Access = protected)
+		% class fieldnames
+		fn
+		% dp fieldnames
+		fndp
+		% object kinds
 		doDots			= false
 		doMotion		= false
 		doDrift			= false
 		doFlash			= false
-		doAnimator		= false
+		doAnimator	= false
 		%> is mouse position within screen co-ordinates?
 		mouseValid  = false
 		%> mouse X position
@@ -161,29 +166,31 @@ classdef baseStimulus < octickaCore
 		function me = baseStimulus(varargin)
 			me=me@octickaCore(varargin); %superclass constructor
 			me.parseArgs(varargin, me.allowedPropertiesBase);
+			me.fn = fieldnames(me);
 		end
 		
 		% ===================================================================
 		function ret = isProperty(me, prop);
-			f = fieldnames(me);
-			if any(strcmp(f, 'dp')) && ~isempty(me.dp)
-				ff = fieldnames(me.dp);
-				f = [f;ff];
+			if ~isempty(me.fndp)
+				f = [me.fn;me.fndp];
+			else
+				f = me.fn;
 			end
 			ret = any(strcmp(f, prop));
 		end
 		
 		% ===================================================================
 		function prop = addProperty(me, prop)  
-		if nargin < 2 || ~ischar(prop) || isempty(prop) || isempty(me)
-			error([ mfilename ': addprop: Parameter must be a string.' ]); 
-		end
-		if isempty(me.dp); me.dp = struct(); end
-		prop = prop(:)';
-		if ~isvarname(prop)
-			error([ mfilename ': addprop: Parameter must be a valid property name.' ]); 
-		end
-		me.dp.(prop)=[];
+			if nargin < 2 || ~ischar(prop) || isempty(prop) || isempty(me)
+				error([ mfilename ': addprop: Parameter must be a string.' ]); 
+			end
+			if isempty(me.dp); me.dp = struct(); end
+			prop = prop(:)';
+			if ~isvarname(prop)
+				error([ mfilename ': addprop: Parameter must be a valid property name.' ]); 
+			end
+			me.dp.(prop)=[];
+			me.fndp = fieldnames(me.dp);
 		end
 		
 		% ===================================================================
@@ -704,13 +711,15 @@ classdef baseStimulus < octickaCore
 			if me.mouseOverride && me.mouseValid
 				me.xFinal = me.mouseX; me.yFinal = me.mouseY;
 			else
-				if isProperty(me, 'angleOut')
-					[dx, dy]=pol2cart(me.d2r(me.angle),me.startPosition);
-				else
+				if me.isSetup
 					[dx, dy]=pol2cart(me.d2r(me.dp.angleOut),me.dp.startPositionOut);
+					me.xFinal = me.dp.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
+					me.yFinal = me.dp.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
+				else
+					[dx, dy]=pol2cart(me.d2r(me.angle),me.startPosition);
+					me.xFinal = me.xPosition*me.ppd + (dx * me.ppd) + me.sM.xCenter;
+					me.yFinal = me.yPosition*me.ppd + (dy * me.ppd) + me.sM.yCenter;
 				end
-				me.xFinal = me.dp.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
-				me.yFinal = me.dp.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
 				if me.verbose; fprintf('---> computePosition: %s X = %gpx / %gpx / %gdeg | Y = %gpx / %gpx / %gdeg\n',me.fullName, me.xFinal, me.dp.xPositionOut, dx, me.yFinal, me.dp.yPositionOut, dy); end
 			end
 			setAnimationDelta(me);
@@ -747,6 +756,7 @@ classdef baseStimulus < octickaCore
 		function removeTmpProperties(me)
 			if isProperty(me,'dp')
 				me.dp = [];
+				me.fndp = [];
 			end
 		end
 		

@@ -30,7 +30,12 @@ classdef octickaCore < handle
 		uuid = ''
 		%> storage of various paths
 		paths = []
-		fullName = ''
+	end
+	
+	%--------------------DEPENDENT PROPERTIES----------%
+	properties (Dependent = true)
+		%> The fullName is the object name combined with its uuid and class name
+		fullName
 	end
 	
 	%--------------------TRANSIENT PROPERTIES----------%
@@ -83,6 +88,37 @@ classdef octickaCore < handle
 		end
 		
 		% ===================================================================
+		function name = get.fullName(me)
+		%> @fn get.fullName
+		%> @brief concatenate the name with a uuid at get.
+		%> @param
+		%> @return name the concatenated name
+		% ===================================================================
+			if isempty(me.name)
+				me.fullName_ = [me.className '#' me.uuid];
+			else
+				me.fullName_ = [me.name '<' me.className '#' me.uuid '>'];
+			end
+			name = me.fullName_;
+		end
+		
+		% ===================================================================
+		function c = initialiseSaveFile(me, path)
+		%> @fn initialiseSaveFile(me, path)
+		%> @brief Initialise Save Dir
+		%>
+		%> @param path - the path to use.
+		% ===================================================================
+			if exist('path','var') && exist(path,"dir")
+				me.paths.savedData = path;
+			end
+			c = fix(clock); %#ok<*CLOCK> compatible with octave
+			c = num2str(c(1:6));
+			c = regexprep(c,' +','-');
+			me.savePrefix = c;
+		end
+		
+		% ===================================================================
 		function editProperties(me, props)
 		%> @fn editProperties
 		%> @brief method to modify a set of properties
@@ -111,6 +147,7 @@ classdef octickaCore < handle
 	%=======================================================================
 	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
 	%=======================================================================
+		
 		% ===================================================================
 		function checkPaths(me)
 		%> @fn checkPaths
