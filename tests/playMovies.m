@@ -2,7 +2,7 @@ function playMovies(folder)
 	
 	subjectName = '13';
 	rewardPort = '/dev/ttyACM0';
-	debug = false;
+	debug = true;
 	if debug
 		windowed = [0 0 1200 800]
 		sf = 32;
@@ -19,21 +19,23 @@ function playMovies(folder)
 	if IsOctave; try pkg load instrument-control; end; end
 	
 	% ============================movie / position list
-	movieList = {'/home/cog/Videos/testcage/ball3-0120.mkv','/home/cog/Videos/testcage/ball2-0120.mkv',...
-        '/home/cog/Videos/testcage/ball-0120.mkv','/home/cog/Videos/testcage/throw-0120.mkv','/home/cog/Videos/testcage/throw2-0120.mkv',...
-        '/home/cog/Videos/testcage/throw3-0120.mkv'};
-	positionList ={-4, 4, -4, -4, 4, 4};
+	%movieList = {'/home/cog/Videos/testcage/ball3-0120.mkv','/home/cog/Videos/testcage/ball2-0120.mkv',...
+	%'/home/cog/Videos/testcage/ball-0120.mkv','/home/cog/Videos/testcage/throw-0120.mkv','/home/cog/Videos/testcage/throw2-0120.mkv',...
+	%'/home/cog/Videos/testcage/throw3-0120.mkv'};
+	%positionList ={-4, 4, -4, -4, 4, 4};
+	movieList = {'/home/cog5/Code/octicka/tests/ball.mkv','/home/cog5/Code/octicka/tests/ball.mkv'};
+	positionList = {-4, 4};
 	
-	try 
+	try
 		% ============================screen
-		s = screenManager('blend',true,'pixelsPerCm',80,'windowed',windowed,'specialFlags',sf);
+		s = screenManager('blend',true,'pixelsPerCm',36,'windowed',windowed,'specialFlags',sf);
 		
 		% s============================stimuli
 		rn = 1;
 		m = movieStimulus('fileName',movieList{rn},'angle',90);
-		c1 = discStimulus('size',4);
-		c2 = discStimulus('xPosition',-4,'yPosition',positionList{rn},'size',4,'colour',colour1);
-		c3 = discStimulus('xPosition',-4,'yPosition',-positionList{rn},'size',4,'colour',colour2);
+		c1 = discStimulus('size',3);
+		c2 = discStimulus('xPosition',-5,'yPosition',positionList{rn},'size',4,'colour',colour1);
+		c3 = discStimulus('xPosition',-5,'yPosition',-positionList{rn},'size',4,'colour',colour2);
 
 		% t============================ouch
 		t = touchManager('isDummy',dummy);
@@ -51,7 +53,16 @@ function playMovies(folder)
 		setup(t,s);
 		createQueue(t);
 		start(t);
-		 end
+
+		% ============================exclusion zones
+		topdeg = s.screenVals.topInDegrees;
+		leftdeg = s.screenVals.leftInDegrees;
+		ez1(1,:) = [leftdeg, 0 - c1.size, topdeg, -topdeg];
+		ez1(2,:) = [0 + c1.size, -leftdeg, topdeg, -topdeg];
+		ez2(1,:) = [leftdeg, 0 + c2.xPosition - c2.size, topdeg, -topdeg];
+		ez2(2,:) = [0 + c2.xPosition + c2.size, -leftdeg, topdeg, -topdeg];
+		ez2(3,:) = [ez2(1,2), ez2(2,1), topdeg, -topdeg];
+		
 		% ==============================save file name
 		svn = initialiseSaveFile(s);
 		saveName = [ s.paths.savedData filesep 'IntPhys-' subjectName '-' svn '.mat'];
@@ -72,6 +83,7 @@ function playMovies(folder)
 		while keepRunning	
 			%make our touch window around stimulus c1
 			t.window = struct('X',c1.xPosition,'Y',c1.yPosition,'radius',c1.size/2);
+			t.exclusionZone = ez1;
 			x = []; y = []; touched = false; touchedResponse = false;
 			trialN = trialN + 1;
 			trials(trialN).movieName = m.fileName;
@@ -93,15 +105,21 @@ function playMovies(folder)
 				[touched, x, y] = checkTouchWindow(t);
 				txt = sprintf('Touch = %i x=%.2f y=%.2f',touched,x,y);
 				flush(t);
-				if touched
+				if touched == 1
 					touchStart = true;
+				elseif touched == -100;
+					drawBackground(s,[1 0 0]);
+					drawTextNow(s,'TIMEOUT!');
+					WaitSecs(2);
+					drawBackground(s);
+					flip(s);
+					continue;
 				end
 				[~,~,c] = KbCheck(-1);
 				if c(quitKey); keepRunning=false; break; end
 			end
 			trials(trialN).initTime = vbl - vblInit;
 			flip(s);
-			if ~keepRunning; break; end
 			WaitSecs(0.5);
 			if keepRunning == false; break; end
 			
@@ -122,6 +140,7 @@ function playMovies(folder)
 			x = s.toDegrees(c2.xFinal,'x');
 			y = s.toDegrees(c2.yFinal,'y');
 			t.window = struct('X',x,'Y',y,'radius',c2.size/2);
+			t.exclusionZone(1,:) = []
 			fprintf('===> Choice window: X = %.1f Y = %.1f\n',x,y);
 			flush(t);
 			x = []; y = []; touched = false; txt = '';

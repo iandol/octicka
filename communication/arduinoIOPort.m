@@ -16,7 +16,7 @@ classdef arduinoIOPort < handle
 %> Also added a timedTTL function, which performs the TTL timing on the arduino
 %> and allows PTB to continue its display loop without interupption.
 %> Requires a compatible arduino sketch: 
-%>   https://github.com/iandol/octicka/blob/master/communication/arduino/adio/adio.ino
+%>   https://github.com/iandol/opticka/blob/master/communication/arduino/adio/adio.ino
 %>
 %> We also define a startPin and endPin so we can use it with other boards
 %> like the Xiao which has a different pin number...
@@ -143,7 +143,28 @@ classdef arduinoIOPort < handle
 			a.port = port;
 			disp(['===> Arduino successfully connected to port: ' a.port '!']);
 			purge(a);
-		end % arduino
+		end % END Constructor
+		
+		%%==========================================DESTRUCTOR
+		function delete(a)
+			try
+				if ~isempty(a.conn)
+					disp('Closing arduinoIOPort device...');
+					for i=a.pinn
+						a.pinMode(i,'output');
+						a.digitalWrite(i,0);
+					end
+					IOPort('Close', a.conn); 
+				end
+			catch ME
+				disp('arduinoIOPort: Proceeding to delete all serial connections!');
+				IOPort('CloseAll');
+				%disp(ME.message);
+			end
+		end % delete
+		function close(a)
+			delete(a);
+		end
 
 		%==========================================PIN MODE
 		function pinMode(a, pin, str)
@@ -391,27 +412,6 @@ classdef arduinoIOPort < handle
 			if ~exist('params','var') || isempty(params); params = a.params; end
 			IOPort('ConfigureSerialPort',a.conn,params)
 		end
-
-		%%==========================================DESTRUCTOR
-		function delete(a)
-			try
-				if ~isempty(a.conn)
-					disp('Closing arduinoIOPort device...');
-					for i=a.pinn
-						a.pinMode(i,'output');
-						a.digitalWrite(i,0);
-					end
-					IOPort('Close', a.conn); 
-				end
-			catch ME
-				disp(ME.message);
-				disp('arduinoIOPort: Proceeding to delete all serial connections!');
-				IOPort('CloseAll');
-			end
-		end % delete
-		function close(a)
-			delete(a);
-		end
 		
 		%%==========================================DISPLAY
 		function disp(a)
@@ -554,7 +554,8 @@ classdef arduinoIOPort < handle
 		%===================================================flush
 		function ports = checkPorts(a, port);
 			if IsOctave
-				if ~verLessThan('instrument-control','0.7')
+				if ~isempty(pkg('list','instrument-control')) && ~verLessThan('instrument-control','0.7')
+					try pkg('load', 'instrument-control'); end
 					a.allPorts = sort(serialportlist('all'));
 					a.avPorts = sort(serialportlist('available'));
 					fprintf('===> All possible serial ports: ');

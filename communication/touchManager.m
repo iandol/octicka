@@ -4,28 +4,28 @@ classdef touchManager < octickaCore
 
 	%--------------------PUBLIC PROPERTIES----------%
 	properties
-		device		= 1
-		verbose		= false
-		isDummy		= false
-		window		= struct('X',0,'Y',0,'radius',[5]);
-		nSlots		= 1e5
+		device			= 1
+		verbose			= false
+		isDummy			= false
+		window			= struct('X',0,'Y',0,'radius',[5]);
+		nSlots			= 1e5
 	end
 
 	properties (SetAccess=private, GetAccess=public)
-		devices		= []
-		names		= []
-		allinfo		= []
-		x			= -1
-		y			= -1
-		isOpen		= false
-		isQueue		= false
-	end
+		devices			= []
+		names			= []
+		allInfo			= []
+		x				= -1
+		y				= -1
+		isOpen			= false
+		isQueue			= false
+	end	
 
 	properties (Access = private)
-		ppd			= 36
-		screen		= []
-		win			= []
-		screenVals	= []
+		ppd				= 36
+		screen			= []
+		win				= []
+		screenVals		= []
 		allowedProperties	= {'isDummy','device','verbose','window','nSlots'}
 	end
 
@@ -47,7 +47,7 @@ classdef touchManager < octickaCore
 			args = octickaCore.addDefaults(varargin,struct('name','touchManager'));
 			me = me@octickaCore(args); %superclass constructor
 			me.parseArgs(args, me.allowedProperties);
-			[me.devices,me.names,me.allinfo] = GetTouchDeviceIndices([], 1);
+			try [me.devices,me.names,me.allInfo] = GetTouchDeviceIndices([], 1); end
 		end
 
 		%================SET UP TOUCH INPUT============
@@ -60,6 +60,7 @@ classdef touchManager < octickaCore
 			else
 				error('Need to pass an open screenManager object!');
 			end
+			try [me.devices,me.names,me.allInfo] = GetTouchDeviceIndices([], 1); end
 			if me.isDummy
 				me.comment = 'Dummy Mode Active';
 				fprintf('--->touchManager: %s\n',me.comment);
@@ -191,13 +192,25 @@ classdef touchManager < octickaCore
 	end
 
 	methods (Access = protected)
-		%===========CLOSE=========
+		%===========calculateWindow=========
 		function result = calculateWindow(me, x, y)
 			result = false; window = false;
-			if length(me.window.radius) == 1 % circular test
+			% ---- test for exclusion zones first
+			if ~isempty(me.exclusionZone)
+				for i = 1:size(me.exclusionZone,1)
+					% [-x +x -y +y]
+					if (x >= me.exclusionZone(i,1) && x <= me.exclusionZone(i,2)) && ...
+						(me.y >= me.exclusionZone(i,3) && me.y <= me.exclusionZone(i,4))
+						result = -100;
+						return;
+					end
+				end
+			end
+			% ---- circular test
+			if length(me.window.radius) == 1 
 				r = sqrt((x - me.window.X).^2 + (y - me.window.Y).^2); %fprintf('x: %g-%g y: %g-%g r: %g-%g\n',x, me.window.X, me.y, me.window.Y,r,me.window.radius);
 				window = find(r < me.window.radius);
-			else % x y rectangular window test
+			else % ---- x y rectangular window test
 				for i = 1:length(me.window.X)
 					if (x >= (me.window.X - me.window.radius(1))) && (x <= (me.window.X + me.window.radius(1))) ...
 							&& (me.y >= (me.window.Y - me.window.radius(2))) && (me.y <= (me.window.Y + me.window.radius(2)))
