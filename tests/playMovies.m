@@ -1,20 +1,28 @@
 function playMovies(folder)
 	
+	subjectName = '13';
 	rewardPort = '/dev/ttyACM0';
-	debug = true;
+	debug = false;
 	if debug
-		windowed = [0 0 1200 800]; sf = 32;
+		windowed = [0 0 1200 800]
+		sf = 32;
 		dummy = true;
+		colour1 = [1 0.5 0 0.75];
+		colour2 = [0 1 1 0.75];
 	else
 		windowed = []; sf = [];
 		dummy = false;
+		colour1 = [1 0.5 0 0.75];
+		colour2 = [1 0.5 0 0.75];
 	end
 	
 	if IsOctave; try pkg load instrument-control; end; end
 	
 	% ============================movie / position list
-	movieList = {'/home/cog/Code/octicka/tests/ball.mkv','/home/cog/Code/octicka/tests/ball.mkv'};
-	positionList = {-4, 4};
+	movieList = {'/home/cog/Videos/testcage/ball3-0120.mkv','/home/cog/Videos/testcage/ball2-0120.mkv',...
+        '/home/cog/Videos/testcage/ball-0120.mkv','/home/cog/Videos/testcage/throw-0120.mkv','/home/cog/Videos/testcage/throw2-0120.mkv',...
+        '/home/cog/Videos/testcage/throw3-0120.mkv'};
+	positionList ={-4, 4, -4, -4, 4, 4};
 	
 	try 
 		% ============================screen
@@ -24,15 +32,15 @@ function playMovies(folder)
 		rn = 1;
 		m = movieStimulus('fileName',movieList{rn},'angle',90);
 		c1 = discStimulus('size',4);
-		c2 = discStimulus('xPosition',-4,'yPosition',positionList{rn},'size',4,'colour',[1 0.5 0 0.75]);
-		c3 = discStimulus('xPosition',-4,'yPosition',-positionList{rn},'size',4,'colour',[0 1 1 0.75]);
+		c2 = discStimulus('xPosition',-4,'yPosition',positionList{rn},'size',4,'colour',colour1);
+		c3 = discStimulus('xPosition',-4,'yPosition',-positionList{rn},'size',4,'colour',colour2);
 
 		% t============================ouch
 		t = touchManager('isDummy',dummy);
 		
 		% ============================reward
-		rM = arduinoManager('port',rewardPort);
-		open(rM);		
+		rM = arduinoManager('port',rewardPort,'shield','new','verbose',true);
+		try open(rM); end
 		
 		% ============================setup
 		sv = open(s);
@@ -43,15 +51,15 @@ function playMovies(folder)
 		setup(t,s);
 		createQueue(t);
 		start(t);
-		
+		 end
 		% ==============================save file name
 		svn = initialiseSaveFile(s);
-		saveName = [ s.paths.savedData filesep 'IntPhys-' svn '.mat'];
+		saveName = [ s.paths.savedData filesep 'IntPhys-' subjectName '-' svn '.mat'];
 		
 		% ============================settings
 		quitKey = KbName('escape');
 		RestrictKeysForKbCheck([quitKey]);
-		try ListenChar(0); end
+		try ListenChar(0);
 		try Priority(1); end
 		txt = 'Waiting for touch...';
 		keepRunning = true
@@ -75,9 +83,9 @@ function playMovies(folder)
 			%=======================================================wait for an initiate touch
 			vbl = flip(s); vblInit = vbl;
 			while ~touchStart
-				drawText(s, txt);
 				draw(c1);
-				if ~isempty(x) && ~isempty(y)
+				if debug && ~isempty(x) && ~isempty(y)
+					drawText(s, txt);
 					[xy] = s.toPixels([x y]);
 					Screen('glPoint', s.win, [1 0 0], xy(1), xy(2), 10);
 				end
@@ -116,15 +124,15 @@ function playMovies(folder)
 			t.window = struct('X',x,'Y',y,'radius',c2.size/2);
 			fprintf('===> Choice window: X = %.1f Y = %.1f\n',x,y);
 			flush(t);
-			x = []; y = []; touched = false; txt = ''
+			x = []; y = []; touched = false; txt = '';
 			
 			%=============================================get response
 			vbl = flip(s);
 			vblInit = vbl;
 			while vbl <= vblInit + responseTime
-				drawText(s, txt);
 				draw(c2); draw(c3);
-				if ~isempty(x) && ~isempty(y)
+				if debug && ~isempty(x) && ~isempty(y)
+					drawText(s, txt);
 					[xy] = s.toPixels([x y]);
 					Screen('glPoint', s.win, [1 0 0], xy(1), xy(2), 10);
 				end
@@ -133,8 +141,9 @@ function playMovies(folder)
 				txt = sprintf('x=%.2f y=%.2f', x, y);
 				flush(t);
 				if touchedResponse == true;
+					fprintf('===> CORRECT :-)\n');
 					drawTextNow(s,'CORRECT!');
-					rM.timedTTL(6,50);
+					rM.stepper(46);
 					WaitSecs(0.25);
 					break;
 				end
@@ -162,6 +171,7 @@ function playMovies(folder)
 			
 			%===========================================time out
 			if ~touchedResponse
+				fprintf('===> INCORRECT :-(\n');
 				drawBackground(s,[1 0 0]);
 				drawTextNow(s,'TIMEOUT!');
 				WaitSecs(2);
@@ -174,7 +184,9 @@ function playMovies(folder)
 		flip(s);
 		
 		% save trial data
+		disp('=======================================');
 		fprintf('===> Saving data to %s\n',saveName)
+		disp('=======================================');
 		save('-v7', saveName, 'trials')
 			
 		try Listenchar(0); end

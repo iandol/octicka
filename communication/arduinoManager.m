@@ -21,8 +21,6 @@ classdef arduinoManager < octickaCore
 		silentMode		= false
 		%> output logging info
 		verbose			= false
-		%> open a GUI to drive a reward directly
-		openGUI			= false
 		%> which pin to trigger the reward TTL by default?
 		rewardPin		= 2
 		%> time of the TTL sent by default?
@@ -32,12 +30,13 @@ classdef arduinoManager < octickaCore
 		availablePins	= {2,3,4,5,6,7,8,9,10,11,12,13}
 		%> the arduinoIOPort device object, you can call the methods
 		%> directly if required.
-		device							= []
+		device			= []
 		% motor shield settings
-		delaylength					= 0.03
-		shield              = ''
-		linePwm							= 3
+		delayLength		= 0.03
+		shield			= 'new'
+		linePwm			= 3
 	end
+	
 	properties (SetAccess = private, GetAccess = public)
 		%> which ports are available
 		ports			= []
@@ -46,13 +45,15 @@ classdef arduinoManager < octickaCore
 		%> ID from device
 		deviceID		= ''
 	end
+	
 	properties (SetAccess = private, GetAccess = private, Transient = true)
 		%> a screen object to bind to
 		screen			= []
 	end
+	
 	properties (SetAccess = private, GetAccess = private)
 		allowedProperties = {'availablePins','rewardPin','rewardTime','board',...
-			'port','silentMode','verbose'}
+			'port','silentMode','verbose','delayLength','shield','linePwm'}
 	end
 	
 	methods%------------------PUBLIC METHODS--------------%
@@ -174,7 +175,7 @@ classdef arduinoManager < octickaCore
 			if ~me.isOpen || me.silentMode; return; end
 			if ~exist('line','var') || isempty(line); line = me.rewardPin; end
 			value = analogRead(me.device, line);
-			if me.verbose;fprintf('===>>> ANALOGREAD: pin %i = %i \n',line,value);end
+			if me.verbose;fprintf('-ANALOGREAD: pin %i = %i ',line,value);end
 		end
 
 		%===============ANALOG WRITE================%
@@ -183,7 +184,7 @@ classdef arduinoManager < octickaCore
 			if ~exist('line','var') || isempty(line); line = me.rewardPin; end
 			if ~exist('value','var') || isempty(value); value = 128; end
 			analogWrite(me.device, line, value);
-			if me.verbose;fprintf('===>>> ANALOGWRITE: pin %i = %i \n',line,value);end
+			if me.verbose;fprintf('-ANALOGWRITE: pin %i = %i ',line,value);end
 		end
 
 		%===============DIGITAL READ================%
@@ -191,7 +192,7 @@ classdef arduinoManager < octickaCore
 			if ~me.isOpen || me.silentMode; return; end
 			if ~exist('line','var') || isempty(line); line = me.rewardPin; end
 			value = digitalRead(me.device, line);
-			if me.verbose;fprintf('===>>> DIGREAD: pin %i = %i \n',line,value);end
+			if me.verbose;fprintf('-DIGREAD: pin %i = %i ',line,value);end
 		end
 		
 		%===============DIGITAL WRITE================%
@@ -200,7 +201,7 @@ classdef arduinoManager < octickaCore
 			if ~exist('line','var') || isempty(line); line = me.rewardPin; end
 			if ~exist('value','var') || isempty(value); value = 0; end
 			digitalWrite(me.device, line, value);
-			if me.verbose;fprintf('===>>> DIGWRITE: pin %i = %i \n',line,value);end
+			if me.verbose;fprintf('-DIGWRITE: pin %i = %i ',line,value);end
 		end
 		
 		%===============SEND TTL (legacy)================%
@@ -249,23 +250,24 @@ classdef arduinoManager < octickaCore
 		function test(me,line)
 			if me.silentMode || isempty(me.device); return; end
 			if ~exist('line','var') || isempty(line); line = 2; end
+			if me.verbose;fprintf('===>>> TEST: pin %i LOW/HIGH 20 times\n',line);end
 			digitalWrite(me.device, line, 0);
 			for ii = 1:20
 				digitalWrite(me.device, line, mod(ii,2));
 			end
 		end
+		
 		%==================DRIVE STEPPER MOTOR============%
 		function stepper(me,ndegree)
-% 			     delaylength = 0.03;
 				 ncycle      = floor(ndegree/(1.8*4));
                  nstep       = round((rem(ndegree,(1.8*4))/7.2)*4);
 			 switch me.shield
 				 case 'new'
 					 me.linePwm = [10 11];
-				 case 'old'
+				 otherwise
 					 me.linePwm = [3 11];
-
 			 end
+			 if me.verbose;fprintf('===>>> STEPPER on %s shield: steps =  %i \n',me.shield,nstep);end
 		     for i=1:ncycle
 			     cycleStepper(me)
 			 end
@@ -275,85 +277,77 @@ classdef arduinoManager < octickaCore
   					me.digitalWrite(8, 1);    %//DISABLE CH B
   					me.digitalWrite(12,1);   %//Sets direction of CH A
   					me.digitalWrite(me.linePwm(1), 1);    %//Moves CH A
-  					pause(me.delaylength);
+  					WaitSecs(me.delayLength);
 				 case 2
 					me.digitalWrite(9, 0);    %//ENABLE CH A 
   					me.digitalWrite(8, 1);    %//DISABLE CH B
   					me.digitalWrite(12,1);   %//Sets direction of CH A
   					me.digitalWrite(me.linePwm(1), 1);    %//Moves CH A
-  					pause(me.delaylength);
+  					WaitSecs(me.delayLength);
   				
-		
   					me.digitalWrite(9, 1);    %//DISABLE CH A
   					me.digitalWrite(8, 0);    %//ENABLE CH B
   					me.digitalWrite(13,0);   %//Sets direction of CH B
   					me.digitalWrite(11,1);   %//Moves CH B
-  					pause(me.delaylength);
+  					WaitSecs(me.delayLength);
 				 case 3
 			    	me.digitalWrite(9, 0);    %//ENABLE CH A 
   					me.digitalWrite(8, 1);    %//DISABLE CH B
   					me.digitalWrite(12,1);   %//Sets direction of CH A
   					me.digitalWrite(me.linePwm(1), 1);    %//Moves CH A
-  					pause(me.delaylength);
+  					WaitSecs(me.delayLength);
   				
-		
   					me.digitalWrite(9, 1);    %//DISABLE CH A
   					me.digitalWrite(8, 0);    %//ENABLE CH B
   					me.digitalWrite(13,0);   %//Sets direction of CH B
   					me.digitalWrite(11,1);   %//Moves CH B
-  					pause(me.delaylength);
+  					WaitSecs(me.delayLength);
   				
-				
   					me.digitalWrite(9, 0);     %//ENABLE CH A-
   					me.digitalWrite(8, 1);     %//DISABLE CH B
   					me.digitalWrite(12,0);    %//Sets direction of CH A
   					me.digitalWrite(me.linePwm(1), 1);     %//Moves CH A
-  					pause(me.delaylength);
+  					WaitSecs(me.delayLength);
 				 case 4
 					cycleStepper(me)
 			 end
-                stopStepper(me)
-			 end
+			stopStepper(me)
+		end
+			
 	    %================STEPPER CYCLR==========
 		function  cycleStepper(me)
-			   
 			    me.digitalWrite(9, 0);    %//ENABLE CH A 
   				me.digitalWrite(8, 1);    %//DISABLE CH B
   				me.digitalWrite(12,1);   %//Sets direction of CH A
   				me.digitalWrite(me.linePwm(1), 1);    %//Moves CH A
-  				pause(me.delaylength);
+  				WaitSecs(me.delayLength);
   				
-		
   				me.digitalWrite(9, 1);    %//DISABLE CH A
   				me.digitalWrite(8, 0);    %//ENABLE CH B
   				me.digitalWrite(13,0);   %//Sets direction of CH B
   				me.digitalWrite(11,1);   %//Moves CH B
-  				pause(me.delaylength);
+  				WaitSecs(me.delayLength);
   				
-				
   				me.digitalWrite(9, 0);     %//ENABLE CH A-
   				me.digitalWrite(8, 1);     %//DISABLE CH B
   				me.digitalWrite(12,0);    %//Sets direction of CH A
   				me.digitalWrite(me.linePwm(1), 1);     %//Moves CH A
-  				pause(me.delaylength);
-			 
-  	
+  				WaitSecs(me.delayLength);
  				
   				me.digitalWrite(9, 1);   %//DISABLE CH A
   				me.digitalWrite(8, 0);   %//ENABLE CH B-
   				me.digitalWrite(13,1);  %//Sets direction of CH B
   				me.digitalWrite(11,1);  %//Moves CH B
-  				pause(me.delaylength);
-
+  				WaitSecs(me.delayLength);
 		end
+	
 		%================STOP STEPPER================
 		function stopStepper(me)
-% 				delaylength    = 0.01;    % in seconds
         		me.digitalWrite(9,1);        %//DISABLE CH A
         		me.digitalWrite(me.linePwm(1), 0);       %//stop Move CH A
         		me.digitalWrite(8,1);        %//DISABLE CH B
         		me.digitalWrite(11,0);      %//stop Move CH B 
-        		pause(me.delaylength);
+        		WaitSecs(me.delayLength);
 		end
 		
 		%===========Check Ports==========%

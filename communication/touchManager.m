@@ -8,23 +8,25 @@ classdef touchManager < octickaCore
 		verbose		= false
 		isDummy		= false
 		window		= struct('X',0,'Y',0,'radius',[5]);
+		nSlots		= 1e5
 	end
 
 	properties (SetAccess=private, GetAccess=public)
 		devices		= []
 		names		= []
 		allinfo		= []
-		nSlots		= 1e5
-		win			= []
 		x			= -1
 		y			= -1
-		ppd			= 36
-		screen		= []
-		screenVals	= []
+		isOpen		= false
+		isQueue		= false
 	end
 
 	properties (Access = private)
-		allowedProperties	= {'isDummy','device','verbose','window'}
+		ppd			= 36
+		screen		= []
+		win			= []
+		screenVals	= []
+		allowedProperties	= {'isDummy','device','verbose','window','nSlots'}
 	end
 
 	%=======================================================================
@@ -77,11 +79,13 @@ classdef touchManager < octickaCore
 		function createQueue(me, choice)
 			if me.isDummy; return; end
 			if ~exist('choice','var') || isempty(choice)
-				choice=me.device;
+				choice = me.device;
 			end
 			for i = 1:length(choice)
 				TouchQueueCreate(me.win, me.devices(choice(i)), me.nSlots);
 			end
+			me.isQueue = true;
+			if me.verbose;me.logEvent('createQueue','Opened');end
 		end
 
 		%===============START=========
@@ -90,9 +94,12 @@ classdef touchManager < octickaCore
 			if ~exist('choice','var') || isempty(choice)
 				choice=me.device;
 			end
+			if ~me.isQueue; createQueue(me,choice); end
 			for i = 1:length(choice)
 				TouchQueueStart(me.devices(choice(i)));
 			end
+			me.isOpen = true;
+			if me.verbose;me.logEvent('start','Started queue');end
 		end
 
 		%===============FLUSH=========
@@ -150,7 +157,7 @@ classdef touchManager < octickaCore
 				if isempty(event); return; end
 				xy = me.screen.toDegrees([event.X event.Y]);
 				x = xy(1); y = xy(2);
-				%fprintf('%i %.2f %i %.2f\n',event.X, x, event.Y, y);
+				if me.verbose;fprintf('dummy touch: %i %.2f %i %.2f\n',event.X, x, event.Y, y);end
 				result = calculateWindow(me, x, y);
 			else
 				if ~exist('choice','var') || isempty(choice);choice=me.device;end
@@ -161,7 +168,7 @@ classdef touchManager < octickaCore
 					if isempty(event); return; end
 					xy = me.screen.toDegrees([event.X event.Y]);
 					x = xy(1); y = xy(2);
-					%fprintf('%i %.2f %i %.2f\n',event.X, x, event.Y, y);
+					if me.verbose;fprintf('touch: %i %.2f %i %.2f\n',event.X, x, event.Y, y);end
 					result = calculateWindow(me, x, y);
 				end
 			end
@@ -169,6 +176,8 @@ classdef touchManager < octickaCore
 
 		%===========CLOSE=========
 		function close(me)
+			me.isOpen = false;
+			me.isQueue = false;
 			if me.isDummy
 				logOutput(me,'Closing dummy touchManager...');
 			else
@@ -192,7 +201,8 @@ classdef touchManager < octickaCore
 				for i = 1:length(me.window.X)
 					if (x >= (me.window.X - me.window.radius(1))) && (x <= (me.window.X + me.window.radius(1))) ...
 							&& (me.y >= (me.window.Y - me.window.radius(2))) && (me.y <= (me.window.Y + me.window.radius(2)))
-						window = i;break;
+						window = i;
+						break;
 					end
 				end
 			end
