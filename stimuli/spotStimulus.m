@@ -9,24 +9,24 @@ classdef spotStimulus < baseStimulus
 	
 	properties %--------------------PUBLIC PROPERTIES----------%
 		%> type can be "simple" or "flash"
-		type char = 'simple'
+		type					= 'simple'
 		%> colour for flash, empty to inherit from screen background with 0 alpha
-		flashColour double = []
+		flashColour		= []
 		%> time to flash on and off in seconds
-		flashTime double {mustBeVector(flashTime)} = [0.25 0.25]
+		flashTime			= [0.25 0.25]
 		%> is the ON flash the first flash we see?
-		flashOn logical = true
+		flashOn				= true
 		%> contrast scales from foreground to screen background colour
-		contrast double {mustBeInRange(contrast,0,1)} = 1
+		contrast			= 1
 	end
 	
 	properties (SetAccess = protected, GetAccess = public)
 		%> stimulus family
-		family char = 'spot'
+		family				= 'spot'
 	end
 	
 	properties (SetAccess = private, GetAccess = public, Hidden = true)
-		typeList cell = {'simple','flash'}
+		typeList			= {'simple','flash'}
 	end
 	
 	properties (Dependent = true, SetAccess = private, GetAccess = private)
@@ -39,17 +39,17 @@ classdef spotStimulus < baseStimulus
 		%> current flash state
 		flashState
 		%> internal counter
-		flashCounter = 1
+		flashCounter			= 1
 		%> the OFF colour of the flash, usually this is set to the screen background
-		flashBG = [0.5 0.5 0.5]
+		flashBG						= [0.5 0.5 0.5]
 		%> ON flash colour, reset on setup
-		flashFG = [1 1 1]
-		currentColour = [1 1 1]
-		colourOutTemp = [1 1 1]
+		flashFG						= [1 1 1]
+		currentColour			= [1 1 1]
+		colourOutTemp			= [1 1 1]
 		flashColourOutTemp = [1 1 1]
-		stopLoop = false
-		allowedProperties='type|flashTime|flashOn|flashColour|contrast'
-		ignoreProperties = 'flashSwitch';
+		stopLoop					= false
+		allowedProperties = {'type','flashTime','flashOn','flashColour','contrast'}
+		ignoreProperties	= {'flashSwitch'};
 	end
 	
 	%=======================================================================
@@ -73,8 +73,7 @@ classdef spotStimulus < baseStimulus
 			
 			me.isRect = false; %uses a rect for drawing?
 
-			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
-			me.salutation('constructor','Stimulus initialisation complete');
+			me.ignoreProperties = [ me.ignorePropertiesBase me.ignoreProperties ];
 		end
 		
 		% ===================================================================
@@ -88,141 +87,42 @@ classdef spotStimulus < baseStimulus
 			me.inSetup = true;
 			if isempty(me.isVisible); me.show; end
 			
-			me.sM = sM;
-			if ~sM.isOpen; warning('Screen needs to be Open!'); end
-			me.screenVals = sM.screenVals;
-			me.ppd = sM.ppd;
+			reset(me);
+			me.inSetup = true; me.isSetup = false;
+			if isempty(me.isVisible); me.show; end
 			
-			fn = fieldnames(spotStimulus);
+			me.sM = sM;
+			if ~sM.isOpen; error('Screen needs to be Open!'); end
+			me.ppd=sM.ppd;
+			me.screenVals = sM.screenVals;
+			me.texture = []; %we need to reset this
+			me.dp = struct;
+			fn = fieldnames(me);
 			for j=1:length(fn)
-				if isempty(me.findprop([fn{j} 'Out'])) && isempty(regexp(fn{j},me.ignoreProperties, 'once'))%create a temporary dynamic property
-					p=me.addprop([fn{j} 'Out']);
-					p.Transient = true;
-					if strcmp(fn{j},'size');p.SetMethod = @set_sizeOut;end
-					if strcmp(fn{j},'xPosition');p.SetMethod = @set_xPositionOut;end
-					if strcmp(fn{j},'yPosition');p.SetMethod = @set_yPositionOut;end
-					if strcmp(fn{j},'colour');p.SetMethod = @set_colourOut;end
-					if strcmp(fn{j},'flashColour');p.SetMethod = @set_flashColourOut;end
-					if strcmp(fn{j},'contrast');p.SetMethod = @set_contrastOut;end
-					if strcmp(fn{j},'alpha');p.SetMethod = @set_alphaOut;end
-				end
-				if isempty(regexp(fn{j},me.ignoreProperties, 'once'))
-					me.([fn{j} 'Out']) = me.(fn{j}); %copy our property value to our tempory copy
+				if ~ismember(fn{j}, me.ignoreProperties)
+					prop = [fn{j} 'Out'];
+					p = addProperty(me, prop);
+					v = me.setOut(p, me.(fn{j})); % our pseudo set method
+					me.dp.(p) = v; %copy our property value to our tempory copy
 				end
 			end
 			
 			addRuntimeProperties(me);
 			
 			if me.doFlash
-				if ~isempty(me.flashColourOut)
-					me.flashBG = [me.flashColourOut(1:3) me.alphaOut];
+				if ~isempty(me.dp.flashColourOut)
+					me.flashBG = [me.dp.flashColourOut(1:3) me.dp.alphaOut];
 				else
 					me.flashBG = [me.sM.backgroundColour(1:3) 0]; %make sure alpha is 0
 				end
 				setupFlash(me);
 			end
 			
-			me.inSetup = false;
+			me.inSetup = false; me.isSetup = true;
 			
 			computeColour(me);
 			computePosition(me);
-			setAnimationDelta(me);
 			if me.doAnimator;setup(me.animator, me);end
-
-			function set_xPositionOut(me, value)
-				me.xPositionOut = value * me.ppd;
-			end
-			function set_yPositionOut(me,value)
-				me.yPositionOut = value*me.ppd;
-			end
-			function set_sizeOut(me,value)
-				me.sizeOut = value * me.ppd; %divide by 2 to get diameter
-			end
-			function set_colourOut(me, value)
-				me.isInSetColour = true;
-				if length(value)==4 
-					alpha = value(4);
-				elseif isempty(me.findprop('alphaOut'))
-					alpha = me.alpha;
-				else
-					alpha = me.alphaOut;
-				end
-				switch length(value)
-					case 4
-						if isempty(me.findprop('alphaOut'))
-							me.alpha = alpha;
-						else
-							me.alphaOut = alpha;
-						end
-					case 3
-						value = [value(1:3) alpha];
-					case 1
-						value = [value value value alpha];
-				end
-				if isempty(me.colourOutTemp);me.colourOutTemp = value;end
-				me.colourOut = value;
-				me.isInSetColour = false;
-				if isempty(me.findprop('contrastOut'))
-					contrast = me.contrast; %#ok<*PROPLC>
-				else
-					contrast = me.contrastOut;
-				end
-				if ~me.inSetup && ~me.stopLoop && contrast < 1
-					computeColour(me);
-				end
-			end
-			function set_flashColourOut(me, value)
-				me.isInSetColour = true;
-				if length(value)==4 
-					alpha = value(4);
-				elseif isempty(me.findprop('alphaOut'))
-					alpha = me.alpha;
-				else
-					alpha = me.alphaOut;
-				end
-				switch length(value)
-					case 3
-						value = [value(1:3) alpha];
-					case 1
-						value = [value value value alpha];
-				end
-				if isempty(me.flashColourOutTemp);me.flashColourOutTemp = value;end
-				me.flashColourOut = value;
-				me.isInSetColour = false;
-				if isempty(me.findprop('contrastOut'))
-					contrast = me.contrast; %#ok<*PROPLC>
-				else
-					contrast = me.contrastOut;
-				end
-				if ~me.inSetup && ~me.stopLoop && contrast < 1
-					computeColour(me);
-				end
-			end
-			function set_alphaOut(me, value)
-				if me.isInSetColour; return; end
-				me.alphaOut = value;
-				if isempty(me.findprop('colourOut'))
-					me.colour = [me.colour(1:3) me.alphaOut];
-				else
-					me.colourOut = [me.colourOut(1:3) me.alphaOut];
-				end
-				if isempty(me.findprop('flashColourOut'))
-					if ~isempty(me.flashColour)
-						me.flashColour = [me.flashColour(1:3) me.alphaOut];
-					end
-				else
-					if ~isempty(me.flashColourOut)
-						me.flashColourOut = [me.flashColourOut(1:3) me.alphaOut];
-					end
-				end
-			end
-			function set_contrastOut(me, value)
-				if iscell(value); value = value{1}; end
-				me.contrastOut = value;
-				if ~me.inSetup && ~me.stopLoop && value < 1
-					computeColour(me);
-				end
-			end
 		end
 		
 		% ===================================================================
@@ -251,9 +151,9 @@ classdef spotStimulus < baseStimulus
 		function draw(me)
 			if me.isVisible && me.tick >= me.delayTicks && me.tick < me.offTicks
 				if me.doFlash == false
-					Screen('gluDisk',me.sM.win,me.colourOut,me.xOut,me.yOut,me.sizeOut/2);
+					Screen('gluDisk',me.sM.win,me.dp.colourOut,me.xFinal,me.yFinal,me.dp.sizeOut/2);
 				else
-					Screen('gluDisk',me.sM.win,me.currentColour,me.xOut,me.yOut,me.sizeOut/2);
+					Screen('gluDisk',me.sM.win,me.currentColour,me.xFinal,me.yFinal,me.dp.sizeOut/2);
 				end
 			end
 			me.tick = me.tick + 1;
@@ -270,13 +170,13 @@ classdef spotStimulus < baseStimulus
 				if me.mouseOverride
 					getMousePosition(me);
 					if me.mouseValid
-						me.xOut = me.mouseX;
-						me.yOut = me.mouseY;
+						me.xFinal = me.mouseX;
+						me.yFinal = me.mouseY;
 					end
 				end
 				if me.doMotion == true
-					me.xOut = me.xOut + me.dX_;
-					me.yOut = me.yOut + me.dY_;
+					me.xFinal = me.xFinal + me.dX_;
+					me.yFinal = me.yFinal + me.dY_;
 				end
 				if me.doFlash == true
 					if me.flashCounter <= me.flashSwitch
@@ -303,9 +203,9 @@ classdef spotStimulus < baseStimulus
 		function reset(me)
 			resetTicks(me);
 			me.texture=[];
-			me.removeTmpProperties;
+			removeTmpProperties(me);
 			me.stopLoop = false;
-			me.inSetup = false;
+			me.inSetup = false; me.isSetup = false;
 			me.colourOutTemp = [];
 			me.flashColourOutTemp = [];
 			me.flashFG = [];
@@ -319,13 +219,93 @@ classdef spotStimulus < baseStimulus
 		% ===================================================================
 		function flashSwitch = get.flashSwitch(me)
 			if me.flashState
-				flashSwitch = round(me.flashTimeOut(1) / me.sM.screenVals.ifi);
+				flashSwitch = round(me.dp.flashTimeOut(1) / me.sM.screenVals.ifi);
 			else
-				flashSwitch = round(me.flashTimeOut(2) / me.sM.screenVals.ifi);
+				flashSwitch = round(me.dp.flashTimeOut(2) / me.sM.screenVals.ifi);
 			end
 		end
 		
 	end %---END PUBLIC METHODS---%
+	
+	%=======================================================================
+	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
+	%=======================================================================
+		
+		% ===================================================================
+		%> @brief our fake set methods, hooks into dynamicprops subsasgn
+		%>
+		% ===================================================================
+		function v = setOut(me, S, v)
+			if ischar(S)
+				prop = S; 
+			elseif isstruct(S) && strcmp(S(end).type, '.') && isfield(S,'subs')
+				prop = S(end).subs;
+			else
+				return;
+			end
+			switch prop
+				case 'sizeOut'
+					v = v * me.ppd;
+					if isProperty(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)
+						me.scale = v / me.discSize;
+						me.postSet = @setRect(me);
+					end
+				case {'xPositionOut' 'yPositionOut'}
+					v = v * me.ppd;
+				case {'colourOut'}
+					me.isInSetColour = true;
+					if length(v)==4 
+						alpha = v(4);
+					elseif isProperty(me,'alphaOut')
+						alpha = me.dp.alphaOut;
+					else
+						alpha = me.alpha;
+					end
+					switch length(v)
+						case 4
+							if isProperty(me,'alphaOut')
+								me.dp.alphaOut = alpha;
+							else
+								me.alpha = alpha;
+							end
+						case 3
+							v = [v(1:3) alpha];
+						case 1
+							v = [v v v alpha];
+					end
+					if isempty(me.colourOutTemp); me.colourOutTemp = v;end
+					contrast = getP(me,'contrast');
+					if ~me.inSetup && ~me.stopLoop && contrast < 1
+						me.postSet = @computeColour(me);
+					end
+					me.isInSetColour = false;
+				case {'flashColourOut'}
+					if length(v)==4 
+						alpha = v(4);
+					elseif isProperty(me,'alphaOut')
+						alpha = me.dp.alphaOut;
+					else
+						alpha = me.alpha;
+					end
+					switch length(v)
+						case 3
+							v = [v(1:3) alpha];
+						case 1
+							v = [v v v alpha];
+					end
+					if isempty(me.flashColourOutTemp);me.flashColourOutTemp = v;end
+					contrast = getP(me,'contrast');
+					if ~me.inSetup && ~me.stopLoop && contrast < 1
+						me.postSet = @computeColour(me);
+					end
+				case {'contrastOut'}
+						while iscell(v); v = v{1}; end
+						if isempty(me.colourOutTemp) && isProperty(me,'colourOut'); me.colourOutTemp = me.dp.colourOut;end
+						if v < 1; me.postSet = @me.computeColour; end
+				end
+		end
+		
+	end
 	
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
@@ -336,12 +316,15 @@ classdef spotStimulus < baseStimulus
 		%> Use an event to recalculate as get method is slower (called
 		%> many more times), than an event which is only called on update
 		% ===================================================================
-		function computeColour(me,~,~)
+		function computeColour(me)
 			if me.inSetup || me.stopLoop; return; end
 			me.stopLoop = true;
-			me.colourOut = [me.mix(me.colourOutTemp(1:3)) me.alphaOut];
-			if ~isempty(me.flashColourOut)
-				me.flashColourOut = [me.mix(me.flashColourOutTemp(1:3)) me.alphaOut];
+			if isempty(me.colourOutTemp) && isProperty(me,'colourOut'); me.colourOutTemp = me.dp.colourOut;end
+			if me.dp.contrastOut < 1
+				me.dp.colourOut = [me.mix(me.colourOutTemp(1:3)) me.dp.alphaOut];
+				if ~isempty(me.dp.flashColourOut)
+					me.dp.flashColourOut = [me.mix(me.flashColourOutTemp(1:3)) me.dp.alphaOut];
+				end
 			end
 			me.stopLoop = false;
 			me.setupFlash();
@@ -353,11 +336,11 @@ classdef spotStimulus < baseStimulus
 		% ===================================================================
 		function setupFlash(me)
 			me.flashState = me.flashOn;
-			me.flashFG = me.colourOut;
+			me.flashFG = me.dp.colourOut;
 			me.flashCounter = 1;
 			if me.doFlash
-				if ~isempty(me.flashColourOut)
-					me.flashBG = [me.flashColourOut(1:3) me.alphaOut];
+				if ~isempty(me.dp.flashColourOut)
+					me.flashBG = [me.dp.flashColourOut(1:3) me.dp.alphaOut];
 				else
 					me.flashBG = [me.sM.backgroundColour(1:3) 0]; %make sure alpha is 0
 				end
@@ -374,7 +357,7 @@ classdef spotStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function out = mix(me,c)
-			out = me.sM.backgroundColour(1:3) * (1 - me.contrastOut) + c(1:3) * me.contrastOut;
+			out = me.sM.backgroundColour(1:3) * (1 - me.dp.contrastOut) + c(1:3) * me.dp.contrastOut;
 		end
 	end
 end

@@ -179,11 +179,8 @@ classdef discStimulus < baseStimulus
 		% ===================================================================
 		function draw(me)
 			if me.isVisible && me.tick >= me.delayTicks && me.tick < me.offTicks
-				%Screen('DrawTexture', windowPointer, texturePointer [,sourceRect] [,destinationRect] 
-				%[,rotationAngle] [, filterMode] [, globalAlpha] [, modulateColor] [, textureShader] 
-				%[, specialFlags] [, auxParameters]);
-				if me.mouseOverride && ~me.mouseValid; fprintf('II %i\n',me.tick);me.tick = me.tick + 1;return; end
-				if me.changeBlend;Screen('BlendFunction', me.sM.win, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');end
+				if me.mouseOverride && ~me.mouseValid; me.tick = me.tick + 1; return; end
+				if me.changeBlend; Screen('BlendFunction', me.sM.win, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA'); end
 				if me.doFlash == false
 					Screen('DrawTexture', me.sM.win, me.texture, [], me.mvRect,...
 					me.dp.angleOut, [], [], me.dp.colourOut, [], [],...
@@ -193,7 +190,7 @@ classdef discStimulus < baseStimulus
 					me.dp.angleOut, [], [], me.currentColour, [], [],...
 					[]);
 				end
-				if me.changeBlend;Screen('BlendFunction', me.sM.win, me.sM.srcMode, me.sM.dstMode);end
+				if me.changeBlend; Screen('BlendFunction', me.sM.win, me.sM.srcMode, me.sM.dstMode); end
 				me.drawTick = me.drawTick + 1;
 			end
 			if me.isVisible; me.tick = me.tick + 1; end
@@ -256,7 +253,7 @@ classdef discStimulus < baseStimulus
 				end
 				me.texture = []; 
 			end
-			me.removeTmpProperties;
+			removeTmpProperties(me);
 		end
 		
 		% ===================================================================
@@ -270,8 +267,14 @@ classdef discStimulus < baseStimulus
 				flashSwitch = round(me.dp.flashTimeOut(2) / me.sM.screenVals.ifi);
 			end
 		end
-    
-    % ===================================================================
+		
+	end %---END PUBLIC METHODS---%
+	
+	%=======================================================================
+	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
+	%=======================================================================
+		
+		% ===================================================================
 		%> @brief our fake set methods, hooks into dynamicprops subsasgn
 		%>
 		% ===================================================================
@@ -300,12 +303,12 @@ classdef discStimulus < baseStimulus
 			end
 		end
 		
-	end %---END PUBLIC METHODS---%
+	end
 	
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
 	%=======================================================================
-
+		
 		% ===================================================================
 		%> @brief setRect
 		%> setRect makes the PsychRect based on the texture and screen values

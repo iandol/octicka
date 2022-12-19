@@ -107,6 +107,7 @@ classdef baseStimulus < octickaCore
 	end
 	
 	properties (Access = protected)
+		postSet
 		% class fieldnames
 		fn
 		% dp fieldnames
@@ -201,22 +202,22 @@ classdef baseStimulus < octickaCore
     
     % ===================================================================
 		function a=subsasgn(me, S, v)
+			me.postSet = [];
 			if ismethod(me, 'setOut')
 				v = me.setOut(S, v); % this is a pseudo Set method
-				if me.verbose; fprintf('Modifying the Value for %s\n',S(1).subs); end
 			end
 			S = subs_added(me,S);
 			a = builtin('subsasgn', me, S, v);
+			if ~isempty(me.postSet); fprintf('!!!POSTSET!!!\n');feval(me.postSet); end
 		end
 		
 		% ===================================================================
 		function S = subs_added(me, S)
 			if isempty(S); return; end
 			if ischar(S); S=struct('type', '.', 'subs', S); end
-			f = fieldnames(me.dp);
-			if isempty(f); return; end
-			if strcmp(S(1).type, '.') && ismember(S(1).subs, f)
-				if me.verbose; fprintf('Modifying the Assign for %s\n',S(1).subs); end
+			if isempty(me.fndp); return; end
+			if strcmp(S(1).type, '.') && ismember(S(1).subs, me.fndp)
+				if me.verbose; fprintf('»»»Modified Assign for %s\n',S(1).subs); end
 				S0 = struct('type', '.', 'subs', 'dp');
 				S = [ S0 S ];
 			end
@@ -622,9 +623,7 @@ classdef baseStimulus < octickaCore
 		% ===================================================================
 		function distance = findDistance(x1, y1, x2, y2)
 		% findDistance(x1, y1, x2, y2)
-			dx = x2 - x1;
-			dy = y2 - y1;
-			distance=sqrt(dx^2 + dy^2);
+			distance=sqrt((x2 - x1)^2 + (y2 - y1)^2);
 		end
 		
 		% ===================================================================
@@ -675,7 +674,7 @@ classdef baseStimulus < octickaCore
 		%> @brief setRect
 		%> setRect makes the PsychRect based on the texture and screen
 		%> values, you should call computePosition() first to get xFinal and
-		%> yFinal
+		%> yFinal. 
 		% ===================================================================
 		function setRect(me)
 			if ~isempty(me.texture)

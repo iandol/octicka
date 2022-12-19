@@ -230,43 +230,6 @@ classdef movieStimulus < baseStimulus
 		end
 		
 		% ===================================================================
-		%> @brief our fake set methods, hooks into dynamicprops subsasgn
-		%>
-		% ===================================================================
-		function v = setOut(me, S, v)
-			if ischar(S)
-				prop = S; 
-			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
-				prop = S(1).subs;
-			else
-				return;
-			end
-			switch prop
-				case {'sizeOut','xPositionOut' 'yPositionOut'}
-					v = v * me.ppd;
-				case {'contrastOut'}
-					if iscell(v); v = v{1}; end
-					if ~me.inSetup && ~me.stopLoop && v < 1
-						computeColour(me);
-					end
-			end
-		end
-		
-		% ===================================================================
-		%> @brief Update only position info, faster and doesn't reset movie
-		%>
-		% ===================================================================
-		function updatePositions(me,x,y)
-			me.xFinal = x;
-			me.yFinal = y;
-			if length(me.mvRect) == 4
-				me.mvRect=CenterRectOnPointd(me.mvRect, me.xFinal, me.yFinal);
-			else
-				fprintf('--->>> movieStimulus invalid mvRect\n');
-			end
-		end
-		
-		% ===================================================================
 		%> @brief Draw this stimulus object
 		%>
 		% ===================================================================
@@ -354,6 +317,47 @@ classdef movieStimulus < baseStimulus
 			me.inSetup = false; me.isSetup = false;
 		end
 		
+	end %---END PUBLIC METHODS---%
+	
+	%=======================================================================
+	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
+	%=======================================================================
+	
+		% ===================================================================
+		%> @brief our fake set methods, hooks into dynamicprops subsasgn
+		%>
+		% ===================================================================
+		function v = setOut(me, S, v)
+			if ischar(S)
+				prop = S; 
+			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
+				prop = S(1).subs;
+			else
+				return;
+			end
+			switch prop
+				case {'sizeOut','xPositionOut' 'yPositionOut'}
+					v = v * me.ppd;
+				case {'contrastOut'}
+					if iscell(v); v = v{1}; end
+					if ~me.inSetup && ~me.stopLoop && v < 1
+						computeColour(me);
+					end
+			end
+		end
+		
+		% ===================================================================
+		%> @brief Update only position info, faster and doesn't reset movie
+		%>
+		% ===================================================================
+		function updatePositions(me,x,y)
+			me.xFinal = x;
+			me.yFinal = y;
+			if length(me.mvRect) == 4
+				me.mvRect=CenterRectOnPointd(me.mvRect, me.xFinal, me.yFinal);
+			end
+		end
+		
 		% ===================================================================
 		%> @brief 
 		%>
@@ -365,7 +369,7 @@ classdef movieStimulus < baseStimulus
 			end
 		end
 		
-	end %---END PUBLIC METHODS---%
+	end
 	
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
