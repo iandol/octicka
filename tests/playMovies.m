@@ -4,8 +4,8 @@ function playMovies(folder)
 	rewardPort = '/dev/ttyACM0';
 	debug = true;
 	if debug
-		windowed = [0 0 1200 800]
-		sf = 32;
+		if max(Screen('Screens'))==0; windowed = [0 0 1000 800]; end
+		sf = kPsychGUIWindow;
 		dummy = true;
 		colour1 = [1 0.5 0 0.75];
 		colour2 = [0 1 1 0.75];
@@ -19,12 +19,15 @@ function playMovies(folder)
 	if IsOctave; try pkg load instrument-control; end; end
 	
 	% ============================movie / position list
-	%movieList = {'/home/cog/Videos/testcage/ball3-0120.mkv','/home/cog/Videos/testcage/ball2-0120.mkv',...
-	%'/home/cog/Videos/testcage/ball-0120.mkv','/home/cog/Videos/testcage/throw-0120.mkv','/home/cog/Videos/testcage/throw2-0120.mkv',...
-	%'/home/cog/Videos/testcage/throw3-0120.mkv'};
+	%movieList = {'~/Videos/testcage/ball3-0120.mkv','~/Videos/testcage/ball2-0120.mkv',...
+	%'~/Videos/testcage/ball-0120.mkv','~/Videos/testcage/throw-0120.mkv','~/Videos/testcage/throw2-0120.mkv',...
+	%'~/Videos/testcage/throw3-0120.mkv'};
 	%positionList ={-4, 4, -4, -4, 4, 4};
-	movieList = {'/home/cog5/Code/octicka/tests/ball.mkv','/home/cog5/Code/octicka/tests/ball.mkv'};
-	positionList = {-4, 4};
+	movieList = {'~/Code/octicka/tests/ball.mkv','~/Code/octicka/tests/ball.mkv'};
+	positionList = {-5, 5};
+	for i = 1 : length(movieList)
+		movieList{i} = regexprep(movieList{i}, '^~\/', [getenv('HOME') filesep]);
+	end
 	
 	try
 		% ============================screen
@@ -34,11 +37,13 @@ function playMovies(folder)
 		rn = 1;
 		m = movieStimulus('fileName',movieList{rn},'angle',90);
 		c1 = discStimulus('size',3);
-		c2 = discStimulus('xPosition',-5,'yPosition',positionList{rn},'size',4,'colour',colour1);
-		c3 = discStimulus('xPosition',-5,'yPosition',-positionList{rn},'size',4,'colour',colour2);
+		c2 = discStimulus('xPosition',-5,'yPosition',positionList{rn},'size',5,'colour',colour1);
+		c3 = discStimulus('xPosition',-5,'yPosition',-positionList{rn},'size',5,'colour',colour2);
 
 		% t============================ouch
 		t = touchManager('isDummy',dummy);
+		t.window.doNegation = true;
+		t.negationBuffer = 1;
 		
 		% ============================reward
 		rM = arduinoManager('port',rewardPort,'shield','new','verbose',true);
@@ -57,11 +62,11 @@ function playMovies(folder)
 		% ============================exclusion zones
 		topdeg = s.screenVals.topInDegrees;
 		leftdeg = s.screenVals.leftInDegrees;
-		ez1(1,:) = [leftdeg, 0 - c1.size, topdeg, -topdeg];
-		ez1(2,:) = [0 + c1.size, -leftdeg, topdeg, -topdeg];
-		ez2(1,:) = [leftdeg, 0 + c2.xPosition - c2.size, topdeg, -topdeg];
-		ez2(2,:) = [0 + c2.xPosition + c2.size, -leftdeg, topdeg, -topdeg];
-		ez2(3,:) = [ez2(1,2), ez2(2,1), topdeg, -topdeg];
+		ez1(1,:) = [leftdeg, topdeg, 0 - c1.size, -topdeg];
+		ez1(2,:) = [0 + c1.size, topdeg, -leftdeg, -topdeg];
+		ez2(1,:) = [leftdeg, topdeg, 0 + c2.xPosition - c2.size, -topdeg];
+		ez2(2,:) = [0 + c2.xPosition + c2.size, topdeg, -leftdeg, -topdeg];
+		ez2(3,:) = [ez2(1,2), topdeg, ez2(2,1), -topdeg];
 		
 		% ==============================save file name
 		svn = initialiseSaveFile(s);
@@ -82,14 +87,17 @@ function playMovies(folder)
 		
 		while keepRunning	
 			%make our touch window around stimulus c1
-			t.window = struct('X',c1.xPosition,'Y',c1.yPosition,'radius',c1.size/2);
-			t.exclusionZone = ez1;
+			t.window.X = c1.xPosition;
+			t.window.Y = c1.yPosition;
+			t.window.radius = c1.size / 2;
+			t.window.doNegation = true;
+			%t.exclusionZone = ez1;
 			x = []; y = []; touched = false; touchedResponse = false;
 			trialN = trialN + 1;
 			trials(trialN).movieName = m.fileName;
 			trials(trialN).targetPosition = c2.yPositionOut;
 			touchStart = false;
-			fprintf('\n===> START TRIAL: %i\n');
+			fprintf('\n===> START TRIAL: %i\n', trialN);
 			flush(t);
 			
 			%=======================================================wait for an initiate touch
@@ -109,7 +117,7 @@ function playMovies(folder)
 					touchStart = true;
 				elseif touched == -100;
 					drawBackground(s,[1 0 0]);
-					drawTextNow(s,'TIMEOUT!');
+					drawTextNow(s,'EXCLUSION!');
 					WaitSecs(2);
 					drawBackground(s);
 					flip(s);
@@ -139,11 +147,14 @@ function playMovies(folder)
 			
 			x = s.toDegrees(c2.xFinal,'x');
 			y = s.toDegrees(c2.yFinal,'y');
-			t.window = struct('X',x,'Y',y,'radius',c2.size/2);
-			t.exclusionZone(1,:) = []
+			t.window.X = x;
+			t.window.Y = y;
+			t.window.radius = c2.size / 2 + t.negationBuffer;
+			t.window.doNegation = true;
+			%t.exclusionZone(1,:) = []
 			fprintf('===> Choice window: X = %.1f Y = %.1f\n',x,y);
 			flush(t);
-			x = []; y = []; touched = false; txt = '';
+			x = []; y = []; touchedResponse = false; txt = '';
 			
 			%=============================================get response
 			vbl = flip(s);
@@ -159,14 +170,11 @@ function playMovies(folder)
 				[touchedResponse, x, y] = checkTouchWindow(t);
 				txt = sprintf('x=%.2f y=%.2f', x, y);
 				flush(t);
-				if touchedResponse == true;
-					fprintf('===> CORRECT :-)\n');
-					drawTextNow(s,'CORRECT!');
-					rM.stepper(46);
-					WaitSecs(0.25);
+				if touchedResponse == true || touchedResponse == -100
 					break;
 				end
 			end
+			flip(s);
 			trials(trialN).responseTime = vbl - vblInit;
 			trials(trialN).correct = touchedResponse;
 			
@@ -189,15 +197,25 @@ function playMovies(folder)
 			save('-v7', saveName, 'trials')
 			
 			%===========================================time out
-			if ~touchedResponse
-				fprintf('===> INCORRECT :-(\n');
+			if touchedResponse == true
+				fprintf('===> CORRECT :-)\n');
+				drawTextNow(s,'CORRECT!');
+				rM.stepper(46);
+				WaitSecs(0.25);
+			elseif ~touchedResponse || touchedResponse == -100
 				drawBackground(s,[1 0 0]);
-				drawTextNow(s,'TIMEOUT!');
+				if touchedResponse == -100 
+					drawTextNow(s,'EXCLUDE!');
+					fprintf('===> EXCLUDE :-(\n');
+				else
+					drawTextNow(s,'TIMEOUT!');
+					fprintf('===> INCORRECT :-(\n');
+				end
 				WaitSecs(2);
 				drawBackground(s);
 				flip(s);
 			end
-		end
+		end % while keepRunning	
 
 		drawText(s, 'FINISHED!');
 		flip(s);
