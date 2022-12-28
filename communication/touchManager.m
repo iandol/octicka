@@ -12,9 +12,9 @@ classdef touchManager < octickaCore
 		window					= struct('X', 0, 'Y', 0, 'radius', 2, 'doNegation', false);
 		%> Use exclusion zones where no eye movement allowed: [left,top,right,bottom]
 		%> Add rows to generate multiple exclusion zones.
-		exclusionZone		= []
+		exclusionZone			= []
 		nSlots					= 1e5
-		negationBuffer	= 0
+		negationBuffer			= 0
 	end
 
 	properties (SetAccess=private, GetAccess=public)
@@ -201,7 +201,8 @@ classdef touchManager < octickaCore
 	methods (Access = protected)
 		%===========calculateWindow=========
 		function result = calculateWindow(me, x, y)
-			result = false; window = false; resultneg = false; match = false;
+			result = false; resultneg = false; match = false;
+			window = false; windowneg = false; 
 			radius = me.window.radius;
 			negradius = radius + me.negationBuffer;
 			xWin = me.window.X;
@@ -212,7 +213,7 @@ classdef touchManager < octickaCore
 				for i = 1:size(ez,1)
 					% [-x +x -y +y]
 					if (x >= ez(i,1) && x <= ez(i,3)) && ...
-						(me.y >= ez(i,2) && me.y <= ez(i,4))
+						(y >= ez(i,2) && y <= ez(i,4))
 						result = -100;
 						return;
 					end

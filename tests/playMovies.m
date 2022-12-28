@@ -4,7 +4,7 @@ function playMovies(folder)
 	rewardPort = '/dev/ttyACM0';
 	debug = true;
 	if debug
-		if max(Screen('Screens'))==0; windowed = [0 0 1000 800]; end
+		if max(Screen('Screens'))==0; windowed = [0 0 1400 800]; end
 		sf = kPsychGUIWindow;
 		dummy = true;
 		colour1 = [1 0.5 0 0.75];
@@ -19,12 +19,18 @@ function playMovies(folder)
 	if IsOctave; try pkg load instrument-control; end; end
 	
 	% ============================movie / position list
-	%movieList = {'~/Videos/testcage/ball3-0120.mkv','~/Videos/testcage/ball2-0120.mkv',...
-	%'~/Videos/testcage/ball-0120.mkv','~/Videos/testcage/throw-0120.mkv','~/Videos/testcage/throw2-0120.mkv',...
-	%'~/Videos/testcage/throw3-0120.mkv'};
-	%positionList ={-4, 4, -4, -4, 4, 4};
-	movieList = {'~/Code/octicka/tests/ball.mkv','~/Code/octicka/tests/ball.mkv'};
-	positionList = {-5, 5};
+	movieList = {'~/Videos/testcage/ball3-0120.mkv','~/Videos/testcage/ball2-0120.mkv',...
+	'~/Videos/testcage/ball-0120.mkv','~/Videos/testcage/throw-0120.mkv','~/Videos/testcage/throw2-0120.mkv',...
+	'~/Videos/testcage/throw3-0120.mkv'};
+	positionList ={...
+		[-20 -14 -13 -3 -20 4 -13 15.2],...
+		[-20 -14 -13 -3 -20 4 -13 15.2],...
+		[-20 -14 -13 -3 -20 4 -13 15.2],...
+		[-19 0.5 -12.5 5 -19 6.3 -12.5 10.7],...
+		[-19 1.2 -12.3 5.5 -19.5 7.2 -13 11.5],...
+		[-19.5 -1 -12.5 3.5 -19.5 7 -13 12]};
+	%movieList = {'~/Code/octicka/tests/ball.mkv','~/Code/octicka/tests/ball.mkv'};
+	%positionList = {-5, 5};
 	for i = 1 : length(movieList)
 		movieList{i} = regexprep(movieList{i}, '^~\/', [getenv('HOME') filesep]);
 	end
@@ -36,17 +42,17 @@ function playMovies(folder)
 		% s============================stimuli
 		rn = 1;
 		m = movieStimulus('fileName',movieList{rn},'angle',90);
-		c1 = discStimulus('size',3);
+		c1 = discStimulus('size',5);
 		c2 = discStimulus('xPosition',-5,'yPosition',positionList{rn},'size',5,'colour',colour1);
 		c3 = discStimulus('xPosition',-5,'yPosition',-positionList{rn},'size',5,'colour',colour2);
 
 		% t============================ouch
 		t = touchManager('isDummy',dummy);
 		t.window.doNegation = true;
-		t.negationBuffer = 1;
+		t.negationBuffer = 2;
 		
 		% ============================reward
-		rM = arduinoManager('port',rewardPort,'shield','new','verbose',true);
+		rM = arduinoManager('port',rewardPort,'shield','new','verbose',false);
 		try open(rM); end
 		
 		% ============================setup
@@ -62,11 +68,12 @@ function playMovies(folder)
 		% ============================exclusion zones
 		topdeg = s.screenVals.topInDegrees;
 		leftdeg = s.screenVals.leftInDegrees;
-		ez1(1,:) = [leftdeg, topdeg, 0 - c1.size, -topdeg];
-		ez1(2,:) = [0 + c1.size, topdeg, -leftdeg, -topdeg];
-		ez2(1,:) = [leftdeg, topdeg, 0 + c2.xPosition - c2.size, -topdeg];
-		ez2(2,:) = [0 + c2.xPosition + c2.size, topdeg, -leftdeg, -topdeg];
-		ez2(3,:) = [ez2(1,2), topdeg, ez2(2,1), -topdeg];
+		bottomdeg = -topdeg; rightdeg = -leftdeg;
+		ez1(1,:) = [leftdeg, topdeg, 0 - c1.size, bottomdeg];
+		ez1(2,:) = [0 + c1.size, topdeg, rightdeg, bottomdeg];
+		ez2(1,:) = [leftdeg, topdeg, 0 + c2.xPosition - c2.size, bottomdeg];
+		ez2(2,:) = [0 + c2.xPosition + c2.size, topdeg, rightdeg, bottomdeg];
+		ez2(3,:) = [ez2(1,2), topdeg, ez2(2,1), bottomdeg];
 		
 		% ==============================save file name
 		svn = initialiseSaveFile(s);
@@ -89,9 +96,9 @@ function playMovies(folder)
 			%make our touch window around stimulus c1
 			t.window.X = c1.xPosition;
 			t.window.Y = c1.yPosition;
-			t.window.radius = c1.size / 2;
-			t.window.doNegation = true;
-			%t.exclusionZone = ez1;
+			t.window.radius = [c1.size / 2, c1.size / 2];
+			%t.window.doNegation = true;
+			t.exclusionZone = ez1;
 			x = []; y = []; touched = false; touchedResponse = false;
 			trialN = trialN + 1;
 			trials(trialN).movieName = m.fileName;
@@ -149,9 +156,9 @@ function playMovies(folder)
 			y = s.toDegrees(c2.yFinal,'y');
 			t.window.X = x;
 			t.window.Y = y;
-			t.window.radius = c2.size / 2 + t.negationBuffer;
-			t.window.doNegation = true;
-			%t.exclusionZone(1,:) = []
+			t.window.radius = [c2.size / 2 + t.negationBuffer, c2.size / 2 + t.negationBuffer];
+			t.window.doNegation = false;
+			t.exclusionZone = ez2;
 			fprintf('===> Choice window: X = %.1f Y = %.1f\n',x,y);
 			flush(t);
 			x = []; y = []; touchedResponse = false; txt = '';
@@ -244,7 +251,7 @@ function playMovies(folder)
 		try Priority(0); end
 		try ListenChar(0); end
 		sca;
-		rethrow(ME);
+		disp(ME);
 	end
 
 end
