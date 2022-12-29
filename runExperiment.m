@@ -38,60 +38,60 @@ classdef runExperiment < octickaCore
 % ========================================================================	
 	properties
 		%> a metaStimulus class instance holding our stimulus objects
-		stimuli metaStimulus
+		stimuli
 		%> a taskSequence class instance determining our stimulus variables
-		task taskSequence
+		task
 		%> a screenManager class instance managing the PTB Screen
-		screen screenManager
+		screen
 		%> filename for a stateMachine state info file
-		stateInfoFile char			= ''
+		stateInfoFile				= ''
 		%> user functions file that can be passed to the state machine
 		userFunctionsFile			= ''
 		%> use a Display++ for strobed digital I/O?
-		useDisplayPP logical		= false
+		useDisplayPP				= false
 		%> use a dataPixx for strobed digital I/O?
-		useDataPixx logical			= false
+		useDataPixx					= false
 		%> use a LabJack T4/T7 for strobed digital I/O?
-		useLabJackTStrobe logical	= false
+		useLabJackTStrobe			= false
 		%> use LabJack U3/U6 for strobed digital I/O?
-		useLabJackStrobe logical	= false
+		useLabJackStrobe			= false
 		%> use LabJack for reward TTL?
-		useLabJackReward logical	= false
+		useLabJackReward			= false
 		%> use Arduino for reward TTL?
-		useArduino logical			= false
+		useArduino					= false
 		%> use Eyelink eyetracker?
-		useEyeLink logical			= false
+		useEyeLink					= false
 		%> use Tobii eyetracker?
-		useTobii logical			= false
+		useTobii					= false
 		%> use eye occluder (custom arduino device) for monocular stimulation?
-		useEyeOccluder logical		= false
+		useEyeOccluder				= false
 		%> use a dummy mode for the eyetrackers?
-		dummyMode logical			= false
+		dummyMode					= false
 		%> log all frame times?
-		logFrames logical			= true
+		logFrames					= true
 		%> enable debugging? (poorer temporal fidelity)
-		debug logical				= false
+		debug						= false
 		%> shows the info text and position grid during stimulus presentation
-		visualDebug logical			= false
+		visualDebug					= false
 		%> draw simple fixation cross during trial for MOC tasks?
-		drawFixation logical		= false
+		drawFixation				= false
 		%> flip as fast as possible?
-		benchmark logical			= false
+		benchmark					= false
 		%> verbose logging to command window?
 		verbose						= false
 		%> what value to send on stimulus OFF
-		stimOFFValue double			= 255
+		stimOFFValue				= 255
 		%> subject name
-		subjectName char			= 'Simulcra'
+		subjectName					= 'Simulcra'
 		%> researcher name
-		researcherName char			= 'Jane Doe'
+		researcherName				= 'Jane Doe'
 	end
 	
 	properties (Transient = true)
 		%> structure for screenManager on initialisation and info from octicka
-		screenSettings struct		= struct()
+		screenSettings				= struct()
 		%> this lets the octicka UI leave commands to runExperiment
-		uiCommand char				= ''
+		uiCommand					= ''
 	end
 	
 	properties (Hidden = true)
@@ -104,17 +104,17 @@ classdef runExperiment < octickaCore
 		%> what mode to run the Display++ digital I/O in? Plexon requires
 		%> the use of a strobe trigger line, whereas most other equipment
 		%> just uses simple threshold reading
-		dPPMode char				= 'plain'
+		dPPMode						= 'plain'
 		%> which port is the arduino on?
-		arduinoPort char			= ''
+		arduinoPort					= ''
 		%> initial eyelink settings
 		elsettings					= []
 		%> initial tobii settings
 		tobiisettings				= []
 		%> turn diary on for runTask, saved to the same folder as the data
-		diaryMode logical			= false
+		diaryMode					= false
 		%> octicka version, passed on first use by octicka
-		octickaVersion char
+		octickaVersion
 		logStateTimers				= false
 		%> our old stimulus structure used to be a simple cell, now we use metaStimulus
 		stimulus
@@ -132,15 +132,15 @@ classdef runExperiment < octickaCore
 	
 	properties (SetAccess = private, GetAccess = public)
 		%> send a strobe on next flip?
-		sendStrobe logical			= false
+		sendStrobe					= false
 		%> need an eyetracker sample on next flip?
-		needSample logical			= false
+		needSample					= false
 		%> send an eyetracker SYNCTIME on next flip?
-		sendSyncTime logical		= false
+		sendSyncTime				= false
 		%> do we flip the screen or not?
-		doFlip logical				= true
+		doFlip						= true
 		%> do we flip the eyetracker window? 0=no 1=yes 2=yes+clear
-		doTrackerFlip double		= 0;
+		doTrackerFlip				= 0;
 		%> stateMachine
 		stateMachine
 		%> eyetracker manager object
@@ -160,13 +160,13 @@ classdef runExperiment < octickaCore
 		%> user functions object
 		userFunctions
 		%> state machine control cell array
-		stateInfo cell				= {}
+		stateInfo					= {}
 		%> general computer info retrieved using PTB Screen('computer')
 		computer
 		%> PTB version information: Screen('version')
 		ptb
 		%> copy of screen settings from screenManager
-		screenVals struct
+		screenVals
 		%> log of timings for MOC tasks
 		runLog
 		%> log of timings for state machine tasks
@@ -178,26 +178,26 @@ classdef runExperiment < octickaCore
 		%> variable info on the current run
 		variableInfo
 		%> previous info populated during load of a saved object
-		previousInfo struct			= struct()
+		previousInfo			= struct()
 		%> return if runExperiment is running (true) or not (false)
-		isRunning logical			= false
+		isRunning				= false
 	end
 	
 	properties (SetAccess = private, GetAccess = private)
 		%> fInc for managing keyboard sensitivity
 		fInc						= 6
 		%> is it MOC run (false) or stateMachine runTask (true)?
-		isRunTask logical			= true
+		isRunTask					= true
 		%> are we using taskSequeence or not?
-		isTask logical				= true
+		isTask						= true
 		%> should we stop the task?
-		stopTask logical			= false
+		stopTask					= false
 		%> properties allowed to be modified during construction
-		allowedProperties char = ['useDisplayPP|useDataPixx|useEyeLink|'...
-			'useArduino|dummyMode|logFrames|subjectName|researcherName'...
-			'useTobii|stateInfoFile|userFunctionFile|dummyMode|stimuli|task|'...
-			'screen|visualDebug|useLabJack|useLabJackTStrobe|useLabJackStrobe|debug|'...
-		'useEyeOccluder|verbose|screenSettings|benchmark']
+		allowedProperties			 = {'useDisplayPP','useDataPixx','useEyeLink',...
+			'useArduino','dummyMode','logFrames','subjectName','researcherName',...
+			'useTobii','stateInfoFile','userFunctionFile','dummyMode','stimuli','task',...
+			'screen','visualDebug','useLabJack','useLabJackTStrobe','useLabJackStrobe','debug',...
+		'useEyeOccluder','verbose','screenSettings','benchmark'}
 	end
 	
 	events %causing a major MATLAB 2019a crash when loading .mat files that contain events, removed for the moment
@@ -250,11 +250,11 @@ classdef runExperiment < octickaCore
 				me.initialise;
 			end
 			if isempty(me.stimuli) || me.stimuli.n < 1
-				error('No stimuli present!!!')
+				error('No stimuli present!!!');
 			end
 			if me.screen.isPTB == false
-				errordlg('There is no working PTB available!')
-				error('There is no working PTB available!')
+				errordlg('There is no working PTB available!');
+				error('There is no working PTB available!');
 			end
 			
 			initialiseSaveFile(me); %generate a savePrefix for this run
@@ -297,7 +297,7 @@ classdef runExperiment < octickaCore
 				%------set up the eyelink interface
 				if me.useEyeLink || me.useTobii
 					if me.useTobii
-						warning('Tobii not valid for a MOC task, switching to eyelink dummy mode')
+						warning('Tobii not valid for a MOC task, switching to eyelink dummy mode');
 						me.useTobii = false; me.useEyeLink = true; me.dummyMode = true; 
 					end
 					me.eyeTracker = eyelinkManager();
@@ -331,7 +331,7 @@ classdef runExperiment < octickaCore
 				% of stimuli/tasks used and this does appear to minimise
 				% some of the frames lost on first presentation for very complex
 				% stimuli using 32bit computation buffers...
-				fprintf('\n===>>> Warming up the GPU and I/O systems... <<<===\n')
+				fprintf('\n===>>> Warming up the GPU and I/O systems... <<<===\n');
 				show(me.stimuli);
 				if me.useEyeLink; trackerClearScreen(eT); end
 				for i = 1:s.screenVals.fps*2
@@ -553,8 +553,8 @@ classdef runExperiment < octickaCore
 				me.initialise; %we set up screenManager and taskSequence objects
 			end
 			if me.screen.isPTB == false %NEED PTB!
-				errordlg('There is no working PTB available!')
-				error('There is no working PTB available!')
+				errordlg('There is no working PTB available!');
+				error('There is no working PTB available!');
 			end
 
 			%------enable diary logging if requested
@@ -700,7 +700,7 @@ classdef runExperiment < octickaCore
 					me.paths.stateInfoFile = me.stateInfoFile; 
 				end
 				if ~exist(me.stateInfoFile,'file')
-					errordlg('runExperiment.runTask(): Please specify a valid State Machine file!!!')
+					errordlg('runExperiment.runTask(): Please specify a valid State Machine file!!!');
 				else
 					me.stateInfoFile = regexprep(me.stateInfoFile,'\s+','\\ ');
 					disp(['======>>> Loading State File: ' me.stateInfoFile]);
@@ -733,7 +733,7 @@ classdef runExperiment < octickaCore
 				% lets draw ~1 seconds worth of the stimuli we will be using
 				% covered by a blank. This primes the GPU, eyetracker, IO
 				% and other components with the same stimuli/task code used later...
-				fprintf('\n===>>> Warming up the GPU, Eyetracker and I/O systems... <<<===\n')
+				fprintf('\n===>>> Warming up the GPU, Eyetracker and I/O systems... <<<===\n');
 				tSM = stateMachine();
 				tSM.warmUp(); clear tSM;
 				show(stims); % allows all child stimuli to be drawn
@@ -773,10 +773,10 @@ classdef runExperiment < octickaCore
 
 				%=============================Ensure we open the reward manager
 				if me.useArduino && isa(rM,'arduinoManager') && ~rM.isOpen
-					fprintf('======>>> Opening Arduino for sending reward TTLs\n')
+					fprintf('======>>> Opening Arduino for sending reward TTLs\n');
 					open(rM);
 				elseif  me.useLabJackReward && isa(rM,'labJack')
-					fprintf('======>>> Opening LabJack for sending reward TTLs\n')
+					fprintf('======>>> Opening LabJack for sending reward TTLs\n');
 					open(rM);
 				end
 				
@@ -784,7 +784,7 @@ classdef runExperiment < octickaCore
 				% controlled using specific trigger values, see the omniplex
 				% settings for details).
 				if tS.controlPlexon && (me.useDisplayPP || me.useDataPixx)
-					fprintf('===>>> Triggering I/O systems... <<<===\n')
+					fprintf('===>>> Triggering I/O systems... <<<===\n');
 					pauseRecording(io); %make sure this is set low first
 					startRecording(io);
 					WaitSecs(1);
@@ -816,7 +816,7 @@ classdef runExperiment < octickaCore
 				if isa(io,'labJackT') && ~io.isHandleValid
 					io.close;
 					io.open;
-					warning('We had to reopen the labJackT to ensure a stable connection...')
+					warning('We had to reopen the labJackT to ensure a stable connection...');
 				end
 				
 				%===========================set up our behavioural plot
@@ -1032,7 +1032,7 @@ classdef runExperiment < octickaCore
 					sname = [me.paths.savedData filesep me.name '.mat'];
 					rE = me;
 					save(sname,'rE','tS');
-					fprintf('\n\n===>>> SAVED DATA to: %s\n\n',sname)
+					fprintf('\n\n===>>> SAVED DATA to: %s\n\n',sname);
 					assignin('base', 'tS', tS); % assign tS in base for manual checking
 				end
 
@@ -1736,13 +1736,13 @@ classdef runExperiment < octickaCore
 				trackerSetup(eT); 
 				ShowCursor();
 				if ~eT.isConnected && ~eT.isDummy
-					warning('Eyetracker is not connected and not in dummy mode, potential connection issue...')
+					warning('Eyetracker is not connected and not in dummy mode, potential connection issue...');
 				end
 			elseif me.useEyeLink || me.dummyMode
 				if me.dummyMode
-					fprintf('\n===>>> Dummy eyelink being initialised...\n')
+					fprintf('\n===>>> Dummy eyelink being initialised...\n');
 				else
-					fprintf('\n===>>> Handing over to Eyelink for calibration & validation...\n')
+					fprintf('\n===>>> Handing over to Eyelink for calibration & validation...\n');
 				end
 				initialise(eT, s);
 				trackerSetup(eT);
@@ -1771,7 +1771,7 @@ classdef runExperiment < octickaCore
 				me.useLabJackStrobe = false;
 				me.useLabJackTStrobe = false;
 				me.useDataPixx = false;
-				fprintf('===> Using Display++ for I/O...\n')
+				fprintf('===> Using Display++ for I/O...\n');
 			elseif me.useDataPixx
 				if ~isa(me.dPixx,'dPixxManager')
 					me.dPixx = dPixxManager('verbose',me.verbose);
@@ -1785,7 +1785,7 @@ classdef runExperiment < octickaCore
 				me.useLabJackStrobe = false;
 				me.useLabJackTStrobe = false;
 				me.useDisplayPP = false;
-				fprintf('===> Using dataPixx for I/O...\n')
+				fprintf('===> Using dataPixx for I/O...\n');
 			elseif me.useLabJackTStrobe
 				if ~isa(me.lJack,'labjackT')
 					me.lJack = labJackT('openNow',false,'device',1);
@@ -1799,7 +1799,7 @@ classdef runExperiment < octickaCore
 				me.useLabJackStrobe = false;
 				me.useDisplayPP = false;
 				if io.isOpen
-					fprintf('===> Using labjackT for I/O...\n')
+					fprintf('===> Using labjackT for I/O...\n');
 				else
 					warning('===> !!! labJackT could not properly open !!!');
 				end
@@ -1816,7 +1816,7 @@ classdef runExperiment < octickaCore
 				me.useLabJackTStrobe = false;
 				me.useDisplayPP = false;
 				if io.isOpen
-					fprintf('===> Using labjack for I/O...\n')
+					fprintf('===> Using labjack for I/O...\n');
 				else
 					warning('===> !!! labJackT could not properly open !!!');
 				end
@@ -1829,7 +1829,7 @@ classdef runExperiment < octickaCore
 				me.useLabJackTStrobe = false;
 				me.useLabJackStrobe = false;
 				me.useDisplayPP = false;
-				fprintf('\n===>>> No strobe output I/O...\n')
+				fprintf('\n===>>> No strobe output I/O...\n');
 			end
 			if me.useArduino
 				if ~isa(rM,'arduinoManager')
@@ -1850,10 +1850,10 @@ classdef runExperiment < octickaCore
 				else
 					rM = ioManager();
 				end
-				fprintf('===> No reward TTLs will be sent...\n')
+				fprintf('===> No reward TTLs will be sent...\n');
 			elseif me.useLabJackReward
 				rM = ioManager();
-				warning('===> Currently not enabled to use LabJack U3/U6 for reward...')
+				warning('===> Currently not enabled to use LabJack U3/U6 for reward...');
 			else
 				rM = ioManager();
 			end
@@ -2171,7 +2171,7 @@ classdef runExperiment < octickaCore
 								end
 								var=me.stimuli.controlTable(me.stimuli.tableChoice).variable;
 								delta=me.stimuli.controlTable(me.stimuli.tableChoice).delta;
-								fprintf('======>>> Set Control table %g - %s : %g\n',me.stimuli.tableChoice,var,delta)
+								fprintf('======>>> Set Control table %g - %s : %g\n',me.stimuli.tableChoice,var,delta);
 							end
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
@@ -2187,7 +2187,7 @@ classdef runExperiment < octickaCore
 								end
 								var=me.stimuli.controlTable(me.stimuli.tableChoice).variable;
 								delta=me.stimuli.controlTable(me.stimuli.tableChoice).delta;
-								fprintf('======>>> Set Control table %g - %s : %g\n',me.stimuli.tableChoice,var,delta)
+								fprintf('======>>> Set Control table %g - %s : %g\n',me.stimuli.tableChoice,var,delta);
 							end
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
@@ -2225,7 +2225,7 @@ classdef runExperiment < octickaCore
 									end
 									me.stimuli{stims(i)}.([var 'Out']) = val;
 									me.stimuli{stims(i)}.update();
-									fprintf('======>>> Stimulus #%i -- %s: %.3f (was %.3f)\n',stims(i),var,val,oval)
+									fprintf('======>>> Stimulus #%i -- %s: %.3f (was %.3f)\n',stims(i),var,val,oval);
 								end
 							end
 							tS.keyHold = tS.keyTicks + me.fInc;
@@ -2263,7 +2263,7 @@ classdef runExperiment < octickaCore
 									end
 									me.stimuli{stims(i)}.([var 'Out']) = val;
 									me.stimuli{stims(i)}.update();
-									fprintf('======>>> Stimulus #%i -- %s: %.3f (%.3f)\n',stims(i),var,val,oval)
+									fprintf('======>>> Stimulus #%i -- %s: %.3f (%.3f)\n',stims(i),var,val,oval);
 								end
 							end
 							tS.keyHold = tS.keyTicks + me.fInc;
@@ -2274,7 +2274,7 @@ classdef runExperiment < octickaCore
 								me.stimuli.setChoice = round(me.stimuli.setChoice - 1);
 								me.stimuli.showSet();
 							end
-							fprintf('======>>> Stimulus Set: #%g | Stimuli: %s\n',me.stimuli.setChoice, num2str(me.stimuli.stimulusSets{me.stimuli.setChoice}))
+							fprintf('======>>> Stimulus Set: #%g | Stimuli: %s\n',me.stimuli.setChoice, num2str(me.stimuli.stimulusSets{me.stimuli.setChoice}));
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case '.>'
@@ -2283,7 +2283,7 @@ classdef runExperiment < octickaCore
 								me.stimuli.setChoice = me.stimuli.setChoice + 1;
 								me.stimuli.showSet();
 							end
-							fprintf('======>>> Stimulus Set: #%g | Stimuli: %s\n',me.stimuli.setChoice, num2str(me.stimuli.stimulusSets{me.stimuli.setChoice}))
+							fprintf('======>>> Stimulus Set: #%g | Stimuli: %s\n',me.stimuli.setChoice, num2str(me.stimuli.stimulusSets{me.stimuli.setChoice}));
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case 'r'
@@ -2408,14 +2408,14 @@ classdef runExperiment < octickaCore
 								me.eyeTracker.fixation.initTime = 0.01;
 							end
 							tS.firstFixInit = me.eyeTracker.fixation.initTime;
-							fprintf('======>>> FIXATION INIT TIME: %g\n',me.eyeTracker.fixation.initTime)
+							fprintf('======>>> FIXATION INIT TIME: %g\n',me.eyeTracker.fixation.initTime);
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case 'x'
 						if tS.keyTicks > tS.keyHold
 							me.eyeTracker.fixation.initTime = me.eyeTracker.fixation.initTime + 0.1;
 							tS.firstFixInit = me.eyeTracker.fixation.initTime;
-							fprintf('======>>> FIXATION INIT TIME: %g\n',me.eyeTracker.fixation.initTime)
+							fprintf('======>>> FIXATION INIT TIME: %g\n',me.eyeTracker.fixation.initTime);
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case 'c'
@@ -2425,14 +2425,14 @@ classdef runExperiment < octickaCore
 								me.eyeTracker.fixation.time = 0.01;
 							end
 							tS.firstFixTime = me.eyeTracker.fixation.time;
-							fprintf('======>>> FIXATION TIME: %g\n',me.eyeTracker.fixation.time)
+							fprintf('======>>> FIXATION TIME: %g\n',me.eyeTracker.fixation.time);
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case 'v'
 						if tS.keyTicks > tS.keyHold
 							me.eyeTracker.fixation.time = me.eyeTracker.fixation.time + 0.1;
 							tS.firstFixTime = me.eyeTracker.fixation.time;
-							fprintf('======>>> FIXATION TIME: %g\n',me.eyeTracker.fixation.time)
+							fprintf('======>>> FIXATION TIME: %g\n',me.eyeTracker.fixation.time);
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case 'b'
@@ -2442,14 +2442,14 @@ classdef runExperiment < octickaCore
 								me.eyeTracker.fixation.radius = 0.1;
 							end
 							tS.firstFixRadius = me.eyeTracker.fixation.radius;
-							fprintf('======>>> FIXATION RADIUS: %g\n',me.eyeTracker.fixation.radius)
+							fprintf('======>>> FIXATION RADIUS: %g\n',me.eyeTracker.fixation.radius);
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case 'n'
 						if tS.keyTicks > tS.keyHold
 							me.eyeTracker.fixation.radius = me.eyeTracker.fixation.radius + 0.1;
 							tS.firstFixRadius = me.eyeTracker.fixation.radius;
-							fprintf('======>>> FIXATION RADIUS: %g\n',me.eyeTracker.fixation.radius)
+							fprintf('======>>> FIXATION RADIUS: %g\n',me.eyeTracker.fixation.radius);
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case 's'
@@ -2467,16 +2467,16 @@ classdef runExperiment < octickaCore
 					case '1!'
 						if tS.keyTicks > tS.keyHold
 							if isfield(tS,'eO') && tS.eO.isOpen == true
-								bothEyesOpen(tS.eO)
-								Eyelink('Command','binocular_enabled = NO')
-								Eyelink('Command','active_eye = LEFT')
+								bothEyesOpen(tS.eO);
+								Eyelink('Command','binocular_enabled = NO');
+								Eyelink('Command','active_eye = LEFT');
 							end
 							tS.keyHold = tS.keyTicks + me.fInc;
 						end
 					case '2@'
 						if tS.keyTicks > tS.keyHold
 							if isfield(tS,'eO') && tS.eO.isOpen == true
-								bothEyesClosed(tS.eO)
+								bothEyesClosed(tS.eO);
 								Eyelink('Command','binocular_enabled = NO');
 								Eyelink('Command','active_eye = LEFT');
 							end
@@ -2485,7 +2485,7 @@ classdef runExperiment < octickaCore
 					case '3#'
 						if tS.keyTicks > tS.keyHold
 							if isfield(tS,'eO') && tS.eO.isOpen == true
-								leftEyeClosed(tS.eO)
+								leftEyeClosed(tS.eO);
 								Eyelink('Command','binocular_enabled = NO');
 								Eyelink('Command','active_eye = RIGHT');
 							end
@@ -2494,7 +2494,7 @@ classdef runExperiment < octickaCore
 					case '4$'
 						if tS.keyTicks > tS.keyHold
 							if isfield(tS,'eO') && tS.eO.isOpen == true
-								rightEyeClosed(tS.eO)
+								rightEyeClosed(tS.eO);
 								Eyelink('Command','binocular_enabled = NO');
 								Eyelink('Command','active_eye = LEFT');
 							end
@@ -2568,217 +2568,31 @@ classdef runExperiment < octickaCore
 			end
 			
 			p(1,1).select();
-			grid on
-			box on
-			axis square
-			title('X vs. Y Eye Position in Degrees')
-			xlabel('X Degrees')
-			ylabel('Y Degrees')
+			grid on; box on; axis square;
+			title('X vs. Y Eye Position in Degrees');
+			xlabel('X Degrees');
+			ylabel('Y Degrees');
 			
 			p(1,2).select();
-			grid on
-			box on
-			title(sprintf('X and Y Position vs. time | Early = %g / %g', sum(early),length(early)))
-			xlabel('Time (s)')
-			ylabel('Degrees')
+			grid on; box on;
+			title(sprintf('X and Y Position vs. time | Early = %g / %g', sum(early),length(early)));
+			xlabel('Time (s)');
+			ylabel('Degrees');
 			
 			p(2,1).select();
-			grid on
-			box on
-			axis square
-			title(sprintf('Average X vs. Y Position for first 150ms STDX: %g | STDY: %g',mean(stdex),mean(stdey)))
-			xlabel('X Degrees')
-			ylabel('Y Degrees')
+			grid on; box on; axis square;
+			title(sprintf('Average X vs. Y Position for first 150ms STDX: %g | STDY: %g',mean(stdex),mean(stdey)));
+			xlabel('X Degrees');
+			ylabel('Y Degrees');
 			
 			p(2,2).select();
-			grid on
-			box on
-			axis square
-			title('Average X vs. Y Position for first 150ms Over Time')
-			xlabel('X Degrees')
-			ylabel('Y Degrees')
-			zlabel('Trial')
+			grid on; box on; axis square;
+			title('Average X vs. Y Position for first 150ms Over Time');
+			xlabel('X Degrees');
+			ylabel('Y Degrees');
+			zlabel('Trial');
 		end
 		
-% 		% ===================================================================
-% 		%> @brief loadobj
-% 		%> To be backwards compatible to older saved protocols, we have to parse 
-% 		%> structures / objects specifically during object load
-% 		%> @param in input object/structure
-% 		% ===================================================================
-% 		function lobj = loadobj(in)
-% 			if isa(in,'runExperiment')
-% 				lobj = in;
-% 				name = '';
-% 				if isprop(lobj,'fullName')
-% 					name = [name 'NEW:' lobj.fullName];
-% 				end
-% 				fprintf('---> runExperiment loadobj: %s (UUID: %s)\n',name,lobj.uuid);
-% 				isObjectLoaded = true;
-% 				setPaths(lobj);
-% 				rebuild();
-% 				return
-% 			else
-% 				lobj = runExperiment;
-% 				name = '';
-% 				if isprop(lobj,'fullName')
-% 					name = [name 'NEW:' lobj.fullName];
-% 				end
-% 				if isfield(in,'name')
-% 					name = [name '<--OLD:' in.name];
-% 				end
-% 				fprintf('---> runExperiment loadobj %s: Loading legacy structure (Old UUID: %s)...\n',name,in.uuid);
-% 				isObjectLoaded = false;
-% 				lobj.initialise('notask noscreen nostimuli');
-% 				rebuild();
-% 			end
-% 			
-% 			
-% 			function me = rebuild()
-% 				fprintf('   > ');
-% 				try %#ok<*TRYNC>
-% 
-% 					if (isprop(in,'stimuli') || isfield(in,'stimuli')) && isa(in.stimuli,'metaStimulus')
-% 						if ~isObjectLoaded
-% 							lobj.stimuli = in.stimuli;
-% 							fprintf('metaStimulus object loaded | ');
-% 						else
-% 							fprintf('metaStimulus object present | ');
-% 						end
-% 					elseif isfield(in,'stimulus') || isprop(in,'stimulus')
-% 						if iscell(in.stimulus) && isa(in.stimulus{1},'baseStimulus')
-% 							lobj.stimuli = metaStimulus();
-% 							lobj.stimuli.stimuli = in.stimulus;
-% 							fprintf('Legacy Stimuli | ');
-% 						elseif isa(in.stimulus,'metaStimulus')
-% 							me.stimuli = in.stimulus;
-% 							fprintf('Stimuli (old field) = metaStimulus object | ');
-% 						else
-% 							fprintf('NO STIMULI!!! | ');
-% 						end
-% 					end
-% 
-% 					if (~isObjectLoaded && isfield(in,'stateInfoFile') && ~isempty(in.stateInfoFile)) || ...
-% 					  (isObjectLoaded && isprop(in,'stateInfoFile') && ~isempty(in.stateInfoFile))
-% 						fprintf(['!!!SIF: ' in.stateInfoFile ' ']);
-% 						lobj.paths.stateInfoFile = in.stateInfoFile;
-% 					elseif isfield(in.paths,'stateInfoFile') && ~isempty(in.paths.stateInfoFile)
-% 						fprintf(['!!!PATH: ' in.paths.stateInfoFile ' ']);
-% 						lobj.paths.stateInfoFile = in.paths.stateInfoFile;
-% 					end
-% 					if ~exist(lobj.paths.stateInfoFile,'file')
-% 						tp = lobj.paths.stateInfoFile;
-% 						tp = regexprep(tp,'(^/\w+/\w+)',lobj.paths.home);
-% 						if exist(tp,'file')
-% 							lobj.paths.stateInfoFile = tp;
-% 						else
-% 							[~,f,e] = fileparts(tp);
-% 							newfile = [pwd filesep f e];
-% 							if exist(newfile, 'file')
-% 								lobj.paths.stateInfoFile = newfile;
-% 							end
-% 						end
-% 					end
-% 						
-% 					lobj.stateInfoFile = lobj.paths.stateInfoFile;
-% 					fprintf('stateInfoFile: %s assigned | ', lobj.stateInfoFile);
-% 
-% 					if isa(in.task,'taskSequence') 
-% 						lobj.task = in.task;
-% 						fprintf(' | loaded taskSequence');
-% 					elseif isa(in.task,'stimulusSequence')
-% 						if isstruct(in.task)
-% 							tso = in.task;
-% 						else
-% 							tso = clone(in.task);
-% 						end
-% 						ts = taskSequence();
-% 						if isprop(tso,'nVar') || isfield(tso,'nVar')
-% 							ts.nVar = tso.nVar;
-% 						end
-% 						if isprop(tso,'nBlocks') || isfield(tso,'nBlocks')
-% 							ts.nBlocks = in.task.nBlocks;
-% 						end
-% 						if isprop(tso,'randomSeed') || isfield(tso,'randomSeed')
-% 							ts.randomSeed = in.task.randomSeed;
-% 						end
-% 						if isfield(tso,'isTime') || isprop(tso,'isTime')
-% 							ts.isTime = in.task.isTime;
-% 						end
-% 						if isfield(tso,'ibTime') || isprop(tso,'ibTime')
-% 							ts.ibTime = in.task.ibTime;
-% 						end
-% 						if isfield(tso,'trialTime') || isprop(tso,'trialTime')
-% 							ts.trialTime = in.task.trialTime;
-% 						end
-% 						if isfield(tso,'randomise') || isprop(tso,'randomise')
-% 							ts.randomise = in.task.randomise;
-% 						end
-% 						if isfield(tso,'realTime') || isprop(tso,'realTime')
-% 							ts.realTime = in.task.realTime;
-% 						end
-% 						lobj.task = ts;
-% 						fprintf(' | reconstructed taskSequence %s from %s',ts.fullName,tso.fullName);
-% 						clear tso ts
-% 					elseif isa(lobj.task,'taskSequence')
-% 						lobj.previousInfo.task = in.task;
-% 						fprintf(' | inherited taskSequence');
-% 					else
-% 						lobj.task = taskSequence();
-% 						fprintf(' | new taskSequence');
-% 					end
-% 					if ~isObjectLoaded && isfield(in,'verbose')
-% 						lobj.verbose = in.verbose;
-% 					end
-% 					if ~isObjectLoaded && isfield(in,'debug')
-% 						lobj.debug = in.debug;
-% 					end
-% 					if ~isObjectLoaded && isfield(in,'useLabJack')
-% 						lobj.useLabJackReward = in.useLabJack;
-% 					end
-% 				end
-% 				try
-% 					if ~isa(in.screen,'screenManager') %this is an old object, pre screenManager
-% 						lobj.screen = screenManager();
-% 						lobj.screen.distance = in.distance;
-% 						lobj.screen.pixelsPerCm = in.pixelsPerCm;
-% 						lobj.screen.screenXOffset = in.screenXOffset;
-% 						lobj.screen.screenYOffset = in.screenYOffset;
-% 						lobj.screen.antiAlias = in.antiAlias;
-% 						lobj.screen.srcMode = in.srcMode;
-% 						lobj.screen.windowed = in.windowed;
-% 						lobj.screen.dstMode = in.dstMode;
-% 						lobj.screen.blend = in.blend;
-% 						lobj.screen.hideFlash = in.hideFlash;
-% 						lobj.screen.movieSettings = in.movieSettings;
-% 						fprintf(' | regenerated screenManager');
-% 					elseif ~strcmpi(in.screen.uuid,lobj.screen.uuid)
-% 						lobj.screen = in.screen;
-% 						in.screen.verbose = false; %no printout
-% 						%in.screen = []; %force close any old screenManager instance;
-% 						fprintf(' | inherited screenManager');
-% 					else
-% 						fprintf(' | loaded screenManager');
-% 					end
-% 				end
-% 				try
-% 					lobj.previousInfo.runLog = in.runLog;
-% 					lobj.previousInfo.computer = in.computer;
-% 					lobj.previousInfo.ptb = in.ptb;
-% 					lobj.previousInfo.screenVals = in.screenVals;
-% 					lobj.previousInfo.screenSettings = in.screenSettings;
-% 				end
-% 				try lobj.stateMachine		= in.stateMachine; end
-% 				try lobj.eyeTracker			= in.eyeTracker; end
-% 				try lobj.behaviouralRecord	= in.behaviouralRecord; end
-% 				try lobj.runkLog			= in.runLog; end
-% 				try lobj.taskLog			= in.taskLog; end
-% 				try lobj.stateInfo			= in.stateInfo; end
-% 				try lobj.comment			= in.comment; end
-% 				fprintf('\n');
-% 			end
-% 		end
-% 		
 	end
 	
 end

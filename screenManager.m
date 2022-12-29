@@ -1421,17 +1421,6 @@ classdef screenManager < octickaCore
 		end
 		
 		% ===================================================================
-		%> @brief conditionally draw a white square to trigger photodiode
-		%>
-		%> @param colour colour of square
-		%> @return
-		% ===================================================================
-		function drawPhotoDiode(me,colour)
-			% drawPhotoDiode(me,colour) % conditionally draw a white square to trigger photodiode
-			if me.photoDiode;Screen('FillRect',me.win,colour,me.photoDiodeRect);end
-		end
-		
-		% ===================================================================
 		function drawBackground(me,background)
 		%> @fn drawBackground(me,background)
 		%> @brief Draw the background colour
@@ -1516,7 +1505,7 @@ classdef screenManager < octickaCore
 					homep = 'c:';
 				end
 				if ~exist([me.paths.parent filesep 'Movie' filesep],'dir')
-					mkdir([me.paths.parent filesep 'Movie' filesep])
+					mkdir([me.paths.parent filesep 'Movie' filesep]);
 				end
 				me.movieSettings.moviepath = [me.paths.parent filesep 'Movie' filesep];
 				switch me.movieSettings.type
@@ -1578,8 +1567,7 @@ classdef screenManager < octickaCore
 							fprintf(['\n---> screenManager: movie saved to ' me.movieSettings.movieFile '\n']);
 						end
 					case 2
-% 						if wasError == true
-% 							
+% 						if wasError == true	
 % 						else
 % 							save([me.movieSettings.moviepath 'Movie' datestr(clock) '.mat'],'mimg');
 % 						end
@@ -1605,7 +1593,7 @@ classdef screenManager < octickaCore
 				try
 					mimg = load(me.movieSettings.movieFile);
 					implay(mimg);
-					clear mimg
+					clear mimg;
 				end
 			else
 				me.logOutput('playMovie method','Playing failed!',true);
@@ -1733,9 +1721,9 @@ classdef screenManager < octickaCore
 		%>
 		% ===================================================================
 		function validateDisplayPlusPlus()
-			screenManager.bitsCheckOpen([],false)
-			BitsPlusImagingPipelineTest
-			BitsPlusIdentityClutTest
+			screenManager.bitsCheckOpen([],false);
+			BitsPlusImagingPipelineTest;
+			BitsPlusIdentityClutTest;
 		end
 		
 		% ===================================================================
@@ -1757,7 +1745,7 @@ classdef screenManager < octickaCore
 				Screen('Flip',wins(a));
 				a = a + 1;
 			end
-			WaitSecs(2)
+			WaitSecs(2);
 			for i = 1:length(wins)
 				Screen('Close',wins(i));
 			end
