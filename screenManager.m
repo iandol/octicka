@@ -1832,10 +1832,11 @@ classdef screenManager < octickaCore
 			updateCenter(me);
 			sv.xCenter = me.xCenter;
 			sv.yCenter = me.yCenter;
-			sv.topInDegrees = -me.yCenter / me.ppd;
 			sv.leftInDegrees = -me.xCenter / me.ppd;
+			sv.topInDegrees = -me.yCenter / me.ppd;
 			sv.rightInDegrees = -sv.leftInDegrees;
 			sv.bottomInDegrees = -sv.topInDegrees;
+			sv.rectInDegrees = [sv.leftInDegrees sv.topInDegrees sv.rightInDegrees sv.bottomInDegrees];
 		end
 		
 		% ===================================================================

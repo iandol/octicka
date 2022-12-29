@@ -89,7 +89,11 @@ classdef touchManager < octickaCore
 				choice = me.device;
 			end
 			for i = 1:length(choice)
-				TouchQueueCreate(me.win, me.devices(choice(i)), me.nSlots);
+				try
+					TouchQueueCreate(me.win, me.devices(choice(i)), me.nSlots);
+				catch
+					warning('touchManager: Cannot create touch queue!');
+				end
 			end
 			me.isQueue = true;
 			if me.verbose;me.logEvent('createQueue','Opened');end
