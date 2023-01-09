@@ -405,7 +405,7 @@ classdef movieStimulus < baseStimulus
 			if isempty(me.fileName) || exist(me.fileName,'file') ~= 2
 				p = mfilename('fullpath');
 				p = fileparts(p);
-				me.fileName = [p filesep 'monkey.mp4'];
+				me.fileName = [p filesep 'monkey-dance.avi'];
 				warning('Didn''t find specified file so replacing with default movie!');
 			end
 		end

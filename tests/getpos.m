@@ -12,7 +12,7 @@ for i = 1 : length(movieList)
 	movieList{i} = regexprep(movieList{i}, '^~\/', [getenv('HOME') filesep]);
 end
 
-s = screenManager('blend',true,'pixelsPerCm',32,'windowed',[]);
+s = screenManager('blend',true,'pixelsPerCm', 32,'windowed',[]);
 		
 % s============================stimuli
 m = movieStimulus('angle',90,'loopStrategy',0);

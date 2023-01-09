@@ -256,7 +256,7 @@ classdef arduinoManager < octickaCore
 				digitalWrite(me.device, line, mod(ii,2));
 			end
 		end
-		
+
 		%==================DRIVE STEPPER MOTOR============%
 		function stepper(me,ndegree)
 				 ncycle      = floor(ndegree/(1.8*4));

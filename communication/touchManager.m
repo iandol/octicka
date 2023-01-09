@@ -41,7 +41,7 @@ classdef touchManager < octickaCore
 
 		% ===================================================================
 		function me = touchManager(varargin)
-			%> @fn touchManagerx = []; y = [];t ouched = false;
+			%> @fn touchManager
 			%> @brief Class constructor
 			%>
 			%> Initialises the class sending any parameters to parseArgs.
