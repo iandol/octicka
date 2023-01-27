@@ -16,6 +16,7 @@ classdef arduinoManager < octickaCore
 		%> arduino port, if left empty it will make a guess during open()
 		port 			= ''
 		%> board type; uno [default] is a generic arduino, xiao is the seeduino xiao
+		%> pico is RaspberryPi Pico
 		board			= 'Uno' 
 		%> run with no arduino attached, useful for debugging
 		silentMode		= false
@@ -27,7 +28,7 @@ classdef arduinoManager < octickaCore
 		rewardTime		= 300
 		%> specify the available pins to use; 2-13 is the default for an Uno
 		%> 0-10 for the xiao (though xiao pins 11-14 can control LEDS)
-		availablePins	= {2,3,4,5,6,7,8,9,10,11,12,13}
+		availablePins	= {}
 		%> the arduinoIOPort device object, you can call the methods
 		%> directly if required.
 		device			= []
@@ -99,11 +100,14 @@ classdef arduinoManager < octickaCore
 				if isempty(me.board)
 					me.board = 'Uno';
 				end
+				f=@(x) {x};
 				switch me.board
 					case {'Xiao','xiao'}
-						if isempty(me.availablePins);me.availablePins = {0,1,2,3,4,5,6,7,8,9,10,11,12,13};end
+						if isempty(me.availablePins);me.availablePins = arrayfun(f,0:14);end
+					case {'Pico'}
+						if isempty(me.availablePins);me.availablePins = arrayfun(f,[0:22 26 27 28]);end
 					otherwise
-						if isempty(me.availablePins);me.availablePins = {2,3,4,5,6,7,8,9,10,11,12,13};end
+						if isempty(me.availablePins);me.availablePins = arrayfun(f,2:13);end
 				end
 				endPin = max(cell2mat(me.availablePins));
 				startPin = min(cell2mat(me.availablePins));
@@ -226,7 +230,7 @@ classdef arduinoManager < octickaCore
 		function strobeWord(me, value)
 			if ~me.isOpen; return; end
 			if ~me.silentMode
-					strobeWord(me.device, value);
+				strobeWord(me.device, value);
 				if me.verbose;fprintf('===>>> STROBED WORD: %i sent to pins 2-8\n',value);end
 			end
 		end
@@ -256,7 +260,6 @@ classdef arduinoManager < octickaCore
 				digitalWrite(me.device, line, mod(ii,2));
 			end
 		end
-
 		%==================DRIVE STEPPER MOTOR============%
 		function stepper(me,ndegree)
 				 ncycle      = floor(ndegree/(1.8*4));

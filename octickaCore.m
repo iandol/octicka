@@ -324,8 +324,8 @@ classdef octickaCore < handle
 		%> @param
 		% ===================================================================
 			me.paths(1).whatami = me.className;
-			me.paths.root = fileparts(which(mfilename));
-			me.paths.whereami = me.paths.root;
+			me.paths.root = fileparts(which('octickaCore.m'));
+			me.paths.whereami = fileparts(mfilename('fullpath'));
 			if ~isfield(me.paths, 'stateInfoFile')
 				me.paths.stateInfoFile = '';
 			end
@@ -334,20 +334,25 @@ classdef octickaCore < handle
 			else
 				me.paths.home = 'C:';
 			end
-			me.paths.parent = [me.paths.home filesep 'octickaFiles'];
+			me.paths.parent = [me.paths.home filesep 'OctickaFiles'];
 			if ~isfolder(me.paths.parent)
 				status = mkdir(me.paths.parent);
-				if status == 0; warning('Could not create octickaFiles folder'); end
+				if status == 0; warning('Could not create OctickaFiles folder'); end
 			end
 			me.paths.savedData = [me.paths.parent filesep 'SavedData'];
 			if ~isfolder(me.paths.savedData)
 				status = mkdir(me.paths.savedData);
 				if status == 0; warning('Could not create SavedData folder'); end
 			end
-			me.paths.protocols = [me.paths.parent filesep 'protocols'];
+			me.paths.protocols = [me.paths.parent filesep 'Protocols'];
 			if ~isfolder(me.paths.savedData)
-				status = mkdir(me.paths.savedData);
-				if status == 0; warning('Could not create SavedData folder'); end
+				status = mkdir(me.paths.protocols);
+				if status == 0; warning('Could not create Protocols folder'); end
+			end
+			me.paths.calibration = [me.paths.parent filesep 'Calibration'];
+			if ~isfolder(me.paths.calibration)
+				status = mkdir(me.paths.calibration);
+				if status == 0; warning('Could not create Calibration folder'); end
 			end
 			if isdeployed
 				me.paths.deploypath = ctfroot;

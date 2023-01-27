@@ -8,49 +8,55 @@
 % ========================================================================	
 classdef imageStimulus < baseStimulus	
 	properties %--------------------PUBLIC PROPERTIES----------%
-		type char = 'picture'
-		%> filename to load
-		fileName char = ''
+		type						= 'picture'
+		%> filename to load, if dir load all images sequentially
+		fileName					= ''
 		%> multipleImages if N > 0, then this is a number of images from 1:N, e.g.
 		%> fileName = base.jpg, multipleImages=5, then base1.jpg - base5.jpg
 		%> update() will randomly select one from this group.
-		multipleImages double = 0
+		multipleImages				= 0
 		%> contrast multiplier
-		contrast double = 1
+		contrast					= 1
 		%> precision, 0 keeps 8bit, 1 16bit, 2 32bit
-		precision = 0
+		precision					= 0
+		%> special flags: 0 = hardware filter, 2 = PTB
+		%> filter, 4 = fast texture creation, 8 = prevent
+		%> auto mip-map generation, 32 = stop Screen('Close')
+		%> clearing texture
+		specialFlags				= []
 	end
 	
 	properties (SetAccess = protected, GetAccess = public)
 		%> scale is set by size
-		scale = 1
+		scale						= 1
 		%>
-		family = 'texture'
-		%>
-		matrix
+		family						= 'texture'
 		%> current randomly selected image
-		currentImage = ''
+		currentImage				= ''
 		%>
 		width
 		%>
 		height
 	end
 	
-	properties (SetAccess = private, GetAccess = public, Hidden = true)
-		typeList = {'picture'}
-		fileNameList = 'filerequestor';
-		interpMethodList = {'nearest','linear','spline','cubic'}
+	properties (SetAccess = protected, GetAccess = public, Hidden = true)
+		typeList			= {'picture'}
+		fileNameList		= 'filerequestor';
+		interpMethodList	= {'nearest','linear','spline','cubic'}
 		%> list of imagenames if multipleImages > 0
-		fileNames = {};
+		fileNames			= {};
 		%> properties to ignore in the UI
-		ignorePropertiesUI='colour|alpha'
+		ignorePropertiesUI	= {}
+		%> image data
+		matrix
 	end
 	
-	properties (SetAccess = private, GetAccess = private)
+	properties (Access = protected)
 		%> allowed properties passed to object upon construction
-		allowedProperties='type|fileName|multipleImages|contrast|scale';
+		allowedProperties	= {'type', 'fileName', 'multipleImages', 'contrast', ...
+			'scale'}
 		%>properties to not create transient copies of during setup phase
-		ignoreProperties = 'type|scale|fileName|multipleImages'
+		ignoreProperties	= {'type', 'scale', 'fileName', 'multipleImages'}
 	end
 	
 	%=======================================================================
@@ -77,8 +83,8 @@ classdef imageStimulus < baseStimulus
 			
 			checkFileName(me);
 			
-			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
-			me.salutation('constructor','Image Stimulus initialisation complete');
+			me.ignoreProperties = [me.ignorePropertiesBase me.ignoreProperties];
+			me.logOutput('constructor','Image Stimulus initialisation complete');
 		end
 		
 		% ===================================================================
@@ -98,76 +104,45 @@ classdef imageStimulus < baseStimulus
 		% ===================================================================
 		function setup(me,sM,in)
 			
-			reset(me);
-			me.inSetup = true;
+			reset(me); %reset object back to its initial state
+			me.inSetup = true; me.isSetup = false;
+			if isempty(me.isVisible); show(me); end
 			
 			checkFileName(me);
-			
-			if isempty(me.isVisible)
-				me.show;
-			end
 			
 			if ~exist('in','var')
 				in = [];
 			end
 			
-			if isempty(me.isVisible)
-				me.show;
-			end
-			
 			me.sM = sM;
-			if ~sM.isOpen; warning('Screen needs to be Open!'); end
+			if ~sM.isOpen; error('Screen needs to be Open!'); end
+			me.ppd=sM.ppd;
 			me.screenVals = sM.screenVals;
-			me.ppd = sM.ppd;			
-			
 			me.texture = []; %we need to reset this
 
+			me.dp = struct;
 			fn = fieldnames(me);
 			for j=1:length(fn)
-				if isempty(me.findprop([fn{j} 'Out'])) && isempty(regexp(fn{j},me.ignoreProperties, 'once')) %create a temporary dynamic property
-					p=me.addprop([fn{j} 'Out']);
-					p.Transient = true;%p.Hidden = true;
-					if strcmp(fn{j},'xPosition');p.SetMethod = @set_xPositionOut;end
-					if strcmp(fn{j},'yPosition');p.SetMethod = @set_yPositionOut;end
-				end
-				if isempty(regexp(fn{j},me.ignoreProperties, 'once'))
-					me.([fn{j} 'Out']) = me.(fn{j}); %copy our property value to our tempory copy
+				if ~ismember(fn{j}, me.ignoreProperties)
+					prop = [fn{j} 'Out'];
+					p = addProperty(me, prop);
+					v = me.setOut(prop,me.(fn{j})); % our pseudo set method
+					me.dp.(p) = v; %copy our property value to our tempory copy
 				end
 			end
+
+			addRuntimeProperties(me);
 
 			loadImage(me, in);
 			
-			if isempty(me.findprop('doDots'));p=me.addprop('doDots');p.Transient = true;end
-			if isempty(me.findprop('doMotion'));p=me.addprop('doMotion');p.Transient = true;end
-			if isempty(me.findprop('doDrift'));p=me.addprop('doDrift');p.Transient = true;end
-			if isempty(me.findprop('doFlash'));p=me.addprop('doFlash');p.Transient = true;end
-			me.doDots = false;
-			me.doMotion = false;
-			me.doDrift = false;
-			me.doFlash = false;
-			
-			if me.speed>0 %we need to say this needs animating
-				me.doMotion=true;
- 				%sM.task.stimIsMoving=[sM.task.stimIsMoving i];
-			else
-				me.doMotion=false;
+			if me.dp.sizeOut > 0
+				me.scale = me.dp.sizeOut / (me.width / me.ppd);
 			end
 			
-			if me.sizeOut > 0
-				me.scale = me.sizeOut / (me.width / me.ppd);
-			end
-			
-			me.inSetup = false;
+			me.inSetup = false; me.isSetup = true;
 			
 			computePosition(me);
 			setRect(me);
-
-			function set_xPositionOut(me, value)
-				me.xPositionOut = value * me.ppd;
-			end
-			function set_yPositionOut(me,value)
-				me.yPositionOut = value*me.ppd; 
-			end
 			
 		end
 		
@@ -188,7 +163,8 @@ classdef imageStimulus < baseStimulus
 				[me.matrix, ~, ialpha] = imread(me.fileNames{1});
 				me.currentImage = me.fileNames{1};
 			else
-				me.matrix = uint8(ones(me.size*me.ppd,me.size*me.ppd,3)); %white texture
+				if isempty(me.dp.sizeOut); sz = 2; else; sz = me.dp.sizeOut; end
+				me.matrix = uint8(ones(sz*me.ppd,sz*me.ppd,3)); %white texture
 				me.currentImage = '';
 			end
 			
@@ -198,16 +174,13 @@ classdef imageStimulus < baseStimulus
 			
 			me.width = size(me.matrix,2);
 			me.height = size(me.matrix,1);
-			
-			me.salutation('loadImage',['Load: ' regexprep(me.currentImage,'\','/')]);
-			
-			me.matrix = me.matrix .* me.contrast;
+			me.matrix = me.matrix .* me.dp.contrastOut;
 			
 			if isempty(ialpha)
 				if isfloat(me.matrix)
-					me.matrix(:,:,4) = me.alphaOut;
+					me.matrix(:,:,4) = me.dp.alphaOut;
 				else
-					me.matrix(:,:,4) = uint8(me.alphaOut .* 255);
+					me.matrix(:,:,4) = uint8(me.dp.alphaOut .* 255);
 				end
 			else
 				if isfloat(me.matrix)
@@ -217,12 +190,11 @@ classdef imageStimulus < baseStimulus
 				end
 			end
 			
-			if isinteger(me.matrix(1))
-				specialFlags = 4; %4 is optimization for uint8 textures. 0 is default
-			else
-				specialFlags = 0; %4 is optimization for uint8 textures. 0 is default
+			if isempty(me.specialFlags) && isinteger(me.matrix(1))
+				me.specialFlags = 4; %4 is optimization for uint8 textures. 0 is default
 			end
-			me.texture = Screen('MakeTexture', me.sM.win, me.matrix, 1, specialFlags, me.precision);
+			me.texture = Screen('MakeTexture', me.sM.win, me.matrix, 1, me.specialFlags, me.precision);
+			me.logOutput('loadImage',['Load: ' regexprep(me.currentImage,'\\','/')]);
 		end
 
 		% ===================================================================
@@ -236,8 +208,8 @@ classdef imageStimulus < baseStimulus
 				end
 				me.loadImage(me.fileNames{randi(me.multipleImages)});
 			end
-			if me.sizeOut > 0
-				me.scale = me.sizeOut / (me.width / me.ppd);
+			if me.dp.sizeOut > 0
+				me.scale = me.dp.sizeOut / (me.width / me.ppd);
 			end
 			resetTicks(me);
 			computePosition(me);
@@ -251,7 +223,12 @@ classdef imageStimulus < baseStimulus
 		function draw(me,win)
 			if me.isVisible && me.tick >= me.delayTicks && me.tick < me.offTicks
 				if ~exist('win','var');win = me.sM.win; end
-				Screen('DrawTexture',win,me.texture,[],me.mvRect,me.angleOut);
+				% Screen('DrawTexture', windowPointer, texturePointer 
+				% [,sourceRect] [,destinationRect] [,rotationAngle] 
+				% [, filterMode] [, globalAlpha] [, modulateColor] 
+				% [, textureShader] [, specialFlags] [, auxParameters]);
+				Screen('DrawTexture', win, me.texture, [], me.mvRect, me.dp.angleOut,...
+					[], me.dp.alphaOut, me.dp.colourOut);
 			end
 			me.tick = me.tick + 1;
 		end
@@ -287,10 +264,51 @@ classdef imageStimulus < baseStimulus
 			me.scale = 1;
 			me.mvRect = [];
 			me.dstRect = [];
-			me.removeTmpProperties;
+			removeTmpProperties(me);
 		end
 		
 	end %---END PUBLIC METHODS---%
+	
+	%=======================================================================
+	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
+	%=======================================================================
+	
+		% ===================================================================
+		%> @brief our fake set methods, hooks into dynamicprops subsasgn
+		%>
+		% ===================================================================
+		function v = setOut(me, S, v)
+			if ischar(S)
+				prop = S; 
+			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
+				prop = S(1).subs;
+			else
+				return;
+			end
+			switch prop
+				case {'xPositionOut' 'yPositionOut'}
+					v = v * me.ppd;
+				case {'contrastOut'}
+					if iscell(v); v = v{1}; end
+					if ~me.inSetup && ~me.stopLoop && v < 1
+						computeColour(me);
+					end
+			end
+		end
+		
+		% ===================================================================
+		%> @brief Update only position info, faster and doesn't reset movie
+		%>
+		% ===================================================================
+		function updatePositions(me,x,y)
+			me.xFinal = x;
+			me.yFinal = y;
+			if length(me.mvRect) == 4
+				me.mvRect=CenterRectOnPointd(me.mvRect, me.xFinal, me.yFinal);
+			end
+		end
+		
+	end
 	
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
@@ -310,7 +328,7 @@ classdef imageStimulus < baseStimulus
 				if me.mouseOverride && me.mouseValid
 					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
 				else
-					me.dstRect=CenterRectOnPointd(me.dstRect, me.xOut, me.yOut);
+					me.dstRect=CenterRectOnPointd(me.dstRect, me.xFinal, me.yFinal);
 				end
 				if me.verbose
 					fprintf('---> stimulus TEXTURE dstRect = %5.5g %5.5g %5.5g %5.5g width = %.2f height = %.2f\n',...
@@ -368,10 +386,4 @@ classdef imageStimulus < baseStimulus
 		
 	end
 	
-	
-	%=======================================================================
-	methods ( Access = private ) %-------PRIVATE METHODS-----%
-	%=======================================================================
-		
-	end
 end

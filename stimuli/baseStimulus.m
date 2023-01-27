@@ -198,6 +198,7 @@ classdef baseStimulus < octickaCore
 		function v = subsref(me,S)
 			S = subs_added(me, S);
 			v = builtin('subsref', me, S);
+			disp(S);
 		end
     
     % ===================================================================
@@ -452,9 +453,9 @@ classdef baseStimulus < octickaCore
 				drawScreenCenter(s); %centre spot
 				
 				if benchmark
-					Screen('DrawText', s.win, 'BENCHMARK: screen won''t update properly, see FPS in command window at end.', 5,5,[0 0 0]);
+					drawText(s, 'BENCHMARK: screen won''t update properly, see FPS in command window at end.');
 				else
-					Screen('DrawText', s.win, sprintf('Stimulus will be static for 2 secs (debug grid = ±1°), then animate for %.2f seconds',runtime), 5,5,[0 0 0]);
+					drawText(s, sprintf('Static for 2 secs (debug grid = ±1°); animate for %.2f seconds',runtime));
 				end
 				
 				flip(s);
