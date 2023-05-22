@@ -6,7 +6,7 @@
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
 classdef octickaCore < handle
-	
+
 	%--------------------PUBLIC PROPERTIES----------%
 	properties
 		%> object name
@@ -15,13 +15,13 @@ classdef octickaCore < handle
 		comment  = ''
 		verbose = false
 	end
-	
+
 	%--------------------HIDDEN PROPERTIES------------%
 	properties (SetAccess = protected, Hidden = true)
 		%> are we cloning this from another object
 		cloning  = false
 	end
-	
+
 	%--------------------VISIBLE PROPERTIES-----------%
 	properties (SetAccess = protected, GetAccess = public)
 		%> clock() dateStamp set on construction
@@ -31,13 +31,13 @@ classdef octickaCore < handle
 		%> storage of various paths
 		paths = []
 	end
-	
+
 	%--------------------DEPENDENT PROPERTIES----------%
 	properties (Dependent = true)
 		%> The fullName is the object name combined with its uuid and class name
 		fullName
 	end
-	
+
 	%--------------------TRANSIENT PROPERTIES----------%
 	properties (Access = protected, Transient = true)
 		%> Octave version number, this is transient so it is not saved
@@ -53,17 +53,17 @@ classdef octickaCore < handle
 		%> cached full name
 		fullName_ = ''
 	end
-	
+
 	%--------------------PRIVATE PROPERTIES----------%
 	properties (Access = private)
 		%> allowed properties passed to object upon construction
 		allowedPropertiesCore  = {'name','comment','cloning'}
 	end
-	
+
 	%=======================================================================
 	methods %------------------PUBLIC METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		function me = octickaCore(varargin)
 		%> @fn octickaCore
@@ -86,7 +86,7 @@ classdef octickaCore < handle
 			me.oversion = str2double(regexp(version,'^\d\.\d+','match','once'));
 			setPaths(me);
 		end
-		
+
 		% ===================================================================
 		function name = get.fullName(me)
 		%> @fn get.fullName
@@ -95,13 +95,13 @@ classdef octickaCore < handle
 		%> @return name the concatenated name
 		% ===================================================================
 			if isempty(me.name)
-				me.fullName_ = [me.className '#' me.uuid];
+				me.fullName_ = sprintf('%s#%s', me.className, me.uuid);
 			else
-				me.fullName_ = [me.name '<' me.className '#' me.uuid '>'];
+				me.fullName_ = sprintf('%s<%s#%s>', me.name, me.className, me.uuid);
 			end
 			name = me.fullName_;
 		end
-		
+
 		% ===================================================================
 		function c = initialiseSaveFile(me, path)
 		%> @fn initialiseSaveFile(me, path)
@@ -117,7 +117,7 @@ classdef octickaCore < handle
 			c = regexprep(c,' +','-');
 			me.savePrefix = c;
 		end
-		
+
 		% ===================================================================
 		function editProperties(me, props)
 		%> @fn editProperties
@@ -127,7 +127,7 @@ classdef octickaCore < handle
 		% ===================================================================
 			me.addArgs(props);
 		end
-		
+
 		% ===================================================================
 		function setProp(me, property, value)
 		%> @fn set
@@ -141,13 +141,13 @@ classdef octickaCore < handle
 				me.(property) = value;
 			end
 		end
-		
+
 	end
-	
+
 	%=======================================================================
 	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
 	%=======================================================================
-		
+
 		% ===================================================================
 		function checkPaths(me)
 		%> @fn checkPaths
@@ -156,19 +156,19 @@ classdef octickaCore < handle
 		% ===================================================================
 			samePath = false;
 			if isprop(me,'dir')
-				
+
 				%if our object wraps a plxReader, try to use its paths
 				if isprop(me,'p') && isa(me.p,'plxReader')
 					checkPaths(me.p);
 					me.dir = me.p.dir; %inherit the path
 				end
-				
+
 				if isprop(me,'matdir') %normally they are the same
 					if ~isempty(me.dir) && strcmpi(me.dir, me.matdir)
-						samePath = true; 
+						samePath = true;
 					end
 				end
-				
+
 				if ~exist(me.dir,'dir')
 					if isprop(me,'file')
 						fn = me.file;
@@ -179,7 +179,7 @@ classdef octickaCore < handle
 					p = uigetdir('',['Please find new directory for: ' fn]);
 					if p ~= 0
 						me.dir = p;
-						
+
 					else
 						warning('Can''t find valid source directory');
 					end
@@ -213,19 +213,19 @@ classdef octickaCore < handle
 			end
 		end
 	end
-	
+
 	%=======================================================================
 	methods ( Static = true ) %-------STATIC METHODS-----%
 	%=======================================================================
-	
+
 		% ===================================================================
 		function args = makeArgs(args)
 		%> @brief Converts cell args to structure array
-		%> 
+		%>
 		%>
 		%> @param args input data
 		%> @return args as a structure
-		% ===================================================================	
+		% ===================================================================
 			if isstruct(args); return; end
 			while iscell(args) && length(args) == 1
 				args = args{1};
@@ -243,11 +243,11 @@ classdef octickaCore < handle
 				error('---> makeArgs: You need to pass name:value pairs / structure of name:value fields!');
 			end
 		end
-		
+
 		% ===================================================================
 		function args = addDefaults(args, defs)
 		%> @brief add default options to arg input
-		%> 
+		%>
 		%> @param args input structure from varargin
 		%> @param defs extra default settings
 		%> @return args structure
@@ -265,13 +265,13 @@ classdef octickaCore < handle
 				end
 			end
 		end
-		
+
 	end %--------END STATIC METHODS
-	
+
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
 	%=======================================================================
-		
+
 		% ===================================================================
 		function parseArgs(me, args, allowedProperties)
 		%> @brief Sets properties from a structure or normal arguments pairs,
@@ -295,7 +295,7 @@ classdef octickaCore < handle
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		function addArgs(me, args)
 		%> @brief Sets properties from a structure or normal arguments pairs,
@@ -316,7 +316,7 @@ classdef octickaCore < handle
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		function setPaths(me)
 		%> @brief set paths for object
@@ -358,7 +358,7 @@ classdef octickaCore < handle
 				me.paths.deploypath = ctfroot;
 			end
 		end
-		
+
 		% ===================================================================
 		function out=toStructure(me)
 		%> @brief Converts properties to a structure
@@ -395,8 +395,8 @@ classdef octickaCore < handle
 			end
 			if ~isempty(thisClass); out = thisClass; end
 		end
-		
-		
+
+
 		% ===================================================================
 		function logOutput(me, in, message, override)
 		%> @brief Prints messages dependent on verbosity
@@ -417,6 +417,6 @@ classdef octickaCore < handle
 				fprintf(['---> ' me.fullName_ ': ' message ' | ' in '\n']);
 			end
 		end
-		
+
 	end
 end

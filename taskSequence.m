@@ -5,8 +5,8 @@ classdef taskSequence < octickaCore & dynamicprops
 %>
 %> This class takes one or more variables, each with an array of values
 %> and randomly interleves them into a randomised variable list each of
-%> which has a unique index number. 
-%> 
+%> which has a unique index number.
+%>
 %> This example creates an `angle` varible that is randomised over 5
 %> different values and will be applied to the first 3 stimuli; in addition,
 %> the fourth stimulus will have the value offset by 45°:
@@ -24,7 +24,7 @@ classdef taskSequence < octickaCore & dynamicprops
 %>
 %> @todo integrate carryoverCounterbalance() as an alternative to block
 %>  randomisation...
-%> 
+%>
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
 
@@ -36,32 +36,32 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> value offset, e.g. 90 for angle will add 90 to any random angle
 		%> value e.g. nVar(1) = struct('name','contrast','stimulus',[1
 		%> 2],'values',[0 0.1 0.2],'offsetstimulus',[3],'offsetvalue',[0.1])
-		nVar struct
+		nVar
 		%> independent block level identifying factor, for example
 		%> blockVar.values={'A','B'} + blockVar.probability = [0.6 0.4];
 		%> will assign A and B to blocks with a 60:40 probability.
-		blockVar struct
+		blockVar
 		%> independent trial level identifying factor
 		%> trialVar.values={'YES','NO'} + trialVar.probability = [0.5 0.5];
 		%> will assign YES and NO to trials with a 50:50 probability.
-		trialVar struct
+		trialVar
 		%> number of repeated blocks to present
-		nBlocks double			= 1
+		nBlocks					= 1
 		%> whether to randomise nVar (true) or run sequentially (false)
-		randomise logical		= true
+		randomise				= true
 		%> insert a blank condition in each block?
-		addBlank logical		= false
+		addBlank				= false
 		%> do we follow real time or just number of ticks to get to a known time
-		realTime logical		= true
+		realTime				= true
 		%> random seed value, we can use this to set the RNG to a known state
 		%> default is empty to use the unique current date+time
-		randomSeed double		= []
+		randomSeed				= []
 		%> mersenne twister default, see MATLAB docs for other options
-		randomGenerator char	= 'mt19937ar'
+		randomGenerator			= 'mt19937ar'
 		%> verbose or not
 		verbose					= false
 	end
-	
+
 	properties (Dependent = true,  SetAccess = private)
 		%> number of independant variables
 		nVars
@@ -73,7 +73,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> requires accurate fps and assumes a MOC task
 		nFrames
 	end
-	
+
 	properties (Hidden = true)
 		%> used for dynamically estimating total number of frames
 		fps double				= 60
@@ -88,7 +88,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> staircase manager
 		staircase
 	end
-	
+
 	properties (SetAccess = private, GetAccess = public)
 		%> structure of variable values
 		outValues
@@ -99,7 +99,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> mapping the stimulus to the number as a X Y and Z etc position for display
 		outMap
 		%> block level randomised factor
-		outBlock 
+		outBlock
 		%> trial level randomised factor
 		outTrial
 		%> variable labels
@@ -109,14 +109,14 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> log of within block resets
 		resetLog
 		%> have we initialised the dynamic task properties?
-		taskInitialised logical = false
+		taskInitialised			= false
 		%> has task finished
-		taskFinished logical	= false
+		taskFinished			= false
 		%> which seed values were used?
-		usedSeeds double		= []
-		dataTable table
+		usedSeeds				= []
+		dataTable
 	end
-	
+
 	properties (SetAccess = private, GetAccess = public, Transient = true, Hidden = true)
 		%> old random number stream
 		oldStream
@@ -130,7 +130,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> handles from me.showLog
 		h
 	end
-	
+
 	properties (SetAccess = private, GetAccess = private)
 		%> cache value for nVars
 		nVars_
@@ -139,7 +139,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> used in calculatin mintrials
 		nLevels
 		%> properties allowed during initial construction
-		allowedProperties char = ['randomise|nVar|blockVar|trialVar|nBlocks|trialTime|isTime|ibTime|realTime|randomSeed|fps'...
+		allowedProperties	= ['randomise|nVar|blockVar|trialVar|nBlocks|trialTime|isTime|ibTime|realTime|randomSeed|fps'...
 			'randomGenerator|verbose|addBlank']
 		%> used to handle problems with dependant property nVar: the problem
 		%> is that set.nVar gets called before static loadobj, and therefore
@@ -148,24 +148,24 @@ classdef taskSequence < octickaCore & dynamicprops
 		isLoading = []
 		%> properties used by loadobj when a structure is passed during load.
 		%> this stops loading old randstreams etc.
-		loadProperties cell = {'randomise','nVar','nBlocks','trialTime','isTime','ibTime','verbose',...
+		loadProperties	= {'randomise','nVar','nBlocks','trialTime','isTime','ibTime','verbose',...
 			'realTime','randomSeed','randomGenerator','outValues','outVars','addBlank', ...
 			'outIndex', 'outMap', 'minTrials','states','nState','name'}
 		%> nVar template and default values
-		varTemplate struct = struct('name','','stimulus',[],'values',[],'offsetstimulus',[],'offsetvalue',[])
+		varTemplate		= struct('name','','stimulus',[],'values',[],'offsetstimulus',[],'offsetvalue',[])
 		%> blockVar template and default values
-		blockTemplate struct = struct('values',{{'none'}},'probability',[1],'comment','block level factor')
+		blockTemplate	= struct('values',{{'none'}},'probability',[1],'comment','block level factor')
 		%> blockVar template and default values
-		trialTemplate struct = struct('values',{{'none'}},'probability',[1],'comment','trial level factor')
+		trialTemplate	= struct('values',{{'none'}},'probability',[1],'comment','trial level factor')
 		%> Set up the task structures needed
-		tProp cell = {'totalRuns',1,'thisBlock',1,'thisRun',1,'isBlank',false,...
+		tProp			= {'totalRuns',1,'thisBlock',1,'thisRun',1,'isBlank',false,...
 			'isTimeNow',1,'ibTimeNow',1,'response',[],'responseInfo',{},'tick',0,'blankTick',0,...
 			'switched',false,'strobeThisFrame',false,'doUpdate',false,'startTime',0,'switchTime',0,...
 			'switchTick',0,'timeNow',0,'runTimeList',[],'stimIsDrifting',[],'stimIsMoving',[],...
 			'stimIsDots',[],'stimIsFlashing',[]}
 	end
-	
-	
+
+
 	methods
 		% ===================================================================
 		function me = taskSequence(varargin)
@@ -181,15 +181,15 @@ classdef taskSequence < octickaCore & dynamicprops
 			args = octickaCore.addDefaults(varargin,struct('name','taskSequence'));
 			me = me@octickaCore(args); %superclass constructor
 			me.parseArgs(args,me.allowedProperties);
-			
+
 			me.nVar = me.varTemplate;
 			me.blockVar = me.blockTemplate;
 			me.trialVar = me.trialTemplate;
 			me.initialiseGenerator();
 			me.isLoading = false;
-			
+
 		end
-		
+
 		% ===================================================================
 		function initialiseGenerator(me)
 		%> @fn initialiseGenerator()
@@ -217,7 +217,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				RandStream.setDefaultStream(me.taskStream); %#ok<*SETRS>
 			end
 		end
-		
+
 		% ===================================================================
 		function resetRandom(me)
 		%> @fn resetRandom
@@ -232,7 +232,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				RandStream.setDefaultStream(me.oldStream);
 			end
 		end
-		
+
 		% ===================================================================
 		function randomiseTask(me)
 		%> @fn randomiseTask
@@ -253,9 +253,9 @@ classdef taskSequence < octickaCore & dynamicprops
 				me.taskFinished = false;
 				return
 			end
-			
+
 			rSTime = tic;
-			
+
 			if me.minTrials > 255
 				warning('WARNING: You are exceeding the number of variable numbers in an 8bit strobed word!')
 			end
@@ -268,19 +268,19 @@ classdef taskSequence < octickaCore & dynamicprops
 				me.outBlock = {};
 			elseif length(me.blockVar.values) > me.nBlocks
 				error('Your block factors are greater than the number of blocks!')
-			else 
+			else
 				if sum(me.blockVar.probability) ~= 1 || length(me.blockVar.values) ~= length(me.blockVar.probability)
-					warning('blockVar probability doesn''t sum to 100!'); 
+					warning('blockVar probability doesn''t sum to 100!');
 					prob = [];
 				else
 					prob = me.blockVar.probability;
 				end
-				
+
 				[~,b] = sort(me.blockVar.probability);
 				p = me.blockVar.probability(b);
 				v = me.blockVar.values(b);
 				prob = cumsum(p); %cumulative sum
-				
+
 				Vals = cell(me.nBlocks, 1);
 				for i = 1:length(Vals)
 					thisR = rand();
@@ -301,14 +301,14 @@ classdef taskSequence < octickaCore & dynamicprops
 				me.outTrial = {};
 			else
 				if sum(me.trialVar.probability) ~= 1 || tVn ~= length(me.trialVar.probability)
-					error('blockVar probability doesn''t sum to 1!'); 
+					error('blockVar probability doesn''t sum to 1!');
 				end
 				
 				[~,b] = sort(me.trialVar.probability);
 				p = me.trialVar.probability(b);
 				v = me.trialVar.values(b);
 				prob = cumsum(p); %cumulative sum
-	
+
 				Vals = cell(me.nRuns, 1);
 				for i = 1:length(Vals)
 					thisR = rand();
@@ -407,12 +407,12 @@ classdef taskSequence < octickaCore & dynamicprops
 					end
 				end
 			end
-			
+
 			buildTable(me); %for display
 			me.logOutput('randomiseTask', sprintf('Took %g ms',toc(rSTime)*1000), true);
-			
+
 		end
-		
+
 		% ===================================================================
 		function initialise(me, randomise)
 		%> @fn initialise
@@ -436,7 +436,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			backup(me);
 			fprintf('---> taskSequence.initialise: Initialised!\n');
 		end
-		
+
 		% ===================================================================
 		function backup(me)
 		%> @fn backup
@@ -447,7 +447,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		% ===================================================================
 			me.startIndex = me.outIndex;
 		end
-		
+
 		% ===================================================================
 		function updateTask(me, thisResponse, runTime, info)
 		%> @fn updateTask
@@ -478,7 +478,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				me.logOutput(sprintf('Trial = %i Response = %.2g @ %.2g secs',...
 					me.totalRuns, thisResponse, me.runTimeList(me.totalRuns)));
 			end
-			
+
 			if me.totalRuns < me.nRuns
 				me.totalRuns = me.totalRuns + 1;
 				[me.thisBlock, me.thisRun] = findRun(me);
@@ -488,7 +488,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				fprintf('---> taskSequence.updateTask: Task FINISHED, no more updates allowed\n');
 			end
 		end
-		
+
 		% ===================================================================
 		function [block, run, var, index] = findRun(me, index)
 		%> @fn [block, run, var] = findRun(me, index)
@@ -509,7 +509,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			run = index - (me.minTrials * (block - 1));
 			var = me.outIndex(index);
 		end
-		
+
 		% ===================================================================
 		function rewindTask(me)
 		%> @fn rewindTask
@@ -523,10 +523,10 @@ classdef taskSequence < octickaCore & dynamicprops
 				me.totalRuns = me.totalRuns - 1;
 				[me.thisBlock, me.thisRun] = findRun(me);
 				fprintf('===!!! REWIND Run to %i:',me.totalRuns);
-				
+
 			end
 		end
-		
+
 		% ===================================================================
 		function [success, message] = resetRun(me)
 		%> @fn resetRun
@@ -568,19 +568,19 @@ classdef taskSequence < octickaCore & dynamicprops
 				blockOffset = ((me.thisBlock-1) * me.minTrials);
 				blockSource = me.totalRuns - blockOffset;
 				blockDestination = trialToSwap - blockOffset;
-				
+
 				%outValues
 				aValue = me.outValues(me.totalRuns,:);
 				bValue = me.outValues(trialToSwap,:);
 				me.outValues(me.totalRuns,:) = bValue;
 				me.outValues(trialToSwap,:) = aValue;
-				
+
 				%outTrial
 				aTrial = me.outTrial(me.totalRuns,:);
 				bTrial = me.outTrial(trialToSwap,:);
 				me.outTrial(me.totalRuns,:) = bTrial;
 				me.outTrial(trialToSwap,:) = aTrial;
-				
+
 				%outVars
 				for i = 1:me.nVars
 					aVal = me.outVars{me.thisBlock,i}(blockSource);
@@ -588,19 +588,19 @@ classdef taskSequence < octickaCore & dynamicprops
 					me.outVars{me.thisBlock,i}(blockSource) = bVal;
 					me.outVars{me.thisBlock,i}(blockDestination) = aVal;
 				end
-				
+
 				%outIndex
 				aIdx = me.outIndex(me.totalRuns,1);
 				bIdx = me.outIndex(trialToSwap,1);
 				me.outIndex(me.totalRuns,1) = bIdx;
 				me.outIndex(trialToSwap,1) = aIdx;
-				
+
 				%outMap
 				aMap = me.outMap(me.totalRuns,:);
 				bMap = me.outMap(trialToSwap,:);
 				me.outMap(me.totalRuns,:) = bMap;
 				me.outMap(trialToSwap,:) = aMap;
-				
+
 				%log this change
 				success = true;
 				if isempty(me.resetLog); myN = 1; else; myN = length(me.resetLog)+1; end
@@ -624,7 +624,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				disp(message);
 			end
 		end
-		
+
 		% ===================================================================
 		function set.nVar(me,invalue)
 		%> @fn set.nVar
@@ -656,7 +656,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		function nVars = get.nVars(me)
 		%> @fn get.nVars
@@ -691,7 +691,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			end
 			me.minTrials_ = minTrials;
 		end
-		
+
 		% ===================================================================
 		function nRuns = get.nRuns(me)
 		%> @fn get.nRuns
@@ -702,7 +702,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			nRuns = me.minTrials * me.nBlocks;
 		end
 
-		% ===================================================================	
+		% ===================================================================
 		function nFrames = get.nFrames(me)
 		%> @fn get.nFrames
 		%> @brief Dependent property nFrames get method
@@ -712,7 +712,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			nSecs = (me.nRuns * me.trialTime) + (me.minTrials-1 * me.isTime) + (me.nBlocks-1 * me.ibTime);
 			nFrames = ceil(nSecs) * ceil(me.fps); %be a bit generous in defining how many frames the task will take
 		end
-		
+
 		% ===================================================================
 		function showLog(me)
 		%> @fn showLog
@@ -731,9 +731,9 @@ classdef taskSequence < octickaCore & dynamicprops
 			end
 
 			buildTable(me);
-			
+
 			set(me.h.uitable1,'Data',me.dataTable);
-			
+
 			function build_gui(heightin)
 				fsmall = 12;
 				if ismac
@@ -766,7 +766,7 @@ classdef taskSequence < octickaCore & dynamicprops
 					'ColumnWidth', {'auto'});
 			end
 		end
-		
+
 		% ===================================================================
 		function [meta, key] = getMeta(me)
 		%> @fn getMeta
@@ -793,13 +793,13 @@ classdef taskSequence < octickaCore & dynamicprops
 					else
 						meta(:,i) = cc;
 					end
-					
+
 				end
 			else
 				meta = me.outValues;
 			end
 		end
-		
+
 		% ===================================================================
 		function [labels, list] = getLabels(me)
 		%> @fn getLabels
@@ -811,7 +811,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			if ~isempty(me.varLabels); labels = me.varLabels; end
 			if ~isempty(me.varList); list = me.varList; end
 		end
-		
+
 		% ===================================================================
 		function validate(me)
 		%> @fn validate
@@ -839,13 +839,13 @@ classdef taskSequence < octickaCore & dynamicprops
 				makeLabels(me);
 			end
 		end
-		
+
 	end % END METHODS
-	
+
 	%=======================================================================
 	methods ( Access = private ) %------PRIVATE METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		function buildTable(me)
 		%> @fn buildTable
@@ -891,7 +891,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			cnames{end+1} = 'Block Factors';
 			me.dataTable = cell2table(data,'VariableNames',cnames);
 		end
-		
+
 		% ===================================================================
 		function makeLabels(me)
 		%> @fn makeLabels
@@ -926,7 +926,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			me.varLabels = str;
 			me.varList = list;
 		end
-		
+
 		% ===================================================================
 		function resetTask(me)
 		%> @fn resetTask
@@ -945,7 +945,7 @@ classdef taskSequence < octickaCore & dynamicprops
 			me.taskInitialised = false;
 			me.taskFinished = false;
 		end
-		
+
 		% ===================================================================
 		function randomiseTimes(me)
 		%> @fn randomiseTimes
@@ -965,7 +965,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				me.ibTimeNow = round(me.ibTimeNow*100)/100;
 			end
 		end
-		
+
 		% ===================================================================
 		function checkBlockTrialVars(me)
 		%> @fn checkBlockTrialVars
@@ -987,11 +987,11 @@ classdef taskSequence < octickaCore & dynamicprops
 			end
 		end
 	end
-	
+
 	%=======================================================================
 	methods (Static) %------------------STATIC METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		function out=cellStruct(in)
 		%> @fn cellStruct
@@ -1011,7 +1011,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				end
 			end
 		end
-		
+
 		% ===================================================================
 % 		function lobj=loadobj(in)
 		%> @fn loadobj
@@ -1042,7 +1042,7 @@ classdef taskSequence < octickaCore & dynamicprops
 % 			end
 % 			lobj.isLoading = false;
 % 		end
-		
+
 	end
-	
+
 end

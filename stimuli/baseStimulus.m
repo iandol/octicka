@@ -12,7 +12,7 @@
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
 classdef baseStimulus < octickaCore
-	
+
 	properties
 		%> X Position ± degrees relative to screen center (0,0)
 		xPosition		= 0
@@ -56,14 +56,14 @@ classdef baseStimulus < octickaCore
 
 	properties (Abstract = true)
 		%> general stimulus type, 'flash', 'simple' etc.
-		type 
+		type
 	end
-	
+
 	properties (Abstract = true, SetAccess = protected)
 		%> the stimulus family (grating, dots etc.)
-		family 
+		family
 	end
-	
+
 	properties (SetAccess = protected, GetAccess = public)
 		%> computed X position
 		xFinal		= []
@@ -82,7 +82,7 @@ classdef baseStimulus < octickaCore
 		%> is stimulus position defined as rect [true] or point [false]
 		isRect		= true
 	end
-	
+
 	properties (Dependent = true, SetAccess = protected, GetAccess = public)
 		%> What our per-frame motion delta is
 		delta
@@ -91,7 +91,7 @@ classdef baseStimulus < octickaCore
 		%> X update which is computed from our speed and angle
 		dY
 	end
-	
+
 	properties (Hidden = true, Transient = true)
 		%> Our texture pointers for texture-based stimuli
 		texture		= []
@@ -105,7 +105,7 @@ classdef baseStimulus < octickaCore
 		%> is panel constructed?
 		isGUI		= false
 	end
-	
+
 	properties (Access = protected)
 		postSet
 		% class fieldnames
@@ -151,12 +151,12 @@ classdef baseStimulus < octickaCore
 			'alpha','startPosition','angle','speed','delayTime','mouseOverride','isVisible'...
 			'showOnTracker','animator'}
 	end
-	
-	
+
+
 	%=======================================================================
 	methods %----------------------------PUBLIC METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief Class constructor
 		%>
@@ -169,7 +169,7 @@ classdef baseStimulus < octickaCore
 			me.parseArgs(varargin, me.allowedPropertiesBase);
 			me.fn = fieldnames(me);
 		end
-		
+
 		% ===================================================================
 		function ret = isProperty(me, prop);
 			if ~isempty(me.fndp)
@@ -179,39 +179,38 @@ classdef baseStimulus < octickaCore
 			end
 			ret = any(strcmp(f, prop));
 		end
-		
+
 		% ===================================================================
-		function prop = addProperty(me, prop)  
+		function prop = addProperty(me, prop)
 			if nargin < 2 || ~ischar(prop) || isempty(prop) || isempty(me)
-				error([ mfilename ': addprop: Parameter must be a string.' ]); 
+				error([ mfilename ': addprop: Parameter must be a string.' ]);
 			end
 			if isempty(me.dp); me.dp = struct(); end
 			prop = prop(:)';
 			if ~isvarname(prop)
-				error([ mfilename ': addprop: Parameter must be a valid property name.' ]); 
+				error([ mfilename ': addprop: Parameter must be a valid property name.' ]);
 			end
 			me.dp.(prop)=[];
 			me.fndp = fieldnames(me.dp);
 		end
-		
+
 		% ===================================================================
-		function v = subsref(me,S)
+		function varargout = subsref(me,S)
 			S = subs_added(me, S);
-			v = builtin('subsref', me, S);
-			disp(S);
+			[varargout{1:nargout}] = builtin('subsref', me, S);
 		end
-    
-    % ===================================================================
-		function a=subsasgn(me, S, v)
+
+    	% ===================================================================
+		function varargout = subsasgn(me, S, v)
 			me.postSet = [];
 			if ismethod(me, 'setOut')
 				v = me.setOut(S, v); % this is a pseudo Set method
 			end
 			S = subs_added(me,S);
-			a = builtin('subsasgn', me, S, v);
+			[varargout{1:nargout}] = builtin('subsasgn', me, S, v);
 			if ~isempty(me.postSet); fprintf('!!!POSTSET!!!\n');feval(me.postSet); end
 		end
-		
+
 		% ===================================================================
 		function S = subs_added(me, S)
 			if isempty(S); return; end
@@ -223,7 +222,7 @@ classdef baseStimulus < octickaCore
 				S = [ S0 S ];
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief colour set method
 		%> Allow 1 (R=G=B) 3 (RGB) or 4 (RGBA) value colour
@@ -245,19 +244,19 @@ classdef baseStimulus < octickaCore
 						c = []; %return no colour to procedural gratings
 					else
 						c = [1 1 1 me.alpha]; %return white for everything else
-					end		
+					end
 			end
 			c(c<0)=0; c(c>1)=1;
 			me.colour = c;
-			if isProperty(me,'correctBaseColour') && me.correctBaseColour %#ok<*MCSUP> 
+			if isProperty(me,'correctBaseColour') && me.correctBaseColour %#ok<*MCSUP>
 				me.baseColour = (me.colour(1:3) + me.colour2(1:3))/2;
 			end
 			me.isInSetColour = false;
 		end
-		
+
 		% ===================================================================
 		%> @brief alpha set method
-		%> 
+		%>
 		% ===================================================================
 		function set.alpha(me,value)
 			if me.isSetup; warning('You should set alphaOut to affect drawing...'); end
@@ -273,7 +272,7 @@ classdef baseStimulus < octickaCore
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief delta Get method
 		%> delta is the normalised number of pixels per frame to move a stimulus
@@ -285,7 +284,7 @@ classdef baseStimulus < octickaCore
 				value = (me.speed * me.ppd) * me.screenVals.ifi;
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief dX Get method
 		%> X position increment for a given delta and angle
@@ -298,7 +297,7 @@ classdef baseStimulus < octickaCore
 				[value,~]=me.updatePosition(me.delta, me.dp.angleOut);
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief dY Get method
 		%> Y position increment for a given delta and angle
@@ -311,7 +310,7 @@ classdef baseStimulus < octickaCore
 				[~,value]=me.updatePosition(me.delta,me.dp.angleOut);
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Method to set isVisible=true.
 		%>
@@ -319,7 +318,7 @@ classdef baseStimulus < octickaCore
 		function show(me)
 			me.isVisible = true;
 		end
-		
+
 		% ===================================================================
 		%> @brief Method to set isVisible=false.
 		%>
@@ -327,14 +326,14 @@ classdef baseStimulus < octickaCore
 		function hide(me)
 			me.isVisible = false;
 		end
-		
+
 		% ===================================================================
 		%> @brief reset the various tick counters for our stimulus
 		%>
 		% ===================================================================
 		function resetTicks(me)
 			global mouseTick mouseGlobalX mouseGlobalY mouseValid %shared across all stimuli
-			if max(me.delayTime) > 0 %delay display a number of frames 
+			if max(me.delayTime) > 0 %delay display a number of frames
 				if length(me.delayTime) == 1
 					me.delayTicks = round(me.delayTime/me.screenVals.ifi);
 				elseif length(me.delayTime) == 2
@@ -344,7 +343,7 @@ classdef baseStimulus < octickaCore
 			else
 				me.delayTicks = 0;
 			end
-			if min(me.offTime) < Inf %delay display a number of frames 
+			if min(me.offTime) < Inf %delay display a number of frames
 				if length(me.offTime) == 1
 					me.offTicks = round(me.offTime/me.screenVals.ifi);
 				elseif length(me.offTime) == 2
@@ -356,10 +355,10 @@ classdef baseStimulus < octickaCore
 			end
 			mouseTick = 0; mouseGlobalX = 0; mouseGlobalY = 0; mouseValid = false;
 			me.mouseX = 0; me.mouseY = 0;
-			me.tick = 0; 
+			me.tick = 0;
 			me.drawTick = 0;
 		end
-		
+
 		% ===================================================================
 		%> @brief get mouse position
 		%> we make sure this is only called once per animation tick to
@@ -391,7 +390,7 @@ classdef baseStimulus < octickaCore
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Run Stimulus in a window to preview
 		%>
@@ -427,7 +426,7 @@ classdef baseStimulus < octickaCore
 					end
 				end
 				prepareScreen(s);
-				
+
 				if benchmark
 					s.windowed = false;
 				elseif forceScreen > -1
@@ -437,27 +436,27 @@ classdef baseStimulus < octickaCore
 						s.windowed = [0 0 s.screenVals.screenWidth/2 s.screenVals.screenHeight/2]; %half of screen
 					end
 				end
-				
+
 				if ~s.isOpen
 					sv=open(s); %open PTB screen
 				else
 					sv = s.screenVals;
 				end
 				setup(me,s); %setup our stimulus object
-				
+
 				Priority(MaxPriority(s.win)); %bump our priority to maximum allowed
-				
+
 				if ~strcmpi(me.type,'movie'); draw(me); resetTicks(me); end
-				
+
 				drawGrid(s); %draw +-5 degree dot grid
 				drawScreenCenter(s); %centre spot
-				
+
 				if benchmark
 					drawText(s, 'BENCHMARK: screen won''t update properly, see FPS in command window at end.');
 				else
 					drawText(s, sprintf('Static for 2 secs (debug grid = ±1°); animate for %.2f seconds',runtime));
 				end
-				
+
 				flip(s);
 				if benchmark
 					WaitSecs('YieldSecs',0.5);
@@ -519,7 +518,7 @@ classdef baseStimulus < octickaCore
 				end
 				clear fps benchmark runtime b bb i; %clear up a bit
 				reset(me); %reset our stimulus ready for use again
-				rethrow(ME)				
+				rethrow(ME)
 			end
 		end
 
@@ -532,7 +531,7 @@ classdef baseStimulus < octickaCore
 		%> return the original.
 		%>
 		%> @param name of property
-		%> @param range of property to return 
+		%> @param range of property to return
 		%> @return value of property
 		% ===================================================================
 		function [value, name] = getP(me, name, range)
@@ -560,7 +559,7 @@ classdef baseStimulus < octickaCore
 		%> return the original.
 		%>
 		%> @param name of property
-		%> @param range of property to return 
+		%> @param range of property to return
 		%> @return value of property
 		% ===================================================================
 		function setP(me, name, value)
@@ -593,13 +592,13 @@ classdef baseStimulus < octickaCore
 ##			end
 ##			if me.verbose; fprintf('--->>> Delete: %s\n',me.fullName); end
 ##		end
-		
+
 	end %---END PUBLIC METHODS---%
-	
+
 	%=======================================================================
 	methods ( Static ) %----------STATIC METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief degrees2radians
 		%>
@@ -608,7 +607,7 @@ classdef baseStimulus < octickaCore
 		% d2r(degrees)
 			r=degrees*(pi/180);
 		end
-		
+
 		% ===================================================================
 		%> @brief radians2degrees
 		%>
@@ -617,7 +616,7 @@ classdef baseStimulus < octickaCore
 		% r2d(radians)
 			degrees=r*(180/pi);
 		end
-		
+
 		% ===================================================================
 		%> @brief findDistance in X and Y coordinates
 		%>
@@ -626,7 +625,7 @@ classdef baseStimulus < octickaCore
 		% findDistance(x1, y1, x2, y2)
 			distance=sqrt((x2 - x1)^2 + (y2 - y1)^2);
 		end
-		
+
 		% ===================================================================
 		%> @brief updatePosition returns dX and dY given an angle and delta
 		%>
@@ -636,13 +635,13 @@ classdef baseStimulus < octickaCore
 			dX = delta .* cos(baseStimulus.d2r(angle));
 			dY = delta .* sin(baseStimulus.d2r(angle));
 		end
-		
+
 	end%---END STATIC METHODS---%
-	
+
 	%=======================================================================
 	methods ( Access = protected ) %-------PRIVATE (protected) METHODS-----%
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief doProperties
 		%> these are transient properties that specify actions during runtime
@@ -650,7 +649,7 @@ classdef baseStimulus < octickaCore
 		function addRuntimeProperties(me)
 			updateRuntimeProperties(me);
 		end
-    
+
     % ===================================================================
 		%> @brief doProperties
 		%> these are transient properties that specify actions during runtime
@@ -661,21 +660,21 @@ classdef baseStimulus < octickaCore
 			me.doDrift		= false;
 			me.doFlash		= false;
 			me.doAnimator	= false;
-			
+
 			if isProperty(me, 'tf') && me.tf > 0; me.doDrift = true; end
 			if me.speed > 0; me.doMotion = true; end
 			if strcmpi(me.family,'dots'); me.doDots = true; end
 			if strcmpi(me.type,'flash'); me.doFlash = true; end
 			if ~isempty(me.animator) && isa(me.animator,'animationManager')
-				me.doAnimator = true; 
+				me.doAnimator = true;
 			end
 		end
-			
+
 		% ===================================================================
 		%> @brief setRect
 		%> setRect makes the PsychRect based on the texture and screen
 		%> values, you should call computePosition() first to get xFinal and
-		%> yFinal. 
+		%> yFinal.
 		% ===================================================================
 		function setRect(me)
 			if ~isempty(me.texture)
@@ -688,7 +687,7 @@ classdef baseStimulus < octickaCore
 				me.mvRect=me.dstRect;
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief setAnimationDelta
 		%> setAnimationDelta for performance better not to use get methods for dX dY and
@@ -702,7 +701,7 @@ classdef baseStimulus < octickaCore
 			me.dX_ = me.dX;
 			me.dY_ = me.dY;
 		end
-		
+
 		% ===================================================================
 		%> @brief compute xFinal and yFinal
 		%>
@@ -724,7 +723,7 @@ classdef baseStimulus < octickaCore
 			end
 			setAnimationDelta(me);
 		end
-		
+
 		% ===================================================================
 		%> @brief Converts properties to a structure
 		%>
@@ -746,7 +745,7 @@ classdef baseStimulus < octickaCore
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Finds and removes dynamic properties
 		%>
@@ -759,6 +758,6 @@ classdef baseStimulus < octickaCore
 				me.fndp = [];
 			end
 		end
-		
+
 	end%---END PRIVATE METHODS---%
 end

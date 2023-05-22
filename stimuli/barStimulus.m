@@ -7,45 +7,45 @@ classdef barStimulus < baseStimulus
 	
 	properties %--------------------PUBLIC PROPERTIES----------%
 		%> type of bar: 'solid','checkerboard','random','randomColour','randomN','randomBW'
-		type char = 'solid'
+		type			= 'solid'
 		%> width of bar
-		barWidth double = 1
+		barWidth		= 1
 		%> length of bar
-		barHeight double= 4
+		barHeight		= 4
 		%> contrast multiplier
-		contrast double = 1
+		contrast		= 1
 		%> texture scale
-		scale double = 1
+		scale			= 1
 		%> sf in cycles per degree for checkerboard textures
-		sf double = 1
+		sf				= 1
 		%> texture interpolation: 'nearest','linear','spline','cubic'
-		interpMethod char = 'nearest'
+		interpMethod	= 'nearest'
 		%> For checkerboard, allow timed phase reversal
-		phaseReverseTime double = 0
+		phaseReverseTime	= 0
 		%> update() method also regenerates the texture, this can be slow, but 
 		%> normally update() is only called after a trial has finished
-		regenerateTexture logical = true
+		regenerateTexture	= true
 		%> for checkerboard the second colour
-		colour2 double = [0 0 0 1];
+		colour2 		= [0 0 0 1];
 		%> modulate the colour
-		modulateColour double = []
+		modulateColour	= []
 	end
 
 	properties (Hidden = true)
 		%> floatprecision defines the precision with which the texture should
 		%> be stored and processed. 0=8bit, 1=16bit, 2=32bit
-		floatPrecision = 0
+		floatPrecision	= 0
 	end
 	
 	properties (SetAccess = protected, GetAccess = public)
-		family char = 'bar'
+		family			= 'bar'
 		%> computed matrix for the bar
 		matrix
 	end
 	
 	properties (SetAccess = protected, GetAccess = public, Hidden = true)
-		typeList cell = {'solid','checkerboard','random','randomColour','randomN','randomBW'}
-		interpMethodList cell = {'nearest','linear','makima','spline','cubic'}
+		typeList			= {'solid','checkerboard','random','randomColour','randomN','randomBW'}
+		interpMethodList	= {'nearest','linear','makima','spline','cubic'}
 	end
 	
 	properties (SetAccess = protected, GetAccess = protected)
@@ -57,9 +57,9 @@ classdef barStimulus < baseStimulus
 		%> for phase reveral of checkerboard
 		texture2
 		%> how many frames between phase reverses
-		phaseCounter double = 0
-		allowedProperties = 'modulateColour|colour2|regenerateTexture|type|barWidth|barHeight|angle|speed|contrast|scale|sf|interpMethod|phaseReverseTime';
-		ignoreProperties = 'interpMethod|matrix|matrix2|phaseCounter|pixelScale';
+		phaseCounter		= 0
+		allowedProperties	= 'modulateColour|colour2|regenerateTexture|type|barWidth|barHeight|angle|speed|contrast|scale|sf|interpMethod|phaseReverseTime';
+		ignoreProperties	= 'interpMethod|matrix|matrix2|phaseCounter|pixelScale';
 	end
 	
 	%=======================================================================
@@ -85,7 +85,7 @@ classdef barStimulus < baseStimulus
 			me.isRect = true; %uses a rect for drawing
 			
 			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
-			me.salutation('constructor','Bar Stimulus initialisation complete');
+			me.logOutput('constructor','Bar Stimulus initialisation complete');
 		end
 		
 		% ===================================================================

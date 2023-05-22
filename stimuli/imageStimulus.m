@@ -1,12 +1,12 @@
 % ========================================================================
-%> @brief textureStimulus 
+%> @brief textureStimulus
 %>
 %> Superclass providing basic structure for texture stimulus classes
 %>
 %>
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
-% ========================================================================	
-classdef imageStimulus < baseStimulus	
+% ========================================================================
+classdef imageStimulus < baseStimulus
 	properties %--------------------PUBLIC PROPERTIES----------%
 		type						= 'picture'
 		%> filename to load, if dir load all images sequentially
@@ -25,7 +25,7 @@ classdef imageStimulus < baseStimulus
 		%> clearing texture
 		specialFlags				= []
 	end
-	
+
 	properties (SetAccess = protected, GetAccess = public)
 		%> scale is set by size
 		scale						= 1
@@ -38,7 +38,7 @@ classdef imageStimulus < baseStimulus
 		%>
 		height
 	end
-	
+
 	properties (SetAccess = protected, GetAccess = public, Hidden = true)
 		typeList			= {'picture'}
 		fileNameList		= 'filerequestor';
@@ -50,7 +50,7 @@ classdef imageStimulus < baseStimulus
 		%> image data
 		matrix
 	end
-	
+
 	properties (Access = protected)
 		%> allowed properties passed to object upon construction
 		allowedProperties	= {'type', 'fileName', 'multipleImages', 'contrast', ...
@@ -58,17 +58,17 @@ classdef imageStimulus < baseStimulus
 		%>properties to not create transient copies of during setup phase
 		ignoreProperties	= {'type', 'scale', 'fileName', 'multipleImages'}
 	end
-	
+
 	%=======================================================================
 	methods %------------------PUBLIC METHODS
 	%=======================================================================
-	
+
 		% ===================================================================
 		%> @brief Class constructor
 		%>
 		%> This parses any input values and initialises the object.
 		%>
-		%> @param varargin are passed as a list of parametoer or a structure 
+		%> @param varargin are passed as a list of parametoer or a structure
 		%> of properties which is parsed.
 		%>
 		%> @return instance of octicka class.
@@ -78,19 +78,19 @@ classdef imageStimulus < baseStimulus
 				'name','Image'));
 			me=me@baseStimulus(args); %we call the superclass constructor first
 			me.parseArgs(args, me.allowedProperties);
-			
+
 			me.isRect = true; %uses a rect for drawing
-			
+
 			checkFileName(me);
-			
+
 			me.ignoreProperties = [me.ignorePropertiesBase me.ignoreProperties];
 			me.logOutput('constructor','Image Stimulus initialisation complete');
 		end
-		
+
 		% ===================================================================
 		%> @brief Setup this object in preperation for use
 		%> When displaying a stimulus object, the main properties that are to be
-		%> modified are copied into cache copies of the property, both to convert from 
+		%> modified are copied into cache copies of the property, both to convert from
 		%> visual description (c/d, Hz, degrees) to
 		%> computer metrics; and to be animated and modified as independant
 		%> variables. So xPosition is copied to xPositionOut and converted from
@@ -103,20 +103,16 @@ classdef imageStimulus < baseStimulus
 		%> @param in matrix for conversion to a PTB texture
 		% ===================================================================
 		function setup(me,sM,in)
-			
+			if ~exist('in','var');in = []; end
 			reset(me); %reset object back to its initial state
 			me.inSetup = true; me.isSetup = false;
 			if isempty(me.isVisible); show(me); end
-			
+
 			checkFileName(me);
-			
-			if ~exist('in','var')
-				in = [];
-			end
-			
+
 			me.sM = sM;
 			if ~sM.isOpen; error('Screen needs to be Open!'); end
-			me.ppd=sM.ppd;
+			me.ppd = sM.ppd;
 			me.screenVals = sM.screenVals;
 			me.texture = []; %we need to reset this
 
@@ -134,18 +130,18 @@ classdef imageStimulus < baseStimulus
 			addRuntimeProperties(me);
 
 			loadImage(me, in);
-			
+
 			if me.dp.sizeOut > 0
 				me.scale = me.dp.sizeOut / (me.width / me.ppd);
 			end
-			
+
 			me.inSetup = false; me.isSetup = true;
-			
+
 			computePosition(me);
 			setRect(me);
-			
+
 		end
-		
+
 		% ===================================================================
 		%> @brief Load an image
 		%>
@@ -163,19 +159,19 @@ classdef imageStimulus < baseStimulus
 				[me.matrix, ~, ialpha] = imread(me.fileNames{1});
 				me.currentImage = me.fileNames{1};
 			else
-				if isempty(me.dp.sizeOut); sz = 2; else; sz = me.dp.sizeOut; end
-				me.matrix = uint8(ones(sz*me.ppd,sz*me.ppd,3)); %white texture
+				if me.dp.sizeOut <= 0; sz = 2; else; sz = me.dp.sizeOut; end
+				me.matrix = uint8(ones(sz*me.ppd,sz*me.ppd,3)*255); %white texture
 				me.currentImage = '';
 			end
-			
+
 			if me.precision > 0
 				me.matrix = double(me.matrix)/255;
 			end
-			
+
 			me.width = size(me.matrix,2);
 			me.height = size(me.matrix,1);
 			me.matrix = me.matrix .* me.dp.contrastOut;
-			
+
 			if isempty(ialpha)
 				if isfloat(me.matrix)
 					me.matrix(:,:,4) = me.dp.alphaOut;
@@ -189,7 +185,7 @@ classdef imageStimulus < baseStimulus
 					me.matrix(:,:,4) = ialpha;
 				end
 			end
-			
+
 			if isempty(me.specialFlags) && isinteger(me.matrix(1))
 				me.specialFlags = 4; %4 is optimization for uint8 textures. 0 is default
 			end
@@ -215,7 +211,7 @@ classdef imageStimulus < baseStimulus
 			computePosition(me);
 			setRect(me);
 		end
-		
+
 		% ===================================================================
 		%> @brief Draw this stimulus object
 		%>
@@ -223,16 +219,16 @@ classdef imageStimulus < baseStimulus
 		function draw(me,win)
 			if me.isVisible && me.tick >= me.delayTicks && me.tick < me.offTicks
 				if ~exist('win','var');win = me.sM.win; end
-				% Screen('DrawTexture', windowPointer, texturePointer 
-				% [,sourceRect] [,destinationRect] [,rotationAngle] 
-				% [, filterMode] [, globalAlpha] [, modulateColor] 
+				% Screen('DrawTexture', windowPointer, texturePointer
+				% [,sourceRect] [,destinationRect] [,rotationAngle]
+				% [, filterMode] [, globalAlpha] [, modulateColor]
 				% [, textureShader] [, specialFlags] [, auxParameters]);
 				Screen('DrawTexture', win, me.texture, [], me.mvRect, me.dp.angleOut,...
 					[], me.dp.alphaOut, me.dp.colourOut);
 			end
 			me.tick = me.tick + 1;
 		end
-		
+
 		% ===================================================================
 		%> @brief Animate an structure for screenManager
 		%>
@@ -250,7 +246,7 @@ classdef imageStimulus < baseStimulus
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Reset an structure for screenManager
 		%>
@@ -266,20 +262,20 @@ classdef imageStimulus < baseStimulus
 			me.dstRect = [];
 			removeTmpProperties(me);
 		end
-		
+
 	end %---END PUBLIC METHODS---%
-	
+
 	%=======================================================================
 	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
 	%=======================================================================
-	
+
 		% ===================================================================
 		%> @brief our fake set methods, hooks into dynamicprops subsasgn
 		%>
 		% ===================================================================
 		function v = setOut(me, S, v)
 			if ischar(S)
-				prop = S; 
+				prop = S;
 			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
 				prop = S(1).subs;
 			else
@@ -295,7 +291,7 @@ classdef imageStimulus < baseStimulus
 					end
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Update only position info, faster and doesn't reset movie
 		%>
@@ -307,13 +303,13 @@ classdef imageStimulus < baseStimulus
 				me.mvRect=CenterRectOnPointd(me.mvRect, me.xFinal, me.yFinal);
 			end
 		end
-		
+
 	end
-	
+
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
 	%=======================================================================
-	
+
 		% ===================================================================
 		%> @brief setRect
 		%>  setRect makes the PsychRect based on the texture and screen values
@@ -338,9 +334,9 @@ classdef imageStimulus < baseStimulus
 				me.mvRect = me.dstRect;
 			end
 		end
-		
+
 		% ===================================================================
-		%> @brief 
+		%> @brief
 		%>
 		% ===================================================================
 		function checkFileName(me)
@@ -350,7 +346,7 @@ classdef imageStimulus < baseStimulus
 				me.fileName = [p filesep 'Bosch.jpeg'];
 				me.fileNames{1} = me.fileName;
 			elseif exist(me.fileName,'dir') == 7
-				findFiles(me);	
+				findFiles(me);
 			elseif exist(me.fileName,'file') == 2
 				me.fileNames{1} = me.fileName;
 			elseif exist(me.fileName,'file') ~= 2 && me.multipleImages>1
@@ -360,14 +356,14 @@ classdef imageStimulus < baseStimulus
 				end
 			end
 		end
-		
-		
-		
+
+
+
 		% ===================================================================
 		%> @brief findFiles
-		%>  
+		%>
 		% ===================================================================
-		function findFiles(me)	
+		function findFiles(me)
 			if exist(me.fileName,'dir') == 7
 				d = dir(me.fileName);
 				n = 0;
@@ -383,7 +379,7 @@ classdef imageStimulus < baseStimulus
 				end
 			end
 		end
-		
+
 	end
-	
+
 end
