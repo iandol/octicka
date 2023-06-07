@@ -65,9 +65,11 @@ classdef baseStimulus < octickaCore
 	end
 
 	properties (SetAccess = protected, GetAccess = public)
-		%> computed X position
+		%> final centered X position in pixel coordinates PTB uses: 0,0 top-left
+		%> see computePosition();
 		xFinal		= []
-		%> computed Y position
+		%> final centerd Y position in pixel coordinates PTB uses: 0,0 top-left
+		%> see computePosition();
 		yFinal		= []
 		%> initial screen rectangle position [LEFT TOP RIGHT BOTTOM]
 		dstRect		= []
@@ -78,7 +80,7 @@ classdef baseStimulus < octickaCore
 		%> draw tick only updates when a draw command is called, resets on each update
 		drawTick	= 0
 		%> pixels per degree (normally inhereted from screenManager)
-		ppd			= 36
+		ppd		= 36
 		%> is stimulus position defined as rect [true] or point [false]
 		isRect		= true
 	end
@@ -332,8 +334,8 @@ classdef baseStimulus < octickaCore
 		%>
 		% ===================================================================
 		function resetTicks(me)
-			global mouseTick mouseGlobalX mouseGlobalY mouseValid %shared across all stimuli
-			if max(me.delayTime) > 0 %delay display a number of frames
+			global mouseTick mouseGlobalX mouseGlobalY mouseValid %#ok<*GVMIS> %shared across all stimuli
+			if max(me.delayTime) > 0 %delay display a number of frames 
 				if length(me.delayTime) == 1
 					me.delayTicks = round(me.delayTime/me.screenVals.ifi);
 				elseif length(me.delayTime) == 2
@@ -438,28 +440,26 @@ classdef baseStimulus < octickaCore
 				end
 
 				if ~s.isOpen
-					sv=open(s); %open PTB screen
-				else
-					sv = s.screenVals;
+					sv=open(s); 
 				end
+				sv = s.screenVals;
 				setup(me,s); %setup our stimulus object
 
 				Priority(MaxPriority(s.win)); %bump our priority to maximum allowed
 
-				if ~strcmpi(me.type,'movie'); draw(me); resetTicks(me); end
-
-				drawGrid(s); %draw +-5 degree dot grid
-				drawScreenCenter(s); %centre spot
-
 				if benchmark
 					drawText(s, 'BENCHMARK: screen won''t update properly, see FPS in command window at end.');
 				else
-					drawText(s, sprintf('Static for 2 secs (debug grid = ±1°); animate for %.2f seconds',runtime));
+					drawGrid(s); %draw degree dot grid
+					drawScreenCenter(s);
+					drawText(s, ['Preview ALL with grid = ±1°; static for 1 seconds, then animate for ' num2str(runtime) ' seconds...'])
 				end
-
+				if ~any(strcmpi(me.family,{'movie','revcor'})); draw(me); resetTicks(me); end
+				if ismethod(me,'resetLog'); resetLog(me); end
 				flip(s);
+				if ~any(strcmpi(me.family,{'movie','revcor'})); update(me); end
 				if benchmark
-					WaitSecs('YieldSecs',0.5);
+					WaitSecs('YieldSecs',0.25);
 				else
 					WaitSecs('YieldSecs',2);
 				end
@@ -467,22 +467,23 @@ classdef baseStimulus < octickaCore
 				nFrames = 0;
 				notFinished = true;
 				benchmarkFrames = floor(sv.fps * runtime);
-				startT = GetSecs;
 				vbl = zeros(benchmarkFrames+1,1);
+				startT = GetSecs; lastvbl = startT;
 				while notFinished
 					nFrames = nFrames + 1;
 					draw(me); %draw stimulus
-					if s.visualDebug&&~benchmark; drawGrid(s); end
+					if ~benchmark && s.debug; drawGrid(s); end
 					finishDrawing(s); %tell PTB/GPU to draw
  					animate(me); %animate stimulus, will be seen on next draw
 					if benchmark
 						Screen('Flip',s.win,0,2,2);
 						notFinished = nFrames < benchmarkFrames;
 					else
-						vbl(nFrames) = flip(s, vbl(end)); %flip the buffer
+						vbl(nFrames) = flip(s, lastvbl + sv.halfisi); %flip the buffer
+						lastvbl = vbl(nFrames);
 						% the calculation needs to take into account the
 						% first and last frame times, so we subtract ifi*2
-						notFinished = vbl(nFrames) < ( vbl(1) + ( runtime - (sv.ifi * 2) ) );
+						notFinished = lastvbl < ( vbl(1) + ( runtime - (sv.ifi * 2) ) );
 					end
 				end
 				endT = flip(s);
@@ -512,7 +513,7 @@ classdef baseStimulus < octickaCore
 				warning on
 			catch ME
 				warning on
-				Priority(0);
+				try Priority(0); end
 				if exist('s','var') && isa(s,'screenManager')
 					try close(s); end
 				end
@@ -574,25 +575,7 @@ classdef baseStimulus < octickaCore
 				warning('Property %s doesn''t exist!!!',name)
 			end
 		end
-
-    % ===================================================================
-		%> @brief Delete method
-		%>
-		%> @param me
-		%> @return
-		% ===================================================================
-##		function delete(me)
-##			if ~isempty(me.texture)
-##				for i = 1:length(me.texture)
-##					if Screen(me.texture, 'WindowKind')~=0 ;try Screen('Close',me.texture); end; end %#ok<*TRYNC>
-##				end
-##			end
-##			if ~isempty(me.buffertex)
-##				if Screen(me.buffertex, 'WindowKind')~=0 ; try Screen('Close',me.buffertex); end; end
-##			end
-##			if me.verbose; fprintf('--->>> Delete: %s\n',me.fullName); end
-##		end
-
+		
 	end %---END PUBLIC METHODS---%
 
 	%=======================================================================
@@ -633,7 +616,9 @@ classdef baseStimulus < octickaCore
 		function [dX, dY] = updatePosition(delta,angle)
 		% updatePosition(delta, angle)
 			dX = delta .* cos(baseStimulus.d2r(angle));
+			if abs(dX) < 1e-3; dX = 0; end
 			dY = delta .* sin(baseStimulus.d2r(angle));
+			if abs(dY) < 1e-3; dY = 0; end
 		end
 
 	end%---END STATIC METHODS---%
@@ -643,7 +628,7 @@ classdef baseStimulus < octickaCore
 	%=======================================================================
 
 		% ===================================================================
-		%> @brief doProperties
+		%> @brief addRuntimeProperties
 		%> these are transient properties that specify actions during runtime
 		% ===================================================================
 		function addRuntimeProperties(me)

@@ -38,6 +38,8 @@ classdef screenManager < octickaCore
 		%> windowed presentation should *never* be used for real
 		%> experimental presentation due to poor timing…
 		windowed				= false
+		%> stereo mode
+		stereoMode				= 0
 		%> enable debug for poorer temporal fidelity but no sync testing
 		%> etc.
 		debug					= false
@@ -141,6 +143,9 @@ classdef screenManager < octickaCore
 	end
 
 	properties (Hidden = true)
+		%> anaglyph channel gains
+		anaglyphLeft						= [];
+		anaglyphRight						= [];
 		%> The mode to use for color++ mode
 		colorMode					= 2
 		%> for some development machines we have to disable
@@ -156,6 +161,8 @@ classdef screenManager < octickaCore
 		overlayWin					= -1
 		%> e.g. kPsychGUIWindow
 		specialFlags				= []
+		%> try to enable vulkan?
+		useVulkan							= false
 	end
 
 	properties (SetAccess = private, GetAccess = public)
@@ -181,9 +188,12 @@ classdef screenManager < octickaCore
 		%> we cache ppd as it is used frequently
 		ppd_
 		%> properties allowed to be modified during construction
-		allowedProperties = {'colorMode','overlayWin','specialFlags','syncVariance','disableSyncTests','displayPPRefresh',...
-		'screenToHead','gammaTable','useRetina','bitDepth','pixelsPerCm','distance','screen','windowed','backgroundColour',''...
-		'screenXOffset','screenYOffset','blend','srcMode','dstMode','antiAlias','debug','photoDiode','verbose','hideFlash'}
+		allowedProperties = {'colorMode','overlayWin','specialFlags','syncVariance',...
+			'disableSyncTests','displayPPRefresh','screenToHead','gammaTable',...
+			'useRetina','bitDepth','pixelsPerCm','distance','screen','windowed','backgroundColour',...
+			'screenXOffset','screenYOffset','blend','srcMode','dstMode','antiAlias',...
+			'debug','photoDiode','verbose','hideFlash',...
+			'stereoMode','anaglyphLeft','anaglyphRight'}
 		%> the photoDiode rectangle in pixel values
 		photoDiodeRect						= [0, 0, 45, 45]
 		%> the values computed to draw the 1deg dotted grid in visualDebug mode
@@ -212,7 +222,7 @@ classdef screenManager < octickaCore
 		%> screenManager CONSTRUCTOR
 		%>
 		%> @param varargin can be simple name value pairs, a structure or cell array
-		%> @return instance of the class.
+		%> @return instance of the class.	
 		% ===================================================================
 			args = octickaCore.addDefaults(varargin,struct('name','screenManager'));
 			me=me@octickaCore(args); %superclass constructor
@@ -318,6 +328,7 @@ classdef screenManager < octickaCore
 		%> @param forceScreen force a particular screen number to open
 		%> @return sv structure of basic info from the opened screen
 		% ===================================================================
+			if me.isOpen; fprintf('===>>> screenManager.open(): Screen already open!');return; end
 			if me.isPTB == false
 				warning('No PTB found!');
 				sv = me.screenVals;
@@ -380,17 +391,28 @@ classdef screenManager < octickaCore
 				end
 
 				tL.screenLog.preOpenWindow=GetSecs;
-
-				%check if system supports HDR mode
+				
+				%=== check if system supports HDR mode
 				isHDR = logical(PsychHDR('Supported'));
 				if strcmp(me.bitDepth,'HDR') && ~isHDR
 					me.bitDepth = 'Native10Bit';
 					error('---> screenManager: tried to use HDR but it is not supported!\n');
 				end
 
-				% start to set up PTB screen
+				%=== check stereomode is anaglyph
+				if ismember(me.stereoMode, 6:9)
+					stereo = me.stereoMode;
+				elseif me.stereoMode > 0
+					warning('Only Anaglyph stereo supported at present...')
+					stereo = 0;
+				else
+					stereo = 0;
+				end
+				
+				%=== start to set up PTB screen
 				PsychImaging('PrepareConfiguration');
 				PsychImaging('AddTask', 'General', 'UseFastOffscreenWindows');
+				if me.useVulkan; PsychImaging('AddTask', 'General', 'UseVulkanDisplay'); end
 				me.isPlusPlus = screenManager.bitsCheckOpen();
 				fprintf('---> screenManager: Probing for a Display++...');
 				bD = me.bitDepth;
@@ -459,8 +481,8 @@ classdef screenManager < octickaCore
 						Screen('ConfigureDisplay','Scanout',me.screen,outputID,[],[],me.displayPPRefresh);
 					end
 				end
-
-				% deal with windowed or full-screen
+				
+				%===deal with windowed or full-screen
 				if isempty(me.windowed); me.windowed = false; end
 				if ~isempty(forceScreen)
 					thisScreen = forceScreen;
@@ -469,6 +491,7 @@ classdef screenManager < octickaCore
 				end
 				if me.windowed == false %full-screen
 					winSize = [];
+					sf = me.specialFlags;
 				else %windowed
 					if length(me.windowed) == 2
 						winSize = [0 0 me.windowed(1) me.windowed(2)];
@@ -476,6 +499,11 @@ classdef screenManager < octickaCore
 						winSize = me.windowed;
 					else
 						winSize=[0 0 800 800];
+					end
+					if isempty(me.specialFlags)
+						sf = kPsychGUIWindow;
+					else
+						sf = me.specialFlags;
 					end
 				end
 
@@ -486,8 +514,8 @@ classdef screenManager < octickaCore
 
 				% ==============================================================
 				[me.win, me.winRect] = PsychImaging('OpenWindow', thisScreen, ...
-					me.backgroundColour, winSize, [], me.doubleBuffer+1,[], ...
-					me.antiAlias, [], me.specialFlags);
+					me.backgroundColour, winSize, [], me.doubleBuffer+1, stereo, ...
+					me.antiAlias, [], sf);
 				me.isOpen = true;
 				% ==============================================================
 
@@ -500,6 +528,27 @@ classdef screenManager < octickaCore
 					sv.overlayWin= [];
 				end
 
+				%===ANAGLYPH VALUES
+				if stereo > 0 && ~isempty(me.anaglyphLeft) && ~isempty(me.anaglyphRight)
+					SetAnaglyphStereoParameters('LeftGains', me.win,  me.anaglyphLeft);
+    				SetAnaglyphStereoParameters('RightGains', me.win, me.anaglyphRight);
+				else
+					switch stereo
+						case 6
+    						SetAnaglyphStereoParameters('LeftGains', me.win,  [1.0 0.0 0.0]);
+    						SetAnaglyphStereoParameters('RightGains', me.win, [0.0 0.6 0.0]);
+						case 7
+    						SetAnaglyphStereoParameters('LeftGains', me.win,  [0.0 0.6 0.0]);
+    						SetAnaglyphStereoParameters('RightGains', me.win, [1.0 0.0 0.0]);
+						case 8
+    						SetAnaglyphStereoParameters('LeftGains', me.win, [0.4 0.0 0.0]);
+    						SetAnaglyphStereoParameters('RightGains', me.win, [0.0 0.2 0.7]);
+						case 9
+    						SetAnaglyphStereoParameters('LeftGains', me.win, [0.0 0.2 0.7]);
+    						SetAnaglyphStereoParameters('RightGains', me.win, [0.4 0.0 0.0]);
+					end
+				end
+				
 				sv.win			= me.win; % make a copy
 				sv.winRect		= me.winRect;
 				sv.useRetina	= me.useRetina;
@@ -508,9 +557,9 @@ classdef screenManager < octickaCore
 				if me.verbose; fprintf('===>>>Made win: %i kind: %i\n',me.win,Screen(me.win,'WindowKind')); end
 
 				tL.screenLog.postOpenWindow=GetSecs;
-				tL.screenLog.deltaOpenWindow=(tL.screenLog.postOpenWindow-tL.screenLog.preOpenWindow)*1000;
-
-				% check we have GLSL
+				tL.screenLog.deltaOpenWindow=(tL.screenLog.postOpenWindow-tL.screenLog.preOpenWindow);
+				
+				%===check we have GLSL
 				try
 					AssertGLSL;
 				catch
@@ -525,8 +574,8 @@ classdef screenManager < octickaCore
 				else
 					sv.hdrProperties = [];
 				end
-
-				% Linux can give us some more information
+				
+				%===Linux can give us some more information
 				if IsLinux && ~isHDR
 					d			= Screen('ConfigureDisplay','Scanout',me.screen,0);
 					sv.name		= d.name;
@@ -534,8 +583,8 @@ classdef screenManager < octickaCore
 					sv.heightMM = d.displayHeightMM;
 					sv.display	= d;
 				end
-
-				% get timing info
+				
+				%===get timing info
 				sv.ifi			= Screen('GetFlipInterval', me.win);
 				sv.fps			= Screen('NominalFramerate', me.win);
 				% find our fps if not defined above
@@ -557,21 +606,27 @@ classdef screenManager < octickaCore
 					% effectively makes flip occur ASAP.
 					sv.halfifi = 0; sv.halfisi = 0;
 				end
-
-				%configure photodiode to top right
+                
+				%===configure photodiode to top right
 				if me.useRetina
 					me.photoDiodeRect = [me.winRect(3)-90 0 me.winRect(3) 90];
 				else
 					me.photoDiodeRect = [me.winRect(3)-45 0 me.winRect(3) 45];
 				end
 				sv.photoDiodeRect = me.photoDiodeRect;
-
-				% get gamma table and info
-				[sv.originalGamma, sv.dacBits, sv.lutSize]=Screen('ReadNormalizedGammaTable', me.win);
+				
+				%===get gamma table and info
+				try
+					[sv.originalGamma, sv.dacBits, sv.lutSize]=Screen('ReadNormalizedGammaTable', me.win);
+				catch
+					sv.originalGamma = [];
+					sv.dacBits = 0;
+					sv.lutSize = 0;
+				end
 				sv.linearGamma  = repmat(linspace(0,1,sv.lutSize)',1,3);
 				sv.gammaTable	= sv.originalGamma;
-
-				if me.hideFlash == true && isempty(me.gammaTable)
+				
+				if me.hideFlash == true && isempty(me.gammaTable) && sv.lutSize > 0
 					Screen('LoadNormalizedGammaTable', me.screen, sv.linearGamma);
 					sv.gammaTable = sv.linearGamma;
 					sv.resetGamma = false;
@@ -636,7 +691,17 @@ classdef screenManager < octickaCore
 			end
 
 		end
+		
+		function switchChannel(me, channel)
+			persistent thisChannel
+			if me.isOpen
+				if ~exist('channel','var'); channel = ~thisChannel;end
+				thisChannel = channel;
+				Screen('SelectStereoDrawBuffer', me.win, thisChannel);
+			end
+		end
 
+		
 		% ===================================================================
 		function demo(me)
 		%> @fn demo
@@ -645,17 +710,42 @@ classdef screenManager < octickaCore
 		% ===================================================================
 			if ~me.isOpen
 				stim = dotsStimulus('mask',true,'size',10,'speed',4);
+					'density',3,'dotSize',0.3);
 				open(me);
 				disp('--->>> screenManager running a quick demo...');
+				if me.stereoMode > 0
+					stim.mask = false;
+					stim.type='simple';
+					drawBackground(me,[0 0 0]);
+					flip(me);
+					WaitSecs(0.5);
+				end
 				disp(me.screenVals);
 				setup(stim, me);
+				x = stim.xFinal;
+				td = me.screenVals.topInDegrees;
+				bd = me.screenVals.bottomInDegrees;
+				ld = me.screenVals.leftInDegrees;
 				vbl = flip(me);
-				for i = 1:me.screenVals.fps*2
-					drawText(me,'Running a quick demo of screenManager...');
-					draw(stim);
+				for i = 1:me.screenVals.fps*6
+					if me.stereoMode > 0
+						drawBackground(me,[0 0 0]);
+						stim.xFinal = x - 3;
+						switchChannel(me,0);
+						drawText(me,'Demo screenManager Left Channel...',ld+1,td+1);
+						draw(stim);
+						switchChannel(me,1);
+						stim.xFinal = x + 3;
+						drawText(me,'Demo screenManager Right...',ld+1,td+2);
+						draw(stim);
+					else
+						drawText(me,'Running a quick demo of screenManager...');
+						draw(stim);
+					end
 					finishDrawing(me);
 					animate(stim);
 					vbl = flip(me, vbl);
+					if i == 1;KbWait;end
 				end
 				WaitSecs(1);
 				clear stim;
@@ -668,7 +758,7 @@ classdef screenManager < octickaCore
 		%> @fn flip
 		%> @brief Flip the screen
 		%>
-		%> [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', windowPtr [, when] [, dontclear] [, dontsync] [, multiflip]);
+		%> [VBLTimestamp StimulusOnsetTime FlipTimestamp Missed Beampos] = Screen('Flip', me.win [, when] [, dontclear] [, dontsync] [, multiflip]);
 		%>
 		%> @param varargin - pass other options to screen flip
 		%> @return vbl - a vbl from this flip
@@ -791,7 +881,7 @@ classdef screenManager < octickaCore
 				Screen('LoadNormalizedGammaTable', me.win, me.screenVals.originalGamma);
 				fprintf('\n---> screenManager: REVERT GAMMA TABLES\n');
 			end
-			if me.isInAsync
+			if me.isInAsync 
 				try Screen('ASyncFlipEnd',me.win); end
 			end
 			me.isInAsync = false;
@@ -801,14 +891,14 @@ classdef screenManager < octickaCore
 			try me.finaliseMovie(); me.moviePtr = []; end
 			kind = Screen(me.win, 'WindowKind');
 			try
-				if kind == 1
-					fprintf('\n\n---> screenManager %s: Closing screen = %i, Win = %i, Kind = %i\n',me.uuid, me.screen,me.win,kind);
+				if kind == 1 
+					fprintf('\n\n---> screenManager %s: Closing screen = %i, Win = %i, Kind = %i\n', me.uuid, me.screen, me.win, kind);
 					Screen('Close',me.win);
 				end
 			catch ME
 					disp(ME.message);
 			end
-			me.win=[];
+			me.win = [];
 			if isfield(me.screenVals,'win');me.screenVals=rmfield(me.screenVals,'win');end
 			me.isOpen = false;
 			me.isPlusPlus = false;
@@ -865,8 +955,8 @@ classdef screenManager < octickaCore
 				me.bitDepth = me.bitDepths{check};
 			else
 				me.bitDepth = me.bitDepths{1};
-				disp(me.bitDepths);
-				error('Wrong value given, select from list above');
+				disp(me.bitDepths)
+				error('Wrong value given, select from list above')
 			end
 		end
 
@@ -880,8 +970,8 @@ classdef screenManager < octickaCore
 			if any(check)
 				me.srcMode = me.blendModes{check};
 			else
-				disp(me.blendModes);
-				error('Wrong value given, select from list above');
+				disp(me.blendModes)
+				error('Wrong value given, select from list above')
 			end
 		end
 
@@ -1030,7 +1120,7 @@ classdef screenManager < octickaCore
 			if ~me.isOpen; return; end
 			int = round(interval / me.screenVals.ifi);
 			KbReleaseWait;
-			while ~KbCheck(-1)
+			while ~KbCheck()
 				if mod(me.flashTick,int) == 0
 					me.flashOn = not(me.flashOn);
 					me.flashTick = 0;
@@ -1050,9 +1140,9 @@ classdef screenManager < octickaCore
 		% ===================================================================
 		function drawCross(me,size,colour,x,y,lineWidth,showDisk,alpha,alpha2)
 		%> @fn drawCross
-		%> @brief draw fixation cross from Thaler L, Schütz AC,
-		%>  Goodale MA, & Gegenfurtner KR (2013) “What is the best fixation target?
-		%>  The effect of target shape on stability of fixational eye movements.
+		%> @brief draw fixation cross from Thaler L, Schütz AC, 
+		%>  Goodale MA, & Gegenfurtner KR (2013) “What is the best fixation target? 
+		%>  The effect of target shape on stability of fixational eye movements. 
 		%>  Vision research 76, 31-42 <http://doi.org/10.1016/j.visres.2012.10.012>
 		%>
 		%> @param size size in degrees
@@ -1224,7 +1314,7 @@ classdef screenManager < octickaCore
 			if ~exist('text','var');return;end
 			if ~exist('x','var');x = (-me.xCenter / me.ppd_) + 0.25;end
 			if ~exist('y','var');y = (-me.yCenter / me.ppd_) + 0.25;end
-			Screen('DrawText', me.win, text, (x * me.ppd_) + me.xCenter, (y * me.ppd_) + me.yCenter);
+			Screen('DrawText', me.win, text, (x * me.ppd_) + me.xCenter, (y * me.ppd_) + me.yCenter, me.font.TextColor);
 			flip(me,[],[],2);
 		end
 
@@ -1244,7 +1334,7 @@ classdef screenManager < octickaCore
 		% ===================================================================
 		function drawTextWrapped(me, text, wrapat, x, y)
 		%> @fn drawTextWrapped
-		%> @brief draw text and flip immediately
+		%> @brief draw text with wrapping
 		%>
 		%> @param text text to draw
 		%> @param wrapat character to wrap at
@@ -1283,16 +1373,17 @@ classdef screenManager < octickaCore
 		%> @brief draw box specified with x and y and size in degrees
 		%>
 		%> @param xy X is row1 and Y is row2 in degrees
-		%> @param size in degrees
+		%> @param size in degrees, either 1 or 2 values
 		%> @param colour RGB[A], use columns for multiple colours
 		%> @return
 		% ===================================================================
 		function drawBox(me,xy,boxsize,colour)
 			% drawBox(me, xy, size, colour)
 			if ~exist('xy','var');return;end
-			if ~exist('size','var') || isempty(boxsize); boxsize = 2; end
+			if ~exist('boxsize','var') || isempty(boxsize); boxsize = 2; end
 			if ~exist('colour','var') || isempty(colour); colour = [1 1 0]'; end
-			boxsize = boxsize * me.ppd_;
+			boxsize = boxsize .* me.ppd_;
+			if size(xy,1)==1 && size(xy,2)==2;xy = xy'; end
 			xy(1,:) = xy(1,:) * me.ppd_ + me.xCenter;
 			xy(2,:) = xy(2,:) * me.ppd_ + me.yCenter;
 			if length(boxsize) == 1
@@ -1320,7 +1411,7 @@ classdef screenManager < octickaCore
 		function drawBoxPx(me,xy,boxsize,colour)
 			% drawBox(me, xy, size, colour)
 			if ~exist('xy','var');return;end
-			if ~exist('size','var') || isempty(boxsize); boxsize = 2; end
+			if ~exist('boxsize','var') || isempty(boxsize); boxsize = 50; end
 			if ~exist('colour','var') || isempty(colour); colour = [1 1 0.75]'; end
 			if length(boxsize) == 1
 				xbs = boxsize;
@@ -1352,21 +1443,42 @@ classdef screenManager < octickaCore
 		end
 
 		% ===================================================================
-		%> @brief draw dots specified in degrees to pixel coordinates
+		%> @brief draw dots specified in degrees to pixel center coordinates
 		%>
 		%> @param xy x is row1 and y is row2
 		%> @return
 		% ===================================================================
 		function drawDots(me,xy,size,colour,center)
 			if ~exist('xy','var');return;end
-			if ~exist('size','var') || isempty(size); size = 5; end
-			if ~exist('colour','var') || isempty(colour); colour = [1 1 1]; end
+			if ~exist('size','var') || isempty(size); size = 0.5; end
+			if ~exist('colour','var') || isempty(colour); colour = [1 1 0 0.5]; end
 			if ~exist('center','var') || isempty(center); center = [0 0]; end
+			size = size * me.ppd_;
 			xy(1,:) = me.xCenter + (xy(1,:) * me.ppd_);
 			xy(2,:) = me.yCenter + (xy(2,:) * me.ppd_);
-			Screen('DrawDots', me.win, xy, size, colour, center);
+			Screen('DrawDots', me.win, xy, size, colour, center, 1);
 		end
 
+		% ===================================================================
+		%> @brief draw dots specified in degrees 
+		%>
+		%> @param xy x is row1 and y is row2
+		%> @return
+		% ===================================================================
+		function drawDotsDegs(me,xy,size,colour)
+			if ~exist('xy','var');return;end
+			if ~exist('size','var') || isempty(size); size = 0.5; end
+			if ~exist('colour','var') || isempty(colour); colour = [1 1 0 0.5]; end
+			size = size * me.ppd_;
+			xy(1,:) = me.xCenter + (xy(1,:) * me.ppd_);
+			xy(2,:) = me.yCenter + (xy(2,:) * me.ppd_);
+			center(1) = round(mean(xy(1,:)));
+			center(2) = round(mean(xy(2,:)));
+			xy(1,:) = xy(1,:) - center(1);
+			xy(2,:) = xy(2,:) - center(2);
+			Screen('DrawDots', me.win, xy, size, colour, center, 1);
+		end
+		
 		% ===================================================================
 		%> @brief draw small spot centered on the screen
 		%>
@@ -1384,11 +1496,12 @@ classdef screenManager < octickaCore
 		%> @return
 		% ===================================================================
 		function drawGrid(me)
-			Screen('DrawDots',me.win,me.grid,1,[1 1 0 1],[me.xCenter me.yCenter],1);
+			if me.useRetina; sz=2; else; sz = 1; end
+			Screen('DrawDots',me.win,me.grid,sz,[1 0.5 0 1],[me.xCenter me.yCenter],1);
 		end
 
 		% ===================================================================
-		%> @brief draw a square in top-left of screen to trigger photodiode
+		%> @brief draw a square in top-right of screen to trigger photodiode
 		%>
 		%> @param colour colour of square
 		%> @return
@@ -1406,7 +1519,7 @@ classdef screenManager < octickaCore
 		%> @return
 		% ===================================================================
 		function drawMousePosition(me,force)
-			global mouseGlobalX mouseGlobalY
+			global mouseGlobalX mouseGlobalY %#ok<*GVMIS> 
 			if ~exist('force','var'); force = false; end
 			if force == true
 				[x,y] = mousePosition(me,false);
@@ -1439,8 +1552,8 @@ classdef screenManager < octickaCore
 		%>
 		%> @param filename optional filename
 		% ===================================================================
-			if ~exist('filename','var')
-				filename=[me.paths.parent filesep 'Shot' datestr(now,'YYYY-mm-DD-HH-MM-SS') '.png'];
+			if ~exist('filename','var') 
+				filename=[me.paths.parent filesep 'Shot' datestr(now,'YYYY-mm-DD-HH-MM-SS') '.png']; 
 			end
 			myImg = Screen('GetImage',me.win);
 			imwrite(myImg, filename);
@@ -1505,7 +1618,7 @@ classdef screenManager < octickaCore
 					homep = 'c:';
 				end
 				if ~exist([me.paths.parent filesep 'Movie' filesep],'dir')
-					mkdir([me.paths.parent filesep 'Movie' filesep]);
+					mkdir([me.paths.parent filesep 'Movie' filesep])
 				end
 				me.movieSettings.moviepath = [me.paths.parent filesep 'Movie' filesep];
 				switch me.movieSettings.type
@@ -1568,6 +1681,7 @@ classdef screenManager < octickaCore
 						end
 					case 2
 % 						if wasError == true
+% 							
 % 						else
 % 							save([me.movieSettings.moviepath 'Movie' datestr(clock) '.mat'],'mimg');
 % 						end
@@ -1601,19 +1715,12 @@ classdef screenManager < octickaCore
 		end
 
 		% ===================================================================
-		%> @brief
+		%> @brief toDegrees - convert from pixels to degrees
 		%>
 		% ===================================================================
-		function out = toDegrees(me,in,axis)
-			if ~exist('axis','var');axis='';end
+		function out = toDegrees(me, in, axis)
+			if ~exist('axis','var'); if length(in)==4; axis='rect'; else; axis=''; end; end
 			switch axis
-				case ''
-					if length(in)==2
-						out(1) = (in(1) - me.xCenter) / me.ppd_;
-						out(2) = (in(2) - me.yCenter) / me.ppd_;
-					else
-						out = 0;
-					end
 				case 'rect'
 					out(1) = (in(1) - me.xCenter) / me.ppd_;
 					out(2) = (in(2) - me.yCenter) / me.ppd_;
@@ -1623,26 +1730,23 @@ classdef screenManager < octickaCore
 					out = (in - me.xCenter) / me.ppd_;
 				case 'y'
 					out = (in - me.yCenter) / me.ppd_;
+				otherwise
+					if length(in)==2
+						out(1) = (in(1) - me.xCenter) / me.ppd_;
+						out(2) = (in(2) - me.yCenter) / me.ppd_;
+					else
+						out = 0;
+					end
 			end
 		end
 
 		% ===================================================================
-		%> @brief
+		%> @brief toPixels - convert from degrees to pixels
 		%>
 		% ===================================================================
-		function out = toPixels(me,in,axis)
-			if ~exist('axis','var');axis='';end
+		function out = toPixels(me, in, axis)
+			if ~exist('axis','var'); axis=''; end
 			switch axis
-				case ''
-					if length(in)==4
-						out(1:2) = (in(1:2) * me.ppd_) + me.xCenter;
-						out(3:4) = (in(3:4) * me.ppd_) + me.yCenter;
-					elseif length(in)==2
-						out(1) = (in(1) * me.ppd_) + me.xCenter;
-						out(2) = (in(2) * me.ppd_) + me.yCenter;
-					else
-						out = 0;
-					end
 				case 'rect'
 					out(1) = (in(1) * me.ppd_) + me.xCenter;
 					out(2) = (in(2) * me.ppd_) + me.yCenter;
@@ -1652,6 +1756,16 @@ classdef screenManager < octickaCore
 					out = (in * me.ppd_) + me.xCenter;
 				case 'y'
 					out = (in * me.ppd_) + me.yCenter;
+				otherwise
+					if length(in)==4
+						out(1:2) = (in(1:2) * me.ppd_) + me.xCenter;
+						out(3:4) = (in(3:4) * me.ppd_) + me.yCenter;
+					elseif length(in)==2
+						out(1) = (in(1) * me.ppd_) + me.xCenter;
+						out(2) = (in(2) * me.ppd_) + me.yCenter;
+					else
+						out = 0;
+					end
 			end
 		end
 
@@ -1670,10 +1784,56 @@ classdef screenManager < octickaCore
 	%=======================================================================
 	methods (Static = true) %------------------STATIC METHODS
 	%=======================================================================
+	
+		% ===================================================================
+		function out = equidistantPoints(n,distance,phase)
+		%> @fn rectToPos
+		%>
+		%> @param n number of points
+		%> @param distance distance from center
+		%> @return array of X,Y positions
+		% ===================================================================
+			th = linspace(0,360,n+1);
+			th = th(1:end-1) + phase;
+			out = zeros(2,length(th));
+			for i = 1:length(th)
+				[out(1,i),out(2,i)] = pol2cart(deg2rad(th(i)),distance);
+			end
+		end
 
 		% ===================================================================
+		function out = rectToPos(rect)
+		%> @fn rectToPos
+		%>
+		%> @param
+		%> @return 
+		% ===================================================================
+			[out.X,out.Y] = RectCenter(rect);
+			out.radius = [RectWidth(rect) RectHeight(rect)] / 2;
+		end
+
+		% ===================================================================
+		function out = posToRect(pos)
+		%> @fn posToRectpos
+		%>
+		%> @param
+		%> @return 
+		% ===================================================================
+			if ~isstruct(pos); out = []; return; end
+			if length(pos.radius) == 1
+				w = pos.radius * 2;
+				h = w;
+			else
+				w = pos.radius(1);
+				h = pos.radius(2);
+			end
+			out = [0 0 w h];
+			out = CenterRectOnPointd(out, pos.X, pos.Y);
+		end
+		
+		% ===================================================================
 		%> @brief Set Refresh
-		%> Screen('ConfigureDisplay', setting, screenNumber, outputId
+		%> Screen('ConfigureDisplay', setting, screenNumber, outputId 
 		%>   [, newwidth][, newheight][, newHz][, newX][, newY]);
 		% ===================================================================
 		function setRefresh(value)
@@ -1691,7 +1851,7 @@ classdef screenManager < octickaCore
 
 		% ===================================================================
 		%> @brief Set Resolution and refresh
-		%> Screen('ConfigureDisplay', setting, screenNumber, outputId
+		%> Screen('ConfigureDisplay', setting, screenNumber, outputId 
 		%>   [, newwidth][, newheight][, newHz][, newX][, newY]);
 		% ===================================================================
 		function setResolution(w,h,f)
@@ -1721,9 +1881,9 @@ classdef screenManager < octickaCore
 		%>
 		% ===================================================================
 		function validateDisplayPlusPlus()
-			screenManager.bitsCheckOpen([],false);
-			BitsPlusImagingPipelineTest;
-			BitsPlusIdentityClutTest;
+			screenManager.bitsCheckOpen([], false);
+			BitsPlusImagingPipelineTest(me.screen);
+			BitsPlusIdentityClutTest(me.screen);
 		end
 
 		% ===================================================================
@@ -1804,7 +1964,7 @@ classdef screenManager < octickaCore
 				swin = me.screen;
 			end
 			[sv.screenWidth, sv.screenHeight] = Screen('WindowSize',swin);
-			if me.useRetina
+			if me.useRetina 
 				sv.width = sv.screenWidth;
 				sv.height = sv.screenHeight;
 				me.winRect = Screen('Rect',swin);
@@ -1828,12 +1988,12 @@ classdef screenManager < octickaCore
 		end
 
 		% ===================================================================
-		%> @brief Makes a 15x15 1deg dot grid for debug mode
+		%> @brief Makes a 20x20 1deg dot grid for debug mode
 		%> This is always updated on setting distance or pixelsPerCm
 		% ===================================================================
 		function makeGrid(me)
 			me.grid = [];
-			rn = -15:15;
+			rn = -20:20;
 			for i=rn
 				me.grid = horzcat(me.grid, [rn;ones(1,length(rn))*i]);
 			end
@@ -1863,24 +2023,31 @@ classdef screenManager < octickaCore
 		% ===================================================================
 		function updateFontValues(me)
 			if me.isOpen
+				Screen('Preference', 'DefaultFontName', me.font.FontName);
+				Screen('Preference', 'TextRenderer', me.font.TextRenderer);
 				if me.useRetina
+					Screen('Preference', 'DefaultFontSize', me.font.TextSize*2);
 					Screen('TextSize', me.win, me.font.TextSize*2);
 				else
-					Screen('TextSize', me.win, me.font.TextSize);
+					if IsWin
+						Screen('Preference', 'DefaultFontSize', ceil(me.font.TextSize/1.6));
+						Screen('TextSize', me.win, ceil(me.font.TextSize/1.6));
+					else
+						Screen('Preference', 'DefaultFontSize', me.font.TextSize);
+						Screen('TextSize', me.win, me.font.TextSize);
+					end
 				end
-				o = Screen('TextColor', me.win, me.font.TextColor);
-				o = Screen('TextBackgroundColor', me.win, me.font.TextBackgroundColor);
-				o = Screen('TextFont', me.win, me.font.FontName);
-				o = Screen('Preference', 'DefaultFontName', me.font.FontName);
-				o = Screen('Preference', 'TextRenderer', me.font.TextRenderer);
+				Screen('TextColor', me.win, me.font.TextColor);
+				Screen('TextBackgroundColor', me.win, me.font.TextBackgroundColor);
+				Screen('TextFont', me.win, me.font.FontName);
 			else
 				if me.useRetina
-					o = Screen('Preference', 'DefaultFontSize', me.font.TextSize*2);
+					Screen('Preference', 'DefaultFontSize', me.font.TextSize*2);
 				else
-					o = Screen('Preference', 'DefaultFontSize', me.font.TextSize);
+					Screen('Preference', 'DefaultFontSize', me.font.TextSize);
 				end
-				o = Screen('Preference', 'DefaultFontName', me.font.FontName);
-				o = Screen('Preference', 'TextRenderer', me.font.TextRenderer);
+				Screen('Preference', 'DefaultFontName', me.font.FontName);
+				Screen('Preference', 'TextRenderer', me.font.TextRenderer);
 			end
 		end
 

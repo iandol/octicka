@@ -31,6 +31,8 @@ classdef imageStimulus < baseStimulus
 		scale						= 1
 		%>
 		family						= 'texture'
+		%>
+		matrix
 		%> current randomly selected image
 		currentImage				= ''
 		%>
@@ -47,8 +49,6 @@ classdef imageStimulus < baseStimulus
 		fileNames			= {};
 		%> properties to ignore in the UI
 		ignorePropertiesUI	= {}
-		%> image data
-		matrix
 	end
 
 	properties (Access = protected)

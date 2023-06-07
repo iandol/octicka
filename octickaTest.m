@@ -54,52 +54,10 @@ myStims = metaStimulus();
 % etc.), then update ensures all properties are properly updated.
 % [5] RESET() - returns the object back to its pre-setup state.
 %
-%The first few stimuli are gratings / gabors of varying kinds.
-%myStims{1}=gratingStimulus('sf', 1, 'tf', 0, 'phase', 90, 'contrast', 0.7, ...
-%	'size', 2, 'angle', -45, 'mask', false, ...
-%	'name', 'Standard grating');
-%
-%myStims{2}=gaborStimulus('sf', 1, 'contrast', 0.75, 'tf', 3, 'size', 3, 'angle', -70,...
-%	'aspectRatio', 0.5, 'xPosition', 5, 'yPosition', -5,...
-%	'name', 'Gabor');
-%
-%myStims{3}=gratingStimulus('sf', 2, 'tf', 4, 'contrast', 0.7, 'size', 3, 'angle', 45,...
-%	'xPosition', 0, 'yPosition', -10, 'mask', true, 'sigma', 30,...
-%	'name', 'Edge-smoothed grating');
-%
-%myStims{4}=gratingStimulus('type', 'square', 'sf', 1, 'contrast', 1, ...
-%	'colour', [0.5 0.5 0.5], 'tf', 0,...
-%	'size', 3, 'xPosition', 6, 'yPosition', 0, ...
-%	'phaseReverseTime',0.33, ...
-%	'name', 'Squarewave grating');
 
 %%
-% This is log gabor filtered noise, based on code shared by Steve Dakin
-% You can control the orientation / SF filtering, and pass an image
-% through it, or let it create a random texture. It can phase reverse using
-% an invert GLSL shader on the texture.
-%myStims{5}=logGaborStimulus('size', 3, 'xPosition', 0,'yPosition', -5,...
-%	'sfPeak', 3, 'sfSigma', 0.05, 'angleSigma', 20, 'seed', 5,...
-%	'phaseReverseTime',0.33, ...
-%	'name', 'Log Gabor Filtered Noise');
-
-%%
-% This is a colour grating where two independant colours can be modulated
-% relative to a base colour, in this case this is a red/green grating
-% modulating from 0.5 background grey.
-%myStims{6}=colourGratingStimulus('colour', [1 0 0 1], 'colour2', [0 1 0 1],...
-%	'baseColour', [0.5 0.5 0.5], 'tf', 1, 'size', 3, 'xPosition', -6, 'yPosition', 0,...
-%	'name', 'Red/green grating');
-
-%%
-% coherent dot stimulus; 200 dots moving at 2deg/s with coherence set to 0.25
-%myStims{7}=dotsStimulus('density',50,'coherence',0.25,'xPosition',4,...
-%	'yPosition',6,'dotType',3,'dotSize',0.1,'colorType','randomBW','mask',true,...
-%	'name','Coherent dots');
-
-%%
-% A simple bar: bars can be solid in colour or have checkerboard/random texture
-% (try setting 'type' to 'random' etc.). This is a bar moving at 4deg/s.
+% A simple bar: bars can be solid in colour or have checkerboard/random texture 
+% (try setting 'type' to 'random' etc.). This is a bar moving at 4deg/s. 
 % Notice the startPosition is -4; this means start -4 degrees "behind" X and Y position, as
 % the stimulus is displayed for 2 seconds the bar therefore traverses
 % 4 degrees behind then 4 degrees past the X and Y position (i.e. drift a bar over a RF location)
@@ -126,9 +84,9 @@ myStims{3}=imageStimulus('speed',2,'xPosition',-10,'yPosition',10,'size',4,...
 % a movie stimulus, by default this loads a movie from the octicka
 % stimulus directory; you can rotate it, scale it etc and drift it across screen as
 % in this case. Size is in degrees, scaling the whole movie
-%myStims{11}=movieStimulus('speed', 1, 'xPosition', -7, 'yPosition', -10,...
-%	'size', 4, 'enforceBlending', true,...
-%	'name', 'AVI transparent movie');
+myStims{4}=movieStimulus('speed', 1, 'xPosition', -7, 'yPosition', -10,...
+	'size', 4, 'enforceBlending', true,...
+	'name', 'AVI transparent movie');
 
 %% Task Initialisation
 % The taskSequence class defines a stimulus sequence (task) which is composed
@@ -155,8 +113,8 @@ myTask.nVar(1).values = [0 45 90];
 % the next two parameters allow us to link a stimulus with
 % an offset; for example you could set stimulus 1 to values [1 2 3]
 % and if offsetvalue was 2 and offsetstimulus was 2 then the second
-% stimulus would change through [3 4 5];
-myTask.nVar(1).offsetstimulus = [5 6];
+% stimulus would change through [3 4 5]; 
+myTask.nVar(1).offsetstimulus = [3];
 myTask.nVar(1).offsetvalue = 90;
 
 %% Variable 2
@@ -170,14 +128,14 @@ myTask.nVar(2).values = [0.15 0.55];
 % Our third variable is X position, applied to stimulus 2 and 7, randomly
 % selected from values of -3 and 3 degrees from visual center of screen
 myTask.nVar(3).name = 'xPosition';
-myTask.nVar(3).stimulus = [1 3];
+myTask.nVar(3).stimulus = [2 4];
 myTask.nVar(3).values = [-6 6];
 % the next two parameters allow us to link a stimulus with
 % an offset; for example you could set stimulus 1 to values [1 2 3]
 % and if offsetvalue was 2 and offsetstimulus was 2 then the second
 % stimulus would change through [3 4 5]; in this case we offset stimulus 10
 % to +1 the values above i.e. [-4 8]
-myTask.nVar(3).offsetstimulus = 10;
+myTask.nVar(3).offsetstimulus = 3;
 myTask.nVar(3).offsetvalue = 2;
 
 %% Randomisation
