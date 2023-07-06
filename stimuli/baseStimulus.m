@@ -335,7 +335,7 @@ classdef baseStimulus < octickaCore
 		% ===================================================================
 		function resetTicks(me)
 			global mouseTick mouseGlobalX mouseGlobalY mouseValid %#ok<*GVMIS> %shared across all stimuli
-			if max(me.delayTime) > 0 %delay display a number of frames 
+			if max(me.delayTime) > 0 %delay display a number of frames
 				if length(me.delayTime) == 1
 					me.delayTicks = round(me.delayTime/me.screenVals.ifi);
 				elseif length(me.delayTime) == 2
@@ -440,12 +440,17 @@ classdef baseStimulus < octickaCore
 				end
 
 				if ~s.isOpen
-					sv=open(s); 
+					sv=open(s);
 				end
-				sv = s.screenVals;
+				drawPhotoDiodeSquare(s,[0 0 0]);flip(s);
 				setup(me,s); %setup our stimulus object
 
 				Priority(MaxPriority(s.win)); %bump our priority to maximum allowed
+
+				if ~strcmpi(me.type,'movie'); draw(me); resetTicks(me); end
+				drawGrid(s); %draw +-5 degree dot grid
+				drawScreenCenter(s); %centre spot
+				drawPhotoDiodeSquare(s, [0 0 0]); %for photodiode
 
 				if benchmark
 					drawText(s, 'BENCHMARK: screen won''t update properly, see FPS in command window at end.');
@@ -472,7 +477,8 @@ classdef baseStimulus < octickaCore
 				while notFinished
 					nFrames = nFrames + 1;
 					draw(me); %draw stimulus
-					if ~benchmark && s.debug; drawGrid(s); end
+					drawPhotoDiodeSquare(s, [1 1 1]); %for photodiode
+					if s.visualDebug&&~benchmark; drawGrid(s); end
 					finishDrawing(s); %tell PTB/GPU to draw
  					animate(me); %animate stimulus, will be seen on next draw
 					if benchmark
@@ -486,6 +492,7 @@ classdef baseStimulus < octickaCore
 						notFinished = lastvbl < ( vbl(1) + ( runtime - (sv.ifi * 2) ) );
 					end
 				end
+				drawPhotoDiodeSquare(s, [0 0 0]); %for photodiode
 				endT = flip(s);
 				if ~benchmark;startT = vbl(1);end
 				diffT = endT - startT;
@@ -575,7 +582,7 @@ classdef baseStimulus < octickaCore
 				warning('Property %s doesn''t exist!!!',name)
 			end
 		end
-		
+
 	end %---END PUBLIC METHODS---%
 
 	%=======================================================================
