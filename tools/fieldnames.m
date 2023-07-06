@@ -1,6 +1,6 @@
 ########################################################################
 ##
-## Copyright (C) 2012-2022 The Octave Project Developers
+## Copyright (C) 2012-2023 The Octave Project Developers
 ##
 ## See the file COPYRIGHT.md in the top-level directory of this
 ## distribution or <https://octave.org/copyright/>.
@@ -48,7 +48,7 @@ function names = fieldnames (obj)
   if (nargin < 1)
     print_usage ();
   endif
-	if isempty(obj) || isnumeric(obj); names = []; return; end
+
   if (isstruct (obj))
     names = __fieldnames__ (obj);
   elseif (isobject (obj))
@@ -69,7 +69,7 @@ function names = fieldnames (obj)
     names_str = javaMethod ("getFields", "org.octave.ClassHelper", obj);
     names = ostrsplit (names_str, ';');
   else
-	  warning("fieldnames: Invalid input argument");
+    warning("fieldnames: Invalid input argument");
   endif
 
 endfunction
@@ -114,3 +114,4 @@ endfunction
 %!testif HAVE_JAVA; usejava ("jvm")
 %! names = fieldnames (javaObject ("java.lang.String", "Hello"));
 %! assert (any (strcmp (names, "CASE_INSENSITIVE_ORDER")));
+
