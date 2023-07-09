@@ -20,9 +20,7 @@ function playMovies(folder)
 	if IsOctave; try pkg load instrument-control; end; end
 
 	% ============================movie / position list
-	movieList = {'~/Videos/testcage/ball3-0120.mkv','~/Videos/testcage/ball2-0120.mkv',...
-	'~/Videos/testcage/ball-0120.mkv','~/Videos/testcage/throw-0120.mkv','~/Videos/testcage/throw2-0120.mkv',...
-	'~/Videos/testcage/throw3-0120.mkv'};
+	movieList = {'~/Code/octicka/stimuli/monkey-dance.avi'};
 	positionList = {...
 		[-20 -14 -13 -3 -20 4 -13 15.2],...
 		[-20 4 -13 15.2 -20 -14 -13 -3],...
@@ -136,7 +134,7 @@ function playMovies(folder)
 			WaitSecs(0.5);
 			if keepRunning == false; break; end
 
-			%================INCORRECT================================show movie
+			%================================================show movie
 			vbl = flip(s); vblInit = vbl;
 			while vbl <= vblInit + presentationTime
 				draw(m);

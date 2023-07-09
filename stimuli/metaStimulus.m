@@ -1,7 +1,7 @@
 % ========================================================================
 %> @class metaStimulus
 %> @brief Manager for multiple octicka stimuli.
-%> 
+%>
 %> METASTIMULUS manages a collection of stimuli, wrapped in one object. It
 %> allows you to treat this group of heterogenous stimuli as if they are a
 %> single stimulus (draw, update,animate,reset), so for example
@@ -9,10 +9,10 @@
 %> group without having to call it for each stimulus. You can also pick
 %> individual stimuli by using cell indexing of this object. So for example
 %> metaStimulus{2} actually calls metaStimulus.stimuli{2}.
-%> 
+%>
 %> You can also pass a mask stimulus set, and when you toggle showMask, the mask
 %> stimuli will be drawn instead of the stimuli themselves.
-%> 
+%>
 %> This manager also allows you to build "sets" of stimuli (set stimulusSets to
 %> e.g [2 4 7] would be stimuli 2 4 and 7), and you can quickly switch between
 %> sets. For example you could have a set of fixation cross alone, and another
@@ -23,9 +23,9 @@
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
 classdef metaStimulus < octickaCore
-	
+
 	%--------------------PUBLIC PROPERTIES----------%
-	properties 
+	properties
 		%>cell array of opticka stimuli to manage
 		stimuli			= {}
 		%>cell array of mask stimuli
@@ -45,7 +45,7 @@ classdef metaStimulus < octickaCore
 		stimulusTable	= []
 		%> choice for table
 		tableChoice		= []
-		%> control table for keyboard changes, again allows you to dynamically 
+		%> control table for keyboard changes, again allows you to dynamically
 		%> change variables during training sessions
 		controlTable	= []
 		%> verbose?
@@ -58,21 +58,21 @@ classdef metaStimulus < octickaCore
 	end
 
 	properties (Hidden = true)
-		%> choice allows to 'filter' a subset of stimulus in the group when 
+		%> choice allows to 'filter' a subset of stimulus in the group when
 		%> calling draw, update, animate and reset
 		choice				= []
 	end
-	
+
 	%--------------------DEPENDENT PROPERTIES----------%
-	properties (SetAccess = private, Dependent = true) 
+	properties (SetAccess = private, Dependent = true)
 		%> n number of stimuli managed by metaStimulus
 		n
 		%> n number of mask stimuli
 		nMask
 	end
-	
+
 	%--------------------VISIBLE PROPERTIES----------%
-	properties (SetAccess = private, GetAccess = public) 
+	properties (SetAccess = private, GetAccess = public)
 		%> stimulus family
 		family				= 'meta'
 		%> structure holding positions for each stimulus
@@ -80,7 +80,7 @@ classdef metaStimulus < octickaCore
 		%> used for optional logging for update times
 		updateLog			= []
 	end
-	
+
 	%--------------------VISIBLE PROPERTIES----------%
 	properties (SetAccess = private, GetAccess = public, Transient = true)
 		lastXPosition		= 0
@@ -88,7 +88,7 @@ classdef metaStimulus < octickaCore
 		lastXExclusion		= []
 		lastYExclusion		= []
 	end
-	
+
 	%--------------------PRIVATE PROPERTIES----------%
 	properties (SetAccess = private, GetAccess = private)
 		%> cache our dependent values for a bit more speed...
@@ -100,11 +100,11 @@ classdef metaStimulus < octickaCore
 		'fixationChoice','exclusionChoice','stimulusTable','tableChoice'}
 		sM
 	end
-	
+
 	%=======================================================================
 	methods %------------------PUBLIC METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief Class constructor
 		%>
@@ -117,7 +117,7 @@ classdef metaStimulus < octickaCore
 			me = me@octickaCore(args); %superclass constructor
 			me.parseArgs(args,me.allowedProperties);
 		end
-		
+
 		% ===================================================================
 		%> @brief setup wrapper
 		%>
@@ -131,7 +131,7 @@ classdef metaStimulus < octickaCore
 				else
 					s = [];
 				end
-			end	
+			end
 			if isa(s,'screenManager')
 				for i = 1:me.n
 					setup(me.stimuli{i},s);
@@ -143,7 +143,7 @@ classdef metaStimulus < octickaCore
 				error('metaStimulus setup: no screenManager has been provided!!!')
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief update wrapper
 		%>
@@ -169,7 +169,7 @@ classdef metaStimulus < octickaCore
 			end
 			%me.updateLog = [me.updateLog toc*1000];
 		end
-		
+
 		% ===================================================================
 		%> @brief draw wrapper
 		%>
@@ -178,32 +178,32 @@ classdef metaStimulus < octickaCore
 		% ===================================================================
 		function draw(me,choice)
 			if exist('choice','var') && isnumeric(choice) %user forces a single stimulus
-				
+
 				for i = choice
 					draw(me.stimuli{i});
 				end
-				
+
 			elseif ~isempty(me.choice) && isnumeric(me.choice) %object forces a single stimulus
-				
+
 				for i = me.choice
 					draw(me.stimuli{i});
 				end
-				
+
 			elseif me.showMask == true && me.nMask_ > 0 %draw mask instead
-				
+
 				for i = 1:me.nMask_
 					draw(me.maskStimuli{i});
 				end
-				
+
 			else
-				
+
 				for i = 1:me.n_
 					draw(me.stimuli{i});
 				end
-				
+
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief animate wrapper
 		%>
@@ -212,32 +212,32 @@ classdef metaStimulus < octickaCore
 		% ===================================================================
 		function animate(me,choice)
 			if exist('choice','var') && isnumeric(choice) %user forces a stimulus
-				
+
 				for i = choice
 					animate(me.stimuli{i});
 				end
-				
+
 			elseif ~isempty(me.choice) && isnumeric(me.choice) %object forces a single stimulus
-				
+
 				for i = me.choice
 					animate(me.stimuli{i});
 				end
-				
+
 			elseif me.showMask == true && me.nMask_ > 0 %animate mask instead
-				
+
 				for i = 1:me.nMask_
 					animate(me.maskStimuli{i});
 				end
-				
+
 			else
-	
+
 				for i = 1:me.n_
 					animate(me.stimuli{i});
 				end
-				
+
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief reset ticks wrapper
 		%>
@@ -249,13 +249,13 @@ classdef metaStimulus < octickaCore
 			for i = 1:me.n
 				resetTicks(me.stimuli{i});
 			end
-				
+
 			for i = 1:me.nMask
 				resetTicks(me.maskStimuli{i});
 			end
-			
+
 		end
-		
+
 		% ===================================================================
 		%> @brief reset wrapper
 		%>
@@ -265,15 +265,15 @@ classdef metaStimulus < octickaCore
 		function reset(me)
 
 			for i = 1:me.n
-				try reset(me.stimuli{i}); end %#ok<*TRYNC> 
+				try reset(me.stimuli{i}); end %#ok<*TRYNC>
 			end
-				
+
 			for i = 1:me.nMask
 				try reset(me.maskStimuli{i}); end
 			end
-			
+
 		end
-		
+
 		% ===================================================================
 		%> @brief randomise wrapper
 		%>
@@ -285,11 +285,11 @@ classdef metaStimulus < octickaCore
 			if isempty(me.stimulusTable); return; end
 			logs = '--->>> RANDOMISE Stimulus: ';
 			for i = 1:length(me.stimulusTable)
-				
+
 				stims = me.stimulusTable(i).stimuli;
 				name = me.stimulusTable(i).name;
 				offset = me.stimulusTable(i).offset;
-				
+
 				if ~isempty(stims) && ~isempty(name)
 
 					[r,c] = size(me.stimulusTable(i).values);
@@ -302,8 +302,8 @@ classdef metaStimulus < octickaCore
 					else
 						values = me.stimulusTable(i).values(1,1);
 					end
-					if iscell(values); values = values{1}; end	
-					
+					if iscell(values); values = values{1}; end
+
 					for j=1:length(stims)
 						if strcmpi(name,'xyPosition')
 							me.stimuli{stims(j)}.xPositionOut = values(1);
@@ -320,12 +320,12 @@ classdef metaStimulus < octickaCore
 							end
 						end
 					end
-				
+
 				end
 			end
 			me.logOutput(logs);
 		end
-		
+
 		% ===================================================================
 		%> @brief show sets isVisible=true.
 		%>
@@ -338,7 +338,7 @@ classdef metaStimulus < octickaCore
 			end
 			if me.verbose;me.logOutput('Show',['Show stimuli: ' num2str(choice)],true); end
 		end
-				
+
 		% ===================================================================
 		%> @brief hide sets isVisible=false.
 		%>
@@ -359,11 +359,11 @@ classdef metaStimulus < octickaCore
 		% ===================================================================
 		function showSet(me, set)
 			if ~exist('set','var'); set = me.setChoice; end
-			if set == 0 || isempty(me.stimulusSets) || set > length(me.stimulusSets); return; end			
+			if set == 0 || isempty(me.stimulusSets) || set > length(me.stimulusSets); return; end
 			hide(me);
 			show(me, me.stimulusSets{set});
 		end
-		
+
 		% ===================================================================
 		%> @brief Edit -- fast change a particular value.
 		%>
@@ -385,7 +385,7 @@ classdef metaStimulus < octickaCore
 			end
 			if me.verbose;me.logOutput('Edit',['Edited stim: ' num2str(stims) ' Var:' var ' Value: ' num2str(value)],true); end
 		end
-		
+
 		% ===================================================================
 		%> @brief Return the stimulus fixation positions based on fixationChoice
 		%>
@@ -403,7 +403,7 @@ classdef metaStimulus < octickaCore
 				me.lastYPosition = y;
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Return the stimulus exclusion positions
 		%>
@@ -423,7 +423,7 @@ classdef metaStimulus < octickaCore
 				me.lastYExclusion = y;
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Find the stimulus positions, setting stimulusPositions
 		%> structure
@@ -431,7 +431,7 @@ classdef metaStimulus < octickaCore
 		%> Loop through all stimuli and get the X, Y and size of each stimulus.
 		%> This is added to stimulusPositions structure and is used to pass to
 		%> the eyetracker so it can draw the stimuli locations on the eyetracker
-		%> interface 
+		%> interface
 		%>
 		%> @param ignoreVisible [false] ignore the visibility status of stims
 		%> @return out copy of the stimulusPositions structure
@@ -457,7 +457,7 @@ classdef metaStimulus < octickaCore
 							me.stimulusPositions(a).y = me.stimuli{i}.yPositionOut;
 						end
 						me.stimulusPositions(a).size = me.stimuli{i}.sizeOut;
-						if any(me.fixationChoice == i) 
+						if any(me.fixationChoice == i)
 							me.stimulusPositions(a).selected = true;
 						else
 							me.stimulusPositions(a).selected = false;
@@ -603,8 +603,8 @@ classdef metaStimulus < octickaCore
                                 disp(ME);
 			end
 		end
-		
-		
+
+
 		% ===================================================================
 		%> @brief Run single stimulus in a window to preview
 		%>
@@ -612,7 +612,7 @@ classdef metaStimulus < octickaCore
 		function runSingle(me,choice,varargin)
 			me.stimuli{choice}.run(varargin)
 		end
-		end
+
 		% ===================================================================
 		%> @brief print current choice if only single stimulus drawn
 		%>
@@ -622,7 +622,7 @@ classdef metaStimulus < octickaCore
 		function printChoice(me)
 			fprintf('%s current choice is: %g\n',me.fullName,me.choice)
 		end
-		
+
 		% ===================================================================
 		%> @brief get n dependent method
 		%> @param
@@ -632,7 +632,7 @@ classdef metaStimulus < octickaCore
 			n = length(me.stimuli);
 			me.n_ = n;
 		end
-		
+
 		% ===================================================================
 		%> @brief get nMask dependent method
 		%> @param
@@ -658,7 +658,7 @@ classdef metaStimulus < octickaCore
 		% ===================================================================
 		%> @brief set stimuli sanity checker
 		%> @param in a stimuli group
-		%> @return 
+		%> @return
 		% ===================================================================
 		function set.stimuli(me,in)
 			if iscell(in) % a cell array of stimuli
@@ -672,7 +672,7 @@ classdef metaStimulus < octickaCore
 				error([me.name ':set stimuli | not a cell array or baseStimulus child']);
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief subsref allow {} to call stimuli cell array directly
 		%>
@@ -691,7 +691,7 @@ classdef metaStimulus < octickaCore
 					[varargout{1:nargout}] = builtin('subsref',me.stimuli,s);
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief subsasgn allow {} to assign to the stimuli cell array
 		%>
@@ -729,9 +729,11 @@ classdef metaStimulus < octickaCore
 			end
 		end
 	end%-------------------------END PUBLIC METHODS--------------------------------%
-	
+
 	%=======================================================================
 	methods (Access = private) %------------------PRIVATE METHODS
 	%=======================================================================
-		
-		
+
+	end
+end
+

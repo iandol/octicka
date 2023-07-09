@@ -76,13 +76,13 @@ classdef taskSequence < octickaCore & dynamicprops
 
 	properties (Hidden = true)
 		%> used for dynamically estimating total number of frames
-		fps double				= 60
+		fps						= 60
 		%> time stimulus trial is shown
-		trialTime double		= 2
+		trialTime			= 2
 		%> inter stimulus trial time
-		isTime double			= 1
+		isTime				= 1
 		%> inter block time
-		ibTime double			= 2
+		ibTime				= 2
 		%> original index before any resetRun()s
 		startIndex
 		%> staircase manager
@@ -109,19 +109,15 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> log of within block resets
 		resetLog
 		%> have we initialised the dynamic task properties?
-		taskInitialised			= false
+		taskInitialised		= false
 		%> has task finished
 		taskFinished			= false
 		%> which seed values were used?
-		usedSeeds				= []
+		usedSeeds					= []
 		dataTable
 	end
 
 	properties (SetAccess = private, GetAccess = public, Transient = true, Hidden = true)
-		%> old random number stream
-		oldStream
-		%> current random number stream
-		taskStream
 		%> current random stream state
 		currentState
 	end
@@ -139,8 +135,8 @@ classdef taskSequence < octickaCore & dynamicprops
 		%> used in calculatin mintrials
 		nLevels
 		%> properties allowed during initial construction
-		allowedProperties	= ['randomise|nVar|blockVar|trialVar|nBlocks|trialTime|isTime|ibTime|realTime|randomSeed|fps'...
-			'randomGenerator|verbose|addBlank']
+		allowedProperties	= {'randomise', 'nVar', 'blockVar', 'trialVar', 'nBlocks', 'trialTime', 'isTime', 'ibTime', 'realTime', 'randomSeed', 'fps'...
+			'randomGenerator', 'verbose', 'addBlank'}
 		%> used to handle problems with dependant property nVar: the problem
 		%> is that set.nVar gets called before static loadobj, and therefore
 		%> we need to handle this differently. Initially set to empty, set
@@ -197,25 +193,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		%>
 		%> set up the random number generator
 		% ===================================================================
-			if isnan(me.mversion) || me.mversion == 0
-				me.mversion = str2double(regexp(version,'(?<ver>^\d+\.\d+)','match','once'));
-			end
-			if isempty(me.randomSeed)
-				me.randomSeed=round(rand*sum(clock));
-			end
-			if isempty(me.oldStream)
-				if me.mversion > 7.11
-					me.oldStream = RandStream.getGlobalStream;
-				else
-					me.oldStream = RandStream.getDefaultStream; %#ok<*GETRS>
-				end
-			end
-			me.taskStream = RandStream.create(me.randomGenerator,'Seed',me.randomSeed);
-			if me.mversion > 7.11
-				RandStream.setGlobalStream(me.taskStream);
-			else
-				RandStream.setDefaultStream(me.taskStream); %#ok<*SETRS>
-			end
+			me.currentState = rand("state");
 		end
 
 		% ===================================================================
@@ -225,12 +203,7 @@ classdef taskSequence < octickaCore & dynamicprops
 		%>
 		%> reset the random number generator
 		% ===================================================================
-			me.randomSeed=[];
-			if me.mversion > 7.11
-				RandStream.setGlobalStream(me.oldStream);
-			else
-				RandStream.setDefaultStream(me.oldStream);
-			end
+
 		end
 
 		% ===================================================================
@@ -259,8 +232,6 @@ classdef taskSequence < octickaCore & dynamicprops
 			if me.minTrials > 255
 				warning('WARNING: You are exceeding the number of variable numbers in an 8bit strobed word!')
 			end
-
-			me.usedSeeds = [me.usedSeeds me.taskStream.Seed];
 
 			checkBlockTrialVars(me);
 			% ---- deal with block level factor randomisation
@@ -303,7 +274,7 @@ classdef taskSequence < octickaCore & dynamicprops
 				if sum(me.trialVar.probability) ~= 1 || tVn ~= length(me.trialVar.probability)
 					error('blockVar probability doesn''t sum to 1!');
 				end
-				
+
 				[~,b] = sort(me.trialVar.probability);
 				p = me.trialVar.probability(b);
 				v = me.trialVar.values(b);
@@ -1011,37 +982,6 @@ classdef taskSequence < octickaCore & dynamicprops
 				end
 			end
 		end
-
-		% ===================================================================
-% 		function lobj=loadobj(in)
-		%> @fn loadobj
-		%> @brief loadobj handler
-		%>
-		%> The problem is we use set.nVar to allow robust setting of
-		%> variables, but set.nVar also gets called on loading and will mangle
-		%> older saved protocols during load. We need to specify we are loading
-		%> and use a conditional in set.nVar to do the right thing.
-		% ===================================================================
-% 			if ~isa(in,'taskSequence') && isstruct(in)
-% 				fprintf('---> taskSequence loadobj: Rebuilding  structure...\n');
-% 				lobj = taskSequence;
-% 				lobj.isLoading = true;
-% 				fni = fieldnames(in);
-% 				fn = intersect(lobj.loadProperties,fni);
-% 				for i=1:length(fn)
-% 					lobj.(fn{i}) = in.(fn{i});
-% 				end
-% 			elseif isa(in,'taskSequence')
-% 				%fprintf('--->  taskSequence loadobj: Loading taskSequence object...\n');
-% 				in.currentState = []; %lets strip the old random streams
-% 				in.oldStream = [];
-% 				in.taskStream = [];
-% 				lobj = in;
-% 			else
-% 				fprintf('--->  taskSequence loadobj: Loading taskSequence FAILED...\n');
-% 			end
-% 			lobj.isLoading = false;
-% 		end
 
 	end
 
