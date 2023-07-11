@@ -30,9 +30,9 @@ try
     s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm,'windowed',windowed,'specialFlags',sf);
 
     % s============================stimuli
-     xPosition=0;yPosition=0;
+##     xPosition=0;yPosition=0;
     
-    c1 = discStimulus('size',5,'colour',[1 1 1 1],'xPosition',xPosition,'yPosition',yPosition);
+    c1 = discStimulus('size',2,'colour',[1 1 1 1]);%,'xPosition',xPosition,'yPosition',yPosition);
 
     % t============================ouch
     t = touchManager('isDummy',dummy);
@@ -77,8 +77,8 @@ try
             c1.xPositionOut=x(r(1));c1.yPositionOut=y(r(2));
         end
         update(c1);
-        t.window.X = c1.xPositionOut;
-        t.window.Y = c1.yPositionOut;
+        t.window.X = x(r(1)); % c1.xPosition;
+        t.window.Y = y(r(2)); % c1.yPosition;
         t.window.radius = [c1.size/2, c1.size/2];
         t.window.doNegation = true;
         x = []; y = []; touched = false; touchedResponse = false;
