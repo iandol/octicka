@@ -5,7 +5,10 @@ subjectName = '13';
 rewardPort = '/dev/ttyACM0';
 debug =true ;
 if debug
-    if max(Screen('Screens'))==0; windowed = [0 0 1000 800]; end
+    if  max(Screen('Screens'))==0; 
+        windowed = [0 0 1000 800];
+    end
+
     sf = kPsychGUIWindow;
     dummy = true;
     colour1 = [1 0.5 0 0.4];
@@ -20,15 +23,16 @@ end
 if IsOctave; try pkg load instrument-control; end; end
 
 % ============================movie / position list
-
+randomise=1;
 
 try
     % ============================screen
     s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm,'windowed',windowed,'specialFlags',sf);
 
     % s============================stimuli
-
-    c1 = discStimulus('size',10,'colour',[1 1 1 1]);
+     xPosition=0;yPosition=0;
+    
+    c1 = discStimulus('size',5,'colour',[1 1 1 1],'xPosition',xPosition,'yPosition',yPosition);
 
     % t============================ouch
     t = touchManager('isDummy',dummy);
@@ -65,13 +69,20 @@ try
     % 			sv.rightInDegrees-0.1,sv.bottomInDegrees-0.1];
 
     while keepRunning
-
-        t.window.X = c1.xPosition;
-        t.window.Y = c1.yPosition;
+       
+        if randomise
+            x=-10:2:10;
+            y=x;
+            r=randperm(length(x),2);
+            c1.xPositionOut=x(r(1));c1.yPositionOut=y(r(2));
+        end
+        update(c1);
+        t.window.X = c1.xPositionOut;
+        t.window.Y = c1.yPositionOut;
         t.window.radius = [c1.size/2, c1.size/2];
         t.window.doNegation = true;
         x = []; y = []; touched = false; touchedResponse = false;
-        trialN = trialN + 1;
+        trialN = trialN + 1
         % 			trials(trialN).movieName = m.fileName;
         positions=[c1.xPosition c1.yPosition];
         trials(trialN).targetPosition = positions;
