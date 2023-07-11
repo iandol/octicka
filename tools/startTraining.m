@@ -1,17 +1,19 @@
 function startTraining(tr)
-	pixelsPerCm = 36;
+	pixelsPerCm = 80;
+	distance = 57.3;
 	timeOut = 2;
 	rewardPort = '/dev/ttyACM0';
 
 	% =========================== do we start camera streaming?
 	if tr.stream
 		pid = rpistreamer;
+		if ~isempty(pid);fprintf('===> RPi Video stream PID = %i activated!\n',pid);end
 		WaitSecs(0.5);
 	end
 
 	% =========================== debug mode?
 	if tr.debug
-		windowed=[];if max(Screen('Screens'))==0; windowed = [0 0 1200 800]; end
+		windowed=[];if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
 		sf = kPsychGUIWindow;
 		dummy = true;
 	else
@@ -23,7 +25,7 @@ function startTraining(tr)
 
 	try
 		% ============================screen
-		s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm,...
+		s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm, 'distance', distance,...
 		'backgroundColour',tr.bg,'windowed',windowed,'specialFlags',sf);
 
 		% s============================stimuli
@@ -199,15 +201,19 @@ function startTraining(tr)
 		WaitSecs(0.5);
 
 		if exist('pid','var') && ~isempty(pid)
-			try system(['pkill ' pid]); end
+			fprintf('===> Try to kill PID = %i\n',pid);
+			try
+				system(['kill -9 ' num2str(pid+2)]);
+				system(['kill -9 ' num2str(pid+1)]);
+				system(['kill -9 ' num2str(pid)]);
+			end
 		end
 
-		try Listenchar(0); end
-		try Priority(0); end
+		ListenChar(0); Priority(0);
 		try reset(target); end
-		close(s);
-		close(t);
-		close(rM);
+		try close(s); end
+		try close(t); end
+		try close(rM); end
 		sca;
 
 	catch ME
