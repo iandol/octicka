@@ -173,6 +173,8 @@ classdef baseStimulus < octickaCore
 		end
 
 		% ===================================================================
+		% WARNING: only for public properties, use isprop for all properties
+		% this handles public and "dynamic" .dp.name properties
 		function ret = isProperty(me, prop);
 			if ~isempty(me.fndp)
 				f = [me.fn;me.fndp];

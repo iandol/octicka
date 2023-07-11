@@ -137,7 +137,7 @@ classdef octickaCore < handle
 		%> @param property — the property to change
 		%> @param value — the value to change it to
 		% ===================================================================
-			if isProperty(me,property)
+			if isprop(me,property)
 				me.(property) = value;
 			end
 		end

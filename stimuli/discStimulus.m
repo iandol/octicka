@@ -5,7 +5,7 @@
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
 classdef discStimulus < baseStimulus
-	
+
 	properties %--------------------PUBLIC PROPERTIES----------%
 		%> type can be "simple" or "flash"
 		type = 'simple'
@@ -24,22 +24,22 @@ classdef discStimulus < baseStimulus
 		%> use cosine (0), hermite (1, default), or inverse hermite (2)
 		smoothMethod = 1
 	end
-	
+
 	properties (SetAccess = protected, GetAccess = public)
 		%> stimulus family
 		family = 'disc'
 	end
-	
+
 	properties (SetAccess = private, GetAccess = public, Hidden = true)
 		typeList = {'simple','flash'}
 	end
-	
+
 	properties (Dependent = true, SetAccess = private, GetAccess = private)
 		%> a dependant property to track when to switch from ON to OFF of
 		%flash.
 		flashSwitch
 	end
-	
+
 	properties (SetAccess = protected, GetAccess = protected)
 		res
 		discSize
@@ -47,7 +47,7 @@ classdef discStimulus < baseStimulus
 		%> change blend mode?
 		changeBlend = false
 		%> current flash state
-		flashState
+		flashState = 0
 		%> internal counter
 		flashCounter = 1
 		%> the OFF colour of the flash, usually this is set to the screen background
@@ -63,11 +63,11 @@ classdef discStimulus < baseStimulus
 			'sigma','useAlpha','smoothMethod'}
 		ignoreProperties = {'flashSwitch','smoothMethod'};
 	end
-	
+
 	%=======================================================================
 	methods %------------------PUBLIC METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief Class constructor
 		%>
@@ -82,27 +82,27 @@ classdef discStimulus < baseStimulus
 				struct('name','Disc','colour',[1 1 0 1]));
 			me=me@baseStimulus(args); %we call the superclass constructor first
 			me.parseArgs(args, me.allowedProperties);
-			
+
 			me.isRect = true; %uses a rect for drawing?
-			
+
 			me.ignoreProperties = [ me.ignorePropertiesBase me.ignoreProperties ];
 		end
-		
+
 		% ===================================================================
 		%> @brief Setup the stimulus object. The major purpose of this is to create a series
 		%> of properties that are copies of the user controlled ones. The user specifies
 		%> properties in degrees etc., but internally we must convert to pixels etc. So the
-		%> setup function uses dynamic transient properties, for each property we create a temporary 
+		%> setup function uses dynamic transient properties, for each property we create a temporary
 		%> propertyOut which is used for the actual drawing/animation.
 		%>
 		%> @param sM handle to the current screenManager object
 		% ===================================================================
 		function setup(me,sM)
-			
+
 			reset(me);
 			me.inSetup = true; me.isSetup = false;
 			if isempty(me.isVisible); me.show; end
-			
+
 			me.sM = sM;
 			if ~sM.isOpen; error('Screen needs to be Open!'); end
 			me.ppd=sM.ppd;
@@ -118,19 +118,19 @@ classdef discStimulus < baseStimulus
 					me.dp.(p) = v; %copy our property value to our tempory copy
 				end
 			end
-			
+
 			addRuntimeProperties(me); % create transient runtime action properties
-			
+
 			me.discSize = me.ppd * me.size;
-			
+
 			me.res = round([me.discSize me.discSize]);
-			
+
 			me.radius = floor(me.discSize/2);
-			
+
 			me.texture = CreateProceduralSmoothedDisc(sM.win, me.res(1), ...
 						me.res(2), [0 0 0 0], me.radius, me.sigma, ...
 						me.useAlpha, me.smoothMethod);
-			
+
 			if me.doFlash
 				if ~isempty(me.dp.flashColourOut)
 					me.flashBG = [me.dp.flashColourOut(1:3) me.dp.alphaOut];
@@ -139,20 +139,20 @@ classdef discStimulus < baseStimulus
 				end
 				setupFlash(me);
 			end
-			
+
 			if me.sM.blend && strcmpi(me.sM.srcMode,'GL_SRC_ALPHA') && strcmpi(me.sM.dstMode,'GL_ONE_MINUS_SRC_ALPHA')
 				me.changeBlend = false;
 			else
 				me.changeBlend = true;
 			end
-			
+
 			me.inSetup = false; me.isSetup = true;
-			
+
 			computePosition(me);
 			setRect(me);
-			
+
 		end
-		
+
 		% ===================================================================
 		%> @brief Update a structure for runExperiment
 		%>
@@ -170,7 +170,7 @@ classdef discStimulus < baseStimulus
 			if me.doFlash; me.setupFlash; end
 			if me.doAnimator; me.animator.reset(); end
 		end
-		
+
 		% ===================================================================
 		%> @brief Draw an structure for runExperiment
 		%>
@@ -195,7 +195,7 @@ classdef discStimulus < baseStimulus
 			end
 			if me.isVisible; me.tick = me.tick + 1; end
 		end
-		
+
 		% ===================================================================
 		%> @brief Animate an structure for runExperiment
 		%>
@@ -213,7 +213,7 @@ classdef discStimulus < baseStimulus
 				end
 				if me.doMotion && me.doAnimator
 					me.mvRect = update(me.animator);
-				elseif me.doMotion && ~me.doAnimator	
+				elseif me.doMotion && ~me.doAnimator
 					me.mvRect=OffsetRect(me.mvRect,me.dX_,me.dY_);
 				end
 				if me.doFlash == true
@@ -231,7 +231,7 @@ classdef discStimulus < baseStimulus
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief Reset an structure for runExperiment
 		%>
@@ -247,49 +247,50 @@ classdef discStimulus < baseStimulus
 			me.flashFG = [];
 			me.flashBG = [];
 			me.flashCounter = [];
-			if isProperty(me,'texture')
+			if isprop(me,'texture')
 				if ~isempty(me.texture) && me.texture > 0 && Screen(me.texture,'WindowKind') == -1
 					try Screen('Close',me.texture); end %#ok<*TRYNC>
 				end
-				me.texture = []; 
+				me.texture = [];
 			end
 			removeTmpProperties(me);
 		end
-		
+
 		% ===================================================================
 		%> @brief flashSwitch Get method
 		%>
 		% ===================================================================
 		function flashSwitch = get.flashSwitch(me)
+			if ~isProperty(me,'flashTimeOut') || isempty(me.sM);flashSwitch=1;return;end
 			if me.flashState
 				flashSwitch = round(me.dp.flashTimeOut(1) / me.sM.screenVals.ifi);
 			else
 				flashSwitch = round(me.dp.flashTimeOut(2) / me.sM.screenVals.ifi);
 			end
 		end
-		
+
 	end %---END PUBLIC METHODS---%
-	
+
 	%=======================================================================
 	methods ( Hidden = true ) %-------HIDDEN METHODS-----%
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief our fake set methods, hooks into dynamicprops subsasgn
 		%>
 		% ===================================================================
 		function v = setOut(me, S, v)
 			if ischar(S)
-				prop = S; 
-			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
-				prop = S(1).subs;
+				prop = S;
+			elseif isstruct(S) && strcmp(S(end).type, '.') && isfield(S,'subs')
+				prop = S(end).subs;
 			else
 				return;
 			end
 			switch prop
 				case 'sizeOut'
 					v = v * me.ppd;
-					if isProperty(me,'discSize') && ~isempty(me.discSize) && ~isempty(me.texture)
+					if isprop(me,'discSize') && ~isempty(me.discSize)
 						me.scale = v / me.discSize;
 						setRect(me);
 					end
@@ -302,13 +303,13 @@ classdef discStimulus < baseStimulus
 					end
 			end
 		end
-		
+
 	end
-	
+
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief setRect
 		%> setRect makes the PsychRect based on the texture and screen values
@@ -331,7 +332,7 @@ classdef discStimulus < baseStimulus
 			me.mvRect=me.dstRect;
 			me.setAnimationDelta();
 		end
-		
+
 		% ===================================================================
 		%> @brief computeColour triggered event
 		%> Use an event to recalculate as get method is slower (called
@@ -347,7 +348,7 @@ classdef discStimulus < baseStimulus
 			me.stopLoop = false;
 			me.setupFlash();
 		end
-		
+
 		% ===================================================================
 		%> @brief setupFlash
 		%>
@@ -362,7 +363,7 @@ classdef discStimulus < baseStimulus
 				me.currentColour = me.flashBG;
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief linear interpolation between two arrays
 		%>
@@ -370,7 +371,7 @@ classdef discStimulus < baseStimulus
 		function out = mix(me,c)
 			out = me.sM.backgroundColour(1:3) * (1 - me.dp.contrastOut) + c(1:3) * me.dp.contrastOut;
 		end
-		
+
 	end
 
 end
