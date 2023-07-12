@@ -5,7 +5,7 @@ subjectName = '13';
 rewardPort = '/dev/ttyACM0';
 debug =true ;
 if debug
-    if  max(Screen('Screens'))==0; 
+    if  max(Screen('Screens'))==0
         windowed = [0 0 1000 800];
     end
 
@@ -30,7 +30,11 @@ try
     s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm,'windowed',windowed,'specialFlags',sf);
 
     % s============================stimuli
+<<<<<<< Updated upstream
     %   xPosition=0;yPosition=0;
+=======
+%   xPosition=0;yPosition=0;
+>>>>>>> Stashed changes
     
     c1 = discStimulus('size',2,'colour',[1 1 1 1]);%,'xPosition',xPosition,'yPosition',yPosition);
 
@@ -82,7 +86,7 @@ try
         t.window.radius = [c1.size/2, c1.size/2];
         t.window.doNegation = true;
         x = []; y = []; touched = false; touchedResponse = false;
-        trialN = trialN + 1
+        trialN = trialN + 1;
         % 			trials(trialN).movieName = m.fileName;
         positions=[c1.xPosition c1.yPosition];
         trials(trialN).targetPosition = positions;
