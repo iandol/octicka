@@ -30,7 +30,7 @@ try
     s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm,'windowed',windowed,'specialFlags',sf);
 
     % s============================stimuli
-##     xPosition=0;yPosition=0;
+    %   xPosition=0;yPosition=0;
     
     c1 = discStimulus('size',2,'colour',[1 1 1 1]);%,'xPosition',xPosition,'yPosition',yPosition);
 
