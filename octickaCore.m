@@ -266,6 +266,28 @@ classdef octickaCore < handle
 			end
 		end
 
+		% ===================================================================
+		function [pressed, name, keys] = getKeys(device)
+		%> @fn getKeys
+		%> @brief PTB Get key presses, stops key bouncing
+		% ===================================================================
+			persistent oldKeys
+			if ~exist('device','var'); device = []; end
+			if isempty(oldKeys); oldKeys = zeros(1,256); end
+			pressed = false; name = []; keys = [];
+
+			[press, ~, keyCode] = KbCheck(device);
+
+			if press
+				keys = keyCode & ~oldKeys;
+				if any(keys)
+					name = KbName(keys);
+					pressed = true;
+				end
+			end
+			oldKeys = keyCode;
+		end
+
 	end %--------END STATIC METHODS
 
 	%=======================================================================

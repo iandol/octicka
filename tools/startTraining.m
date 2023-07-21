@@ -17,7 +17,8 @@ function startTraining(tr)
 		sf = kPsychGUIWindow;
 		dummy = true;
 	else
-		windowed = []; sf = [];
+		windowed=[];if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
+		sf = [];
 		dummy = false;
 	end
 
