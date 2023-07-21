@@ -520,10 +520,6 @@ classdef touchManager < octickaCore
 					vbl = flip(sM); ts = vbl;
 					result = 'timeout';
 					while vbl <= ts + 20
-						drawBackground(sM);
-						drawText(sM,txt); drawGrid(sM);
-						if ~me.wasHeld; draw(im); end
-						vbl = flip(sM);
 						[r, hld, hldt, rel, reli, se, fl, tch] = testHoldRelease(me,'yes','no');
 						if hld
 							txt = sprintf('%s IN x = %.1f y = %.1f - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',r,me.x,me.y,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
@@ -532,6 +528,10 @@ classdef touchManager < octickaCore
 						else
 							txt = sprintf('%s NO touch - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',r,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
 						end
+						drawBackground(sM);
+						drawText(sM,txt); drawGrid(sM);
+						if ~me.wasHeld; draw(im); end
+						vbl = flip(sM);
 						if strcmp(r,'yes')
 							result = 'correct'; break;
 						elseif strcmp(r,'no')
