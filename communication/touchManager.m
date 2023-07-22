@@ -89,6 +89,7 @@ classdef touchManager < octickaCore
 			args = octickaCore.addDefaults(varargin,struct('name','touchManager'));
 			me = me@octickaCore(args); %superclass constructor
 			me.parseArgs(args, me.allowedProperties);
+			
 			try [me.devices,me.names,me.allInfo] = GetTouchDeviceIndices([], 1); end %#ok<*TRYNC>
 			me.hold = me.holdTemplate;
 		end
@@ -126,60 +127,49 @@ classdef touchManager < octickaCore
 		end
 
 		% ===================================================================
-		function createQueue(me, choice)
-		%> @fn createQueue(me, choice)
+		function createQueue(me)
+		%> @fn createQueue(me)
 		%>
 		%> @param choice which touch device to use, default uses me.device
 		%> @return
 		% ===================================================================
 			if me.isDummy; me.isQueue = true; return; end
-			if ~exist('choice','var') || isempty(choice); choice = me.device; end
-			for i = 1:length(choice)
-				try
-					TouchQueueCreate(me.swin, me.devices(choice(i)), me.nSlots);
-				catch
-					warning('touchManager: Cannot create touch queue!');
-				end
+			try
+				TouchQueueCreate(me.swin, me.devices(me.device), me.nSlots);
+			catch
+				warning('touchManager: Cannot create touch queue!');
 			end
 			me.isQueue = true;
 			if me.verbose; logOutput(me,'createQueue','Created...'); end
 		end
 
 		% ===================================================================
-		function start(me, choice)
-		%> @fn start(me, choice)
+		function start(me)
+		%> @fn start(me)
 		%>
-		%> @param choice which touch device to use, default uses me.device
 		%> @return
 		% ===================================================================
 			if me.isDummy; me.isOpen = true; return; end
-			if ~exist('choice','var') || isempty(choice); choice = me.device; end
-			if ~me.isQueue; createQueue(me,choice); end
-			for i = 1:length(choice)
-				TouchQueueStart(me.devices(choice(i)));
-			end
+			if ~me.isQueue; createQueue(me); end
+			TouchQueueStart(me.devices(me.device));
 			me.isOpen = true;
 			if me.verbose; logOutput(me,'start','Started queue...'); end
 		end
 
 		% ===================================================================
-		function stop(me, choice)
-		%> @fn stop(me, choice)
+		function stop(me)
+		%> @fn stop(me)
 		%>
-		%> @param choice which touch device to use, default uses me.device
 		%> @return
 		% ===================================================================
 			if me.isDummy; me.isOpen = false; return; end
-			if ~exist('choice','var') || isempty(choice); choice = me.device; end
-			for i = 1:length(choice)
-				TouchQueueStop(me.devices(choice(i)));
-			end
-			me.isOpen = false;
+			TouchQueueStop(me.devices(me.device));
+			me.isOpen = false; me.isQueue = false;
 			if me.verbose; logOutput(me,'stop','Stopped queue...'); end
 		end
 
 		% ===================================================================
-		function close(me, choice)
+		function close(me)
 		%> @fn close(me, choice)
 		%>
 		%> @param choice which touch device to use, default uses me.device
@@ -190,55 +180,48 @@ classdef touchManager < octickaCore
 			if me.isDummy; return; end
 			if ~exist('choice','var') || isempty(choice); choice = me.device; end
 			for i = 1:length(choice)
-				TouchQueueRelease(me.devices(choice(i)));
+				TouchQueueRelease(me.devices(me.device));
 			end
 			if me.verbose; logOutput(me,'close','Closed...'); end
 		end
 
 		% ===================================================================
-		function flush(me, choice)
-		%> @fn flush(me, choice)
+		function flush(me)
+		%> @fn flush(me)
 		%>
-		%> @param choice which touch device to use, default uses me.device
+		%> @param 
 		%> @return
 		% ===================================================================
 			if me.isDummy; return; end
-			if ~exist('choice','var') || isempty(choice); choice = me.device; end
-			for i = 1:length(choice)
-				TouchEventFlush(me.devices(choice(i)));
-			end
+			TouchEventFlush(me.devices(me.device));
 		end
 
 		% ===================================================================
-		function navail = eventAvail(me, choice)
-		%> @fn eventAvail(me, choice)
+		function navail = eventAvail(me)
+		%> @fn eventAvail(me)
 		%>
-		%> @param choice which touch device to use, default uses me.device
+		%> @param
 		%> @return nAvail number of available events
 		% ===================================================================
 			navail = [];
 			if me.isDummy
 				[~, ~, b] = GetMouse;
 				if any(b); navail = true; end
-				return
-			end
-			if ~exist('choice','var') || isempty(choice); choice=me.device; end
-			for i = 1:length(choice)
-				navail(i)=TouchEventAvail(me.devices(choice(i))); %#ok<*AGROW>
+			else
+				navail(i)=TouchEventAvail(me.devices(me.device)); %#ok<*AGROW>
 			end
 		end
 
 		% ===================================================================
-		function event = getEvent(me, choice)
+		function event = getEvent(me)
 		%> @fn getEvent
 		%>
-		%> @param choice which touch device to use, default uses me.device
+		%> @param
 		%> @return event structure
 		% ===================================================================
 			persistent lastPressed
 			if isempty(lastPressed); lastPressed = false; end
-			event = {};
-			if ~exist('choice','var') || isempty(choice); choice=me.device; end
+			event = [];
 			if me.isDummy
 				[mx, my, b] = GetMouse(me.swin);
 				if any(b) && ~lastPressed
@@ -251,22 +234,19 @@ classdef touchManager < octickaCore
 					type = -1; motion = false; press = 0;  lastPressed = false;
 				end
 				if type > 0
-					event{1} = struct('Type',type,'Time',GetSecs,...
+					event = struct('Type',type,'Time',GetSecs,...
 					'X',mx,'Y',my,'ButtonStates',b,...
 					'NormX',mx/me.screenVals.width,'NormY',my/me.screenVals.height, ...
 					'MappedX',mx,'MappedY',my,...
 					'Pressed',press,'Motion',motion);
 				end
 			else
-				for i = 1:length(choice)
-					event{i} = TouchEventGet(me.devices(choice(i)), me.swin, 0);
-				end
+				event = TouchEventGet(me.devices(me.device), me.swin, 0);
 			end
 			me.eventNew = false; me.eventMove = false; me.eventRelease = false; me.eventPressed = false;
-			if ~isempty(event) && ~isempty(event{1})
-				me.event = event{1};
-				me.eventID = event{1}.Keycode;
-				switch event{1}.Type
+			if ~isempty(event)
+				me.eventID = event.Keycode;
+				switch event.Type
 					case 2 %NEW
 						me.eventNew = true;
 						me.eventPressed = true;
@@ -277,8 +257,9 @@ classdef touchManager < octickaCore
 						me.eventRelease = true;
 					case 5 %ERROR
 						disp('Event lost!');
-						event = {};
+						event = [];
 				end
+				me.event = event;
 			end
 		end
 
@@ -302,6 +283,7 @@ classdef touchManager < octickaCore
 			me.eventPressed	= false;
 			me.eventRelease	= false;
 			me.eventID 		= [];
+			me.event		= [];
 		end
 
 		% ===================================================================
@@ -323,13 +305,13 @@ classdef touchManager < octickaCore
 			while ~isempty(event) && iscell(event); event = event{1}; end
 			if isempty(event); return; end
 
-			wasEvent = true; me.event = event;
-
+			wasEvent = true; 
+			
 			if panelType == 2; event.MappedX = me.screenVals.width - event.MappedX; end
 
 			xy = me.screen.toDegrees([event.MappedX event.MappedY]);
-
-			if me.eventPressed && ~isempty(xy);
+			event.xy = xy;
+			if ~isempty(xy);
 				if isempty(windows)
 					result = calculateWindow(me, xy(1), xy(2));
 				else
@@ -338,6 +320,8 @@ classdef touchManager < octickaCore
 						if result(i,1); win = i; result = true; break;end
 					end
 				end
+				event.result = result;
+				me.event = event;
 				me.x = xy(1); me.y = xy(2);
 			end
 		end
@@ -372,7 +356,14 @@ classdef touchManager < octickaCore
 			end
 
 			[held, win, wasEvent] = checkTouchWindows(me);
-			if ~wasEvent || isnan(held); return; else; touch = true; end
+			if ~wasEvent || isnan(held)
+				if me.hold.N > 0
+					me.hold.length = me.hold.now - me.hold.init;
+				end
+				return;
+			else
+				touch = true;
+			end
 
 			if held == -100
 				me.wasNegation = true;
@@ -385,6 +376,7 @@ classdef touchManager < octickaCore
 			if me.eventPressed && held #A
 				me.hold.touched = true;
 				searching = false;
+				fprintf('A--->');
 				if me.eventNew == true && me.hold.init == 0
 					me.hold.init = me.hold.now;
 					me.hold.N = me.hold.N + 1;
@@ -396,12 +388,14 @@ classdef touchManager < octickaCore
 				if me.hold.length >= me.window.hold
 					me.wasHeld = true;
 					heldtime = true;
+					releasing = true;
 				end
 				me.hold.release = me.hold.now - me.hold.releaseinit;
 				if me.hold.release < me.window.release
 					releasing = true;
 				end
 			elseif me.eventPressed && ~held #B
+				fprintf('B--->');
 				me.hold.touched = true;
 				if me.hold.N > 0
 					failed = true;
@@ -411,28 +405,31 @@ classdef touchManager < octickaCore
 				end
 			elseif me.eventRelease && held #C
 				searching = false;
+				fprintf('C--->');
 				me.hold.length = me.hold.now - me.hold.init;
 				if me.hold.N > 0
 					if me.hold.length >= me.window.hold
 						me.wasHeld = true;
 						heldtime = true;
+						releasing = true;
 					end
 				end
 				me.hold.release = me.hold.now - me.hold.releaseinit;
-				if me.hold.release > me.window.release
+				if me.hold.release < me.window.release
 					release = false;
 				else
 					release = true;
 				end
 			else #D
+				fprintf('D--->');
 				failed = true;
 				searching = false;
 			end
 			me.isSearching = searching;
 			me.isReleased = release;
 			if true
-				fprintf('%i n:%i mv:%i p:%i ISHOLD %.1fX %.1fY: %.2f-tot %.2f-srch %.2f-hld %.2f-rel h:%i t:%i r:%i rl:%i s:%i N:%i\n',...
-				me.eventID,me.eventNew,me.eventMove,me.eventPressed,me.x,me.y,me.hold.total,me.hold.search,me.hold.length,me.hold.release,held,heldtime,release,releasing,searching,me.hold.N);
+				fprintf('%i n:%i mv:%i p:%i r:%i <%.1fX %.1fY> %.2f-tot %.2f-srch %.2f-hld %.2f-rel h:%i t:%i r:%i rl:%i s:%i f:%i N:%i\n',...
+				me.eventID,me.eventNew,me.eventMove,me.eventPressed,me.eventRelease,me.x,me.y,me.hold.total,me.hold.search,me.hold.length,me.hold.release,held,heldtime,release,releasing,searching,failed,me.hold.N);
 			end
 		end
 
@@ -468,7 +465,7 @@ classdef touchManager < octickaCore
 				out = noString;
 			elseif ~held && me.hold.N > 0 && ~me.wasHeld
 				out = noString;
-			elseif ~held && me.hold.N == 1 && me.wasHeld && release
+			elseif me.wasHeld && release
 				out = yesString;
 			end
 
@@ -520,7 +517,7 @@ classdef touchManager < octickaCore
 					vbl = flip(sM); ts = vbl;
 					result = 'timeout';
 					while vbl <= ts + 20
-						[r, hld, hldt, rel, reli, se, fl, tch] = testHoldRelease(me,'yes','no');
+						[r, hld, hldt, rel, reli, se, fl, tch] = testHold(me,'yes','no');
 						if hld
 							txt = sprintf('%s IN x = %.1f y = %.1f - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',r,me.x,me.y,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
 						elseif ~isempty(me.x)
