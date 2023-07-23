@@ -123,7 +123,7 @@ classdef touchManager < octickaCore
 				fprintf('--->touchManager: %s\n',me.comment);
 			elseif isempty(me.devices)
 				me.comment = 'No Touch Screen are available, please check USB!';
-				fprintf('--->touchManager: %s\n',touchme.comment);
+				fprintf('--->touchManager: %s\n',me.comment);
 			elseif length(me.devices)==1
 				me.comment = sprintf('found ONE Touch Screen: %s',me.names{1});
 				fprintf('--->touchManager: %s\n',me.comment);
@@ -516,7 +516,7 @@ classdef touchManager < octickaCore
 		%> @fn demo
 		%>
 		%> @param
-		%> @returnhld
+		%> @return 
 		% ===================================================================
 			if isempty(me.screen); me.screen = screenManager(); end
 			sM = me.screen;
