@@ -27,6 +27,12 @@ classdef touchManager < octickaCore
 		%> Use exclusion zones where no touch allowed: [left,top,right,bottom]
 		%> Add rows to generate multiple exclusion zones.
 		exclusionZone		= []
+		%> drain the events to only get the last one? This ensures lots of 
+		%> events don't pile up, often you only want the current event,
+		%> but potentially causes a longer delay each time  getEvent is called...
+		drainEvents			= true;
+		%> panel type, 1 = front, 2 = back aka reverse X position
+		panelType			= 1
 		%> verbosity
 		verbose				= false
 	end
@@ -43,11 +49,11 @@ classdef touchManager < octickaCore
 		y					= []
 		win					= []
 		hold				= []
+		eventID				= [];
 		eventNew			= false
 		eventMove			= false
 		eventPressed		= false
 		eventRelease		= false
-		eventID				= [];
 		wasHeld				= false
 		wasNegation			= false
 		isSearching			= false
@@ -67,8 +73,9 @@ classdef touchManager < octickaCore
 		swin				= []
 		screenVals			= []
 		allowedProperties	= {'isDummy','device','verbose','window','nSlots','negationBuffer'}
-		holdTemplate		= struct('N',0,'touched',false,'start',0,'now',0,'total',0,'search',0,...
-							'init',0,'length',0,'releaseinit',0,'release',0)
+		holdTemplate		= struct('N',0,'inWindow',false,'touched',false,...
+							'start',0,'now',0,'total',0,'search',0,'init',0,'releaseinit',0,...
+							'length',0,'release',0)
 	end
 
 	%=======================================================================
@@ -175,6 +182,7 @@ classdef touchManager < octickaCore
 		%> @param choice which touch device to use, default uses me.device
 		%> @return
 		% ===================================================================
+			reset(me);
 			me.isOpen = false;
 			me.isQueue = false;
 			if me.isDummy; return; end
@@ -203,12 +211,12 @@ classdef touchManager < octickaCore
 		%> @param
 		%> @return nAvail number of available events
 		% ===================================================================
-			navail = [];
+			navail = 0;
 			if me.isDummy
 				[~, ~, b] = GetMouse;
-				if any(b); navail = true; end
+				if any(b); navail = 1; end
 			else
-				navail(i)=TouchEventAvail(me.devices(me.device)); %#ok<*AGROW>
+				navail = TouchEventAvail(me.devices(me.device));
 			end
 		end
 
@@ -241,7 +249,11 @@ classdef touchManager < octickaCore
 					'Pressed',press,'Motion',motion);
 				end
 			else
-				event = TouchEventGet(me.devices(me.device), me.swin, 0);
+				if me.drainEvents
+					while eventAvail(me); event = TouchEventGet(me.devices(me.device), me.swin, 0); end
+				else
+					event = TouchEventGet(me.devices(me.device), me.swin, 0);
+				end
 			end
 			me.eventNew = false; me.eventMove = false; me.eventRelease = false; me.eventPressed = false;
 			if ~isempty(event)
@@ -264,8 +276,8 @@ classdef touchManager < octickaCore
 		end
 
 		% ===================================================================
-		function resetAll(me)
-		%> @fn resetAll
+		function reset(me)
+		%> @fn reset
 		%>
 		%> @param
 		%> @return
@@ -290,7 +302,7 @@ classdef touchManager < octickaCore
 		function [result, win, wasEvent] = checkTouchWindows(me, windows, panelType)
 		%> @fn [result, win, wasEvent] = checkTouchWindows(me, windows, panelType)
 		%>
-		%> @param windows - a touch rect to test (default use window)
+		%> @param windows - optional touch rects to test (default use window parameters)
 		%> @param panelType 1 = front panel, 2 = back panel (need to reverse X)
 		%> @return result - true / false
 		% ===================================================================
@@ -301,7 +313,7 @@ classdef touchManager < octickaCore
 			result = false; win = 1; wasEvent = false; xy = [];
 
 			event = getEvent(me);
-
+			
 			while ~isempty(event) && iscell(event); event = event{1}; end
 			if isempty(event); return; end
 
@@ -340,6 +352,7 @@ classdef touchManager < octickaCore
 			if me.hold.start == 0
 				me.hold.start = me.hold.now;
 				me.hold.N = 0;
+				me.hold.inWindow = false;
 				me.hold.touched = false;
 				me.hold.total = 0;
 				me.hold.search = 0;
@@ -356,9 +369,23 @@ classdef touchManager < octickaCore
 			end
 
 			[held, win, wasEvent] = checkTouchWindows(me);
-			if ~wasEvent || isnan(held)
-				if me.hold.N > 0
+			if ~wasEvent # no touch
+				if me.hold.inWindow # but previous event was touch inside window
 					me.hold.length = me.hold.now - me.hold.init;
+					if me.hold.length >= me.window.hold
+						me.wasHeld = true;
+						heldtime = true;
+						releasing = true;
+					end
+					me.hold.release = me.hold.now - me.hold.releaseinit;
+					if me.hold.release > me.window.release
+						releasing = false;
+						failed = true;
+					end
+				elseif ~me.hold.inWindow && me.hold.search > me.window.init
+					failed = true;
+					searching = false;
+					if false; fprintf('--->>> touchManager no event but search timer exceeded\n'); end
 				end
 				return;
 			else
@@ -372,12 +399,15 @@ classdef touchManager < octickaCore
 				if me.verbose; fprintf('--->>> touchManager -100 NEGATION!\n'); end
 				return
 			end
+			
+			st = '';
 
 			if me.eventPressed && held #A
+				st = 'A';
 				me.hold.touched = true;
+				me.hold.inWindow = true;
 				searching = false;
-				fprintf('A--->');
-				if me.eventNew == true && me.hold.init == 0
+				if me.eventNew == true || me.hold.N == 0
 					me.hold.init = me.hold.now;
 					me.hold.N = me.hold.N + 1;
 					me.hold.releaseinit = me.hold.init + me.window.hold;
@@ -385,17 +415,20 @@ classdef touchManager < octickaCore
 				else
 					me.hold.length = me.hold.now - me.hold.init;
 				end
-				if me.hold.length >= me.window.hold
+				if me.hold.search <= me.window.init && me.hold.length >= me.window.hold
 					me.wasHeld = true;
 					heldtime = true;
 					releasing = true;
 				end
-				me.hold.release = me.hold.now - me.hold.releaseinit;
-				if me.hold.release < me.window.release
-					releasing = true;
+				if me.hold.N > 0
+					me.hold.release = me.hold.now - me.hold.releaseinit;
+					if me.hold.release <= me.window.release
+						releasing = true;
+					end
 				end
 			elseif me.eventPressed && ~held #B
-				fprintf('B--->');
+				st = 'B';
+				me.hold.inWindow = false;
 				me.hold.touched = true;
 				if me.hold.N > 0
 					failed = true;
@@ -404,32 +437,44 @@ classdef touchManager < octickaCore
 					searching = true;
 				end
 			elseif me.eventRelease && held #C
+				st = 'C';
 				searching = false;
-				fprintf('C--->');
 				me.hold.length = me.hold.now - me.hold.init;
-				if me.hold.N > 0
+				if me.hold.inWindow
 					if me.hold.length >= me.window.hold
 						me.wasHeld = true;
 						heldtime = true;
 						releasing = true;
+					else
+						me.wasHeld = false;
+						failed = true;
 					end
-				end
-				me.hold.release = me.hold.now - me.hold.releaseinit;
-				if me.hold.release < me.window.release
-					release = false;
+					me.hold.release = me.hold.now - me.hold.releaseinit;
+					if me.hold.release > me.window.release
+						releasing = false;
+						failed = true;
+					else
+						release = true;
+						releasing = false;
+					end
 				else
-					release = true;
+					st = ['!!' st];
 				end
-			else #D
-				fprintf('D--->');
+				me.hold.inWindow = false;
+			elseif me.eventRelease && ~held #D
+				st = 'D';
+				me.hold.inWindow = false;
 				failed = true;
 				searching = false;
 			end
 			me.isSearching = searching;
 			me.isReleased = release;
-			if true
-				fprintf('%i n:%i mv:%i p:%i r:%i <%.1fX %.1fY> %.2f-tot %.2f-srch %.2f-hld %.2f-rel h:%i t:%i r:%i rl:%i s:%i f:%i N:%i\n',...
-				me.eventID,me.eventNew,me.eventMove,me.eventPressed,me.eventRelease,me.x,me.y,me.hold.total,me.hold.search,me.hold.length,me.hold.release,held,heldtime,release,releasing,searching,failed,me.hold.N);
+			if me.verbose
+				fprintf('%s--->%i n:%i mv:%i p:%i r:%i {%.1fX %.1fY} tt:%.2f st:%.2f ht:%.2f rt:%.2f %i %i h:%i t:%i r:%i rl:%i s:%i f:%i N:%i\n',...
+				st,me.eventID,me.eventNew,me.eventMove,me.eventPressed,me.eventRelease,me.x,me.y,...
+				me.hold.total,me.hold.search,me.hold.length,me.hold.release,...
+				me.hold.inWindow,me.hold.touched,...
+				held,heldtime,release,releasing,searching,failed,me.hold.N);
 			end
 		end
 
@@ -443,10 +488,9 @@ classdef touchManager < octickaCore
 		% ===================================================================
 			[held, heldtime, release, releasing, searching, failed, touch] = isHold(me);
 			out = '';
-			if ~touch; return; end
-			if failed || (~held && ~searching)
+			if me.wasNegation || failed || (~held && ~searching)
 				out = noString;
-			elseif held && heldtime
+			elseif heldtime
 				out = yesString;
 			end
 		end
@@ -460,15 +504,11 @@ classdef touchManager < octickaCore
 		% ===================================================================
 			[held, heldtime, release, releasing, searching, failed, touch] = isHold(me);
 			out = '';
-			if ~touch; return; end
-			if failed || (held && heldtime && ~releasing)
-				out = noString;
-			elseif ~held && me.hold.N > 0 && ~me.wasHeld
+			if me.wasNegation || failed || (~held && ~searching)
 				out = noString;
 			elseif me.wasHeld && release
 				out = yesString;
 			end
-
 		end
 
 		% ===================================================================
@@ -511,35 +551,39 @@ classdef touchManager < octickaCore
 					update(im);
 					fprintf('\n\nTRIAL %i -- X = %i Y = %i R = %.2f\n',i,me.window.X,me.window.Y,me.window.radius);
 					rect = toDegrees(sM, im.mvRect, 'rect');
-					resetAll(me);
+					reset(me);
 					flush(me); 	%===================!!! flush the queue
 					txt = '';
 					vbl = flip(sM); ts = vbl;
 					result = 'timeout';
 					while vbl <= ts + 20
-						[r, hld, hldt, rel, reli, se, fl, tch] = testHold(me,'yes','no');
+						[r, hld, hldt, rel, reli, se, fl, tch] = testHoldRelease(me,'yes','no');
 						if hld
-							txt = sprintf('%s IN x = %.1f y = %.1f - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',r,me.x,me.y,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
+							txt = sprintf('%s IN x = %.1f y = %.1f - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',...
+							r,me.x,me.y,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
 						elseif ~isempty(me.x)
-							txt = sprintf('%s OUT x = %.1f y = %.1f - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',r,me.x,me.y,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
+							txt = sprintf('%s OUT x = %.1f y = %.1f - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',...
+							r,me.x,me.y,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
 						else
-							txt = sprintf('%s NO touch - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',r,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
+							txt = sprintf('%s NO touch - h:%i ht:%i r:%i rl:%i s:%i f:%i touch:%i N:%i',...
+							r,hld,hldt,rel,reli,se,fl,tch,me.hold.N);
 						end
 						drawBackground(sM);
 						drawText(sM,txt); drawGrid(sM);
 						if ~me.wasHeld; draw(im); end
 						vbl = flip(sM);
 						if strcmp(r,'yes')
-							result = 'correct'; break;
+							result = 'CORRECT!!!'; break;
 						elseif strcmp(r,'no')
-							result = 'incorrect'; break;
+							result = 'INCORRECT!!!'; break;
 						end
 						[pressed,~,keys] = octickaCore.getKeys([]);
 						if pressed && any(keys(quitKey)); doQuit = true; break; end
 					end
 					drawTextNow(sM, result);
 					fprintf('RESULT: %s - \n',result);
-					disp(me.hold);
+					disp(me.hold)
+					disp(me.event)
 					WaitSecs(3);
 				end
 				stop(me); close(me); %===================!!! stop and close
