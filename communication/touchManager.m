@@ -17,17 +17,18 @@ classdef touchManager < octickaCore
 		isDummy				= false
 		%> accept window (circular when radius is 1 value, rectangular when radius = [width height])
 		%> doNegation allows to return -100 (like exclusion) if touch is outside window.
-		%> when using the testHold etc functions:
-		%> init: a timer that measures time to first touch
+		%> negationBuffer is area around window where no negation events can occur
+		%> when using the testHold etc. functions:
+		%> init: a timer that controls time to first touch
 		%> hold: a timer that determines how long to hold
-		%> release: a timer to determine the time after hold to release the window
-		window				= struct('X', 0, 'Y', 0, 'radius', 2, 'doNegation', false, 'negationBuffer', 2,...
-								'strict', true,...
-								'init', 3, 'hold', 1, 'release', 1);
+		%> release: a timer to determine the time after hold in which to release the window
+		window				= struct('X', 0, 'Y', 0, 'radius', 2, 'doNegation', false,...
+								'negationBuffer', 2, 'strict', true,...
+								'init', 3, 'hold', 0.1, 'release', 1);
 		%> Use exclusion zones where no touch allowed: [left,top,right,bottom]
 		%> Add rows to generate multiple exclusion zones.
 		exclusionZone		= []
-		%> drain the events to only get the last one? This ensures lots of 
+		%> drain the events to only get the last one? This ensures lots of
 		%> events don't pile up, often you only want the current event,
 		%> but potentially causes a longer delay each time  getEvent is called...
 		drainEvents			= true;
@@ -72,7 +73,8 @@ classdef touchManager < octickaCore
 		screen				= []
 		swin				= []
 		screenVals			= []
-		allowedProperties	= {'isDummy','device','verbose','window','nSlots','negationBuffer'}
+		allowedProperties	= {'isDummy','device','verbose','window','nSlots',...
+							'panelType','drainEvents','exclusionZone'}
 		holdTemplate		= struct('N',0,'inWindow',false,'touched',false,...
 							'start',0,'now',0,'total',0,'search',0,'init',0,'releaseinit',0,...
 							'length',0,'release',0)
@@ -96,7 +98,7 @@ classdef touchManager < octickaCore
 			args = octickaCore.addDefaults(varargin,struct('name','touchManager'));
 			me = me@octickaCore(args); %superclass constructor
 			me.parseArgs(args, me.allowedProperties);
-			
+
 			try [me.devices,me.names,me.allInfo] = GetTouchDeviceIndices([], 1); end %#ok<*TRYNC>
 			me.hold = me.holdTemplate;
 		end
@@ -197,7 +199,7 @@ classdef touchManager < octickaCore
 		function flush(me)
 		%> @fn flush(me)
 		%>
-		%> @param 
+		%> @param
 		%> @return
 		% ===================================================================
 			if me.isDummy; return; end
@@ -246,7 +248,8 @@ classdef touchManager < octickaCore
 					'X',mx,'Y',my,'ButtonStates',b,...
 					'NormX',mx/me.screenVals.width,'NormY',my/me.screenVals.height, ...
 					'MappedX',mx,'MappedY',my,...
-					'Pressed',press,'Motion',motion);
+					'Pressed',press,'Motion',motion,...
+					'Keycode',55);
 				end
 			else
 				if me.drainEvents
@@ -313,12 +316,12 @@ classdef touchManager < octickaCore
 			result = false; win = 1; wasEvent = false; xy = [];
 
 			event = getEvent(me);
-			
+
 			while ~isempty(event) && iscell(event); event = event{1}; end
 			if isempty(event); return; end
 
-			wasEvent = true; 
-			
+			wasEvent = true;
+
 			if panelType == 2; event.MappedX = me.screenVals.width - event.MappedX; end
 
 			xy = me.screen.toDegrees([event.MappedX event.MappedY]);
@@ -399,7 +402,7 @@ classdef touchManager < octickaCore
 				if me.verbose; fprintf('--->>> touchManager -100 NEGATION!\n'); end
 				return
 			end
-			
+
 			st = '';
 
 			if me.eventPressed && held #A
@@ -420,10 +423,13 @@ classdef touchManager < octickaCore
 					heldtime = true;
 					releasing = true;
 				end
-				if me.hold.N > 0
+				if me.wasHeld
 					me.hold.release = me.hold.now - me.hold.releaseinit;
 					if me.hold.release <= me.window.release
 						releasing = true;
+					else
+						releasing = false;
+						failed = true;
 					end
 				end
 			elseif me.eventPressed && ~held #B
@@ -516,7 +522,7 @@ classdef touchManager < octickaCore
 		%> @fn demo
 		%>
 		%> @param
-		%> @return 
+		%> @return
 		% ===================================================================
 			if isempty(me.screen); me.screen = screenManager(); end
 			sM = me.screen;
@@ -630,7 +636,7 @@ classdef touchManager < octickaCore
 			end
 			result = false; resultneg = false; match = false;
 			window = false; windowneg = false;
-			negradius = radius + me.negationBuffer;
+			negradius = radius + me.window.negationBuffer;
 			ez = me.exclusionZone;
 			% ---- test for exclusion zones first
 			if ~isempty(ez)

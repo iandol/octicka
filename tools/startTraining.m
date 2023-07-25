@@ -1,15 +1,9 @@
 function startTraining(tr)
-	pixelsPerCm = 80;
-	distance = 57.3;
+	pixelsPerCm = tr.density;
+	distance = tr.distance;
 	timeOut = 2;
 	rewardPort = '/dev/ttyACM0';
-
-	% =========================== do we start camera streaming?
-	if tr.stream
-		pid = rpistreamer;
-		if ~isempty(pid);fprintf('===> RPi Video stream PID = %i activated!\n',pid);end
-		WaitSecs(0.5);
-	end
+	negation = false;
 
 	% =========================== debug mode?
 	if tr.debug
@@ -122,7 +116,6 @@ function startTraining(tr)
 			target.sizeOut = p(phase).size;
 
 			update(target);
-			resetAll(t);
 
 			fprintf('\n===> START TRIAL: %i - PHASE %i\n', trialN, phase);
 			fprintf('===> Size: %.1f Init: %.2f Hold: %.2f Release: %.2f\n', t.window.radius,t.window.init,t.window.hold,t.window.release);
@@ -132,6 +125,7 @@ function startTraining(tr)
 			txt = '';
 			trialN = trialN + 1;
 			hldtime = false;
+			reset(t);
 			flush(t);
 			vbl = flip(s); vblInit = vbl;
 			while ~touchStart && vbl < vblInit + 5;
@@ -200,15 +194,6 @@ function startTraining(tr)
 		disp('=======================================');
 		save('-v7', saveName, 'd');
 		WaitSecs(0.5);
-
-		if exist('pid','var') && ~isempty(pid)
-			fprintf('===> Try to kill PID = %i\n',pid);
-			try
-				system(['kill -9 ' num2str(pid+2)]);
-				system(['kill -9 ' num2str(pid+1)]);
-				system(['kill -9 ' num2str(pid)]);
-			end
-		end
 
 		ListenChar(0); Priority(0);
 		try reset(target); end
