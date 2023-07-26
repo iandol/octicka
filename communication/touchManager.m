@@ -1,11 +1,13 @@
 % ========================================================================
 classdef touchManager < octickaCore
 %> @class touchManager
-%> @brief Manages touch screens (wraps the PTB TouchQueue* functions)
+%> @brief Manages touch screens (wraps the PTB TouchQueue* functions), and
+%> provides touch area management methods
 %>
 %> TOUCHMANAGER -- call this and setup with screen manager, then run your
 %> task. This class can handles touch windows, exclusion zones and more for
 %> multiple touch screens.
+%>
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
 
@@ -15,11 +17,12 @@ classdef touchManager < octickaCore
 		device				= 1
 		%> use the mouse instead of the touch screen for debugging
 		isDummy				= false
-		%> accept window (circular when radius is 1 value, rectangular when radius = [width height])
-		%> doNegation allows to return -100 (like exclusion) if touch is outside window.
-		%> negationBuffer is area around window where no negation events can occur
-		%> when using the testHold etc. functions:
-		%> init: a timer that controls time to first touch
+		%> window is a touch window, X and Y are the screen postion
+		%> radius: circular when radius is 1 value, rectangular when radius = [width height])
+		%> doNegation: allows to return -100 (like exclusion) if touch is outside window.
+		%> when using the testHold etc functions. negationBuffer is an area
+		%> around he window to allow some margin of error...
+		%> init: a timer that measures time to first touch
 		%> hold: a timer that determines how long to hold
 		%> release: a timer to determine the time after hold in which to release the window
 		window				= struct('X', 0, 'Y', 0, 'radius', 2, 'doNegation', false,...
@@ -50,7 +53,7 @@ classdef touchManager < octickaCore
 		y					= []
 		win					= []
 		hold				= []
-		eventID				= [];
+		eventID				= []
 		eventNew			= false
 		eventMove			= false
 		eventPressed		= false
@@ -305,23 +308,23 @@ classdef touchManager < octickaCore
 		function [result, win, wasEvent] = checkTouchWindows(me, windows, panelType)
 		%> @fn [result, win, wasEvent] = checkTouchWindows(me, windows, panelType)
 		%>
-		%> @param windows - optional touch rects to test (default use window parameters)
-		%> @param panelType 1 = front panel, 2 = back panel (need to reverse X)
-		%> @return result - true / false
+		%> @param windows: [optional] touch rects to test (default use window parameters)
+		%> @param panelType: [optional] 1 = front panel, 2 = back panel (need to reverse X)
+		%> @return result: -100 = negation, true / false otherwise
 		% ===================================================================
 			if ~exist('windows','var'); windows = []; end
-			if ~exist('panelType','var') || isempty(panelType); panelType = 1; end
+			if ~exist('panelType','var') || isempty(panelType); panelType = me.panelType; end
 
 			nWindows = max([1 size(windows,1)]);
 			result = false; win = 1; wasEvent = false; xy = [];
 
 			event = getEvent(me);
-
+			
 			while ~isempty(event) && iscell(event); event = event{1}; end
 			if isempty(event); return; end
 
-			wasEvent = true;
-
+			wasEvent = true; 
+			
 			if panelType == 2; event.MappedX = me.screenVals.width - event.MappedX; end
 
 			xy = me.screen.toDegrees([event.MappedX event.MappedY]);
@@ -343,6 +346,9 @@ classdef touchManager < octickaCore
 
 		% ===================================================================
 		%> @fn isHold
+		%> 
+		%> This is the main function which runs touch timers and calculates
+		%> the logic of whether the touch is in a region and for how long.
 		%>
 		%> @param
 		%> @return
@@ -371,9 +377,9 @@ classdef touchManager < octickaCore
 				end
 			end
 
-			[held, win, wasEvent] = checkTouchWindows(me);
-			if ~wasEvent # no touch
-				if me.hold.inWindow # but previous event was touch inside window
+			[held, ~, wasEvent] = checkTouchWindows(me);
+			if ~wasEvent % no touch
+				if me.hold.inWindow % but previous event was touch inside window
 					me.hold.length = me.hold.now - me.hold.init;
 					if me.hold.length >= me.window.hold
 						me.wasHeld = true;
@@ -388,7 +394,6 @@ classdef touchManager < octickaCore
 				elseif ~me.hold.inWindow && me.hold.search > me.window.init
 					failed = true;
 					searching = false;
-					if false; fprintf('--->>> touchManager no event but search timer exceeded\n'); end
 				end
 				return;
 			else
@@ -405,7 +410,7 @@ classdef touchManager < octickaCore
 
 			st = '';
 
-			if me.eventPressed && held #A
+			if me.eventPressed && held %A
 				st = 'A';
 				me.hold.touched = true;
 				me.hold.inWindow = true;
@@ -432,7 +437,7 @@ classdef touchManager < octickaCore
 						failed = true;
 					end
 				end
-			elseif me.eventPressed && ~held #B
+			elseif me.eventPressed && ~held %B
 				st = 'B';
 				me.hold.inWindow = false;
 				me.hold.touched = true;
@@ -442,7 +447,7 @@ classdef touchManager < octickaCore
 				else
 					searching = true;
 				end
-			elseif me.eventRelease && held #C
+			elseif me.eventRelease && held %C
 				st = 'C';
 				searching = false;
 				me.hold.length = me.hold.now - me.hold.init;
@@ -467,7 +472,7 @@ classdef touchManager < octickaCore
 					st = ['!!' st];
 				end
 				me.hold.inWindow = false;
-			elseif me.eventRelease && ~held #D
+			elseif me.eventRelease && ~held %D
 				st = 'D';
 				me.hold.inWindow = false;
 				failed = true;
@@ -588,9 +593,8 @@ classdef touchManager < octickaCore
 					end
 					drawTextNow(sM, result);
 					fprintf('RESULT: %s - \n',result);
-					disp(me.hold)
-					disp(me.event)
-					WaitSecs(3);
+					disp(me.hold);
+					WaitSecs(2);
 				end
 				stop(me); close(me); %===================!!! stop and close
 				me.window = oldWin;
