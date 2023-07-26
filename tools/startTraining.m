@@ -4,15 +4,16 @@ function startTraining(tr)
 	timeOut = 2;
 	rewardPort = '/dev/ttyACM0';
 	negation = false;
+	windowed = [];
+	sf = [];
 
 	% =========================== debug mode?
 	if tr.debug
-		windowed=[];if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
-		sf = kPsychGUIWindow;
-		dummy = true;
+		%if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
+		%sf = kPsychGUIWindow;
+		dummy = false;
 	else
-		windowed=[];if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
-		sf = [];
+		if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
 		dummy = false;
 	end
 
@@ -29,7 +30,8 @@ function startTraining(tr)
 		% t============================ouch
 		t = touchManager('isDummy',dummy);
 		t.window.doNegation = true;
-		t.negationBuffer = 2;
+		t.window.negationBuffer = 1;
+		t.drainEvents = true;
 		if tr.debug; t.verbose = true; end
 
 		% ============================reward
@@ -43,27 +45,28 @@ function startTraining(tr)
 		p(pn).size = 10; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		p(pn).size = 5; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		p(pn).size = 2; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		%
+		% 6
 		p(pn).size = 2; p(pn).hold = 0.2; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		p(pn).size = 2; p(pn).hold = 0.5; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		p(pn).size = 2; p(pn).hold = 1.0; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		p(pn).size = 2; p(pn).hold = 1.5; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		p(pn).size = 2; p(pn).hold = 2.0; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1.3 2]; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		%
-		p(pn).size = 2; p(pn).hold = [1.3 2]; p(pn).rel = 2; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1.3 2]; p(pn).rel = 1.75; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1.3 2]; p(pn).rel = 1.5; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1.3 2]; p(pn).rel = 1.25; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1.3 2]; p(pn).rel = 1; p(pn).pos = [0 0]; pn = pn + 1;
-		%
-		p(pn).size = 1.5; p(pn).hold = [1.3 2]; p(pn).rel = 1; p(pn).pos = 2; pn = pn + 1;
-		p(pn).size = 1.5; p(pn).hold = [1.3 2]; p(pn).rel = 1; p(pn).pos = 4; pn = pn + 1;
-		p(pn).size = 1.5; p(pn).hold = [1.3 2]; p(pn).rel = 1; p(pn).pos = 8; pn = pn + 1;
-		p(pn).size = 1.5; p(pn).hold = [1.3 2]; p(pn).rel = 1; p(pn).pos = 15; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		% 12
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 2; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1.75; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1.5; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1.25; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = [0 0]; pn = pn + 1;
+		% 17
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 3; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 5; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 7; pn = pn + 1;
+		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 11; pn = pn + 1;
 
 		% ============================setup
 		sv = open(s);
+		aspect = sv.width / sv.height;
 		setup(target, s);
 		setup(t, s);
 		createQueue(t);
@@ -98,6 +101,7 @@ function startTraining(tr)
 				x = randi(p(phase).pos(1));
 				if rand > 0.5; x = -x; end
 				y = randi(p(phase).pos(1));
+				y = y / aspect;
 				if rand > 0.5; y = -y; end
 			end
 			if length(p(phase).hold) == 2
@@ -137,10 +141,11 @@ function startTraining(tr)
 				end
 				vbl = flip(s);
 				[touchResponse, hld, hldtime, rel, reli, se] = testHoldRelease(t,'yes','no');
-				txt = sprintf('Touch = %i x=%.2f y=%.2f h:%i ht:%i r:%i rs:%i s:%i',touchResponse,t.x,t.y,hld, hldtime, rel, reli, se);
-				flush(t);
+				txt = sprintf('Step=%i Touch=%i x=%.2f y=%.2f h:%i ht:%i r:%i rs:%i s:%i %.1f Init: %.2f Hold: %.2f Release: %.2f',...
+					phase,touchResponse,t.x,t.y,hld, hldtime, rel, reli, se,...
+					t.window.radius,t.window.init,t.window.hold,t.window.release);
 				if ~isempty(touchResponse); touchStart=true; break; end
-				[~,~,c] = KbCheck(-1);
+				[~,~,c] = KbCheck();
 				if c(quitKey); keepRunning=false; break; end
 			end
 
@@ -168,12 +173,13 @@ function startTraining(tr)
 
 			if trialN >= 10
 				if phaseN >= 10 && length(d.data.result)>10
-					res = d.data.result(end-9:end);
-					if sum(res) > 8
+					res = sum(d.data.result(end-9:end));
+					if res >= 8
 						phase = phase + 1;
-					elseif sum(res) < 2
+					elseif res <= 2
 						phase = phase - 1;
 					end
+					fprintf('===> Performance: %i Phase: %i\n',res,phase);
 					phaseN = 0;
 					if phase < 1; phase = 1; end
 					if phase > 20; phase = 20; end
