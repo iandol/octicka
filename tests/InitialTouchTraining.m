@@ -23,14 +23,14 @@ end
 if IsOctave; try pkg load instrument-control; end; end
 
 % ============================movie / position list
-randomise=1;
+randomise=0;
 
 try
     % ============================screen
     s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm,'windowed',windowed,'specialFlags',sf);
 
     % s============================stimuli
-    %   xPosition=0;yPosition=0;
+    xPosition=0;yPosition=0;
     
     c1 = discStimulus('size',2,'colour',[1 1 1 1]);%,'xPosition',xPosition,'yPosition',yPosition);
 
@@ -75,10 +75,15 @@ try
             y=x;
             r=randperm(length(x),2);
             c1.xPositionOut=x(r(1));c1.yPositionOut=y(r(2));
+            t.window.X = x(r(1)); % c1.xPosition;
+            t.window.Y = y(r(2)); % c1.yPosition;
+        else
+          c1.xPosition=xPosition;c1.yPosition=yPosition=0;
+          t.window.X =  c1.xPosition;
+          t.window.Y =  c1.yPosition;
         end
         update(c1);
-        t.window.X = x(r(1)); % c1.xPosition;
-        t.window.Y = y(r(2)); % c1.yPosition;
+        
         t.window.radius = [c1.size/2, c1.size/2];
         t.window.doNegation = true;
         x = []; y = []; touched = false; touchedResponse = false;
