@@ -8,7 +8,7 @@ if debug
     if  max(Screen('Screens'))==0
         windowed = [0 0 1000 800];
     end
-
+    windowed = [0 0 1000 800];
     sf = kPsychGUIWindow;
     dummy = true;
     colour1 = [1 0.5 0 0.4];
@@ -30,11 +30,7 @@ try
     s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm,'windowed',windowed,'specialFlags',sf);
 
     % s============================stimuli
-<<<<<<< Updated upstream
     %   xPosition=0;yPosition=0;
-=======
-%   xPosition=0;yPosition=0;
->>>>>>> Stashed changes
     
     c1 = discStimulus('size',2,'colour',[1 1 1 1]);%,'xPosition',xPosition,'yPosition',yPosition);
 
@@ -44,8 +40,8 @@ try
     t.negationBuffer = 2;
 
     % ============================reward
-    rM = arduinoManager('port',rewardPort,'verbose',false);
     try open(rM); end
+    rM = arduinoManager('port',rewardPort,'verbose',false);
 
     % ============================setup
     sv = open(s);
