@@ -20,7 +20,7 @@ else
     colour2 = [1 0.5 0 0.4];
 end
 
-if IsOctave; try pkg load instrument-control; end; end
+% if IsOctave; try pkg load instrument-control; end; end
 
 % ============================movie / position list
 randomise=0;
@@ -40,7 +40,7 @@ try
     t.negationBuffer = 2;
 
     % ============================reward
-    try open(rM); end
+%     try open(rM); end
     rM = arduinoManager('port',rewardPort,'verbose',false);
 
     % ============================setup
@@ -67,6 +67,10 @@ try
     trials = struct;
     % 		srect = [sv.leftInDegrees+0.1,sv.topInDegrees+0.1,...
     % 			sv.rightInDegrees-0.1,sv.bottomInDegrees-0.1];
+    system('raspi-gpio set 17 op');
+    system('raspi-gpio set 27 op');
+    system('raspi-gpio set 17 dl');
+    system('raspi-gpio set 27 dl');
 
     while keepRunning
        
@@ -152,8 +156,10 @@ try
         if touchedResponse == true
             fprintf('===> CORRECT :-)\n');
             if debug; drawTextNow(s,'CORRECT!'); end
-            rM.stepper(46);
+%             rM.stepper(46);
+            system('raspi-gpio set 27 dh')
             WaitSecs(0.25);
+            system('raspi-gpio set 27 dl')
         else
             drawBackground(s,[1 0 0]);
             if touchedResponse == -100
