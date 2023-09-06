@@ -2,6 +2,7 @@
 *~
 *.tmp
 ._*
+ui/wnd*
 html*
 docs*
 debug.txt

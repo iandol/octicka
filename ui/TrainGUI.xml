@@ -7,7 +7,7 @@
 
 
 </GlobalSrc>
-    <uiControl class="buttonGroup" BackgroundColor="[0.937 0.937 0.937]" BorderWidth="1" FontAngle="normal" FontName="Source Sans 3" FontSize="16" FontWeight="bold" ForegroundColor="[0.000 0.000 0.000]" Name="Settings" Position="[0 5 900 580]" Title="Touch Training Settings" TitlePosition="righttop" visible="on">
+    <uiControl class="buttonGroup" BackgroundColor="[0.937 0.937 0.937]" BorderWidth="1" FontAngle="normal" FontName="Source Sans 3" FontSize="16" FontWeight="bold" ForegroundColor="[0.000 0.000 0.000]" Name="Settings" Position="[5 0 900 580]" Title="Touch Training Settings" TitlePosition="righttop" visible="on">
         <ContainerSrc/>
         <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="bold" ForegroundColor="[0.643 0.000 0.000]" GenerateCallBack="true" icon="" Name="StartButton" Position="[700 513 190 59]" String="Start!" TooltipString="" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
@@ -21,6 +21,7 @@ tr.fg = str2num(get(TouchTraining.TouchColour,'String'));
 tr.distance = str2num(get(TouchTraining.Distance,'String'));
 tr.density = str2num(get(TouchTraining.Density,'String'));
 tr.debug = logical(get(TouchTraining.Debug,'Value'));
+tr.dummy = logical(get(TouchTraining.Dummy,'Value'));
 
 startTraining(tr)</uiControl>
         <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="SubjectName" Position="[10 20 290 47]" String="Test" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
@@ -43,7 +44,7 @@ startTraining(tr)</uiControl>
         <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_2" Position="[310 95 280 46]" String="Training Phase (1-20)" TooltipString="" visible="on"/>
         <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_3" Position="[310 215 258 46]" String="Background Colour" TooltipString="" visible="on"/>
         <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_4" Position="[310 275 178 46]" String="Touch Colour" TooltipString="" visible="on"/>
-        <uiControl class="checkBoxCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Debug" Position="[700 460 184 45]" String="Debug" TooltipString="" Value="deselect" visible="on"/>
+        <uiControl class="checkBoxCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Debug" Position="[700 470 184 45]" String="Debug" TooltipString="" Value="deselect" visible="on"/>
         <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="Load" Position="[10 515 180 56]" String="Load" TooltipString="" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
@@ -101,5 +102,6 @@ end</uiControl>
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
         <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_6" Position="[310 155 196 46]" String="Timeout (secs)" TooltipString="" visible="on"/>
+        <uiControl class="checkBoxCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Dummy" Position="[700 430 184 45]" String="Dummy" TooltipString="" Value="deselect" visible="on"/>
     </uiControl>
 </dialog>
