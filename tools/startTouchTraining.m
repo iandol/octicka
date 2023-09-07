@@ -1,20 +1,17 @@
-function startTraining(tr)
+function startTouchTraining(tr)
 	pixelsPerCm = tr.density;
 	distance = tr.distance;
-	timeOut = 2;
+	timeOut = tr.timeOut;
 	rewardPort = '/dev/ttyACM0';
 	negation = false;
 	windowed = [];
 	sf = [];
 
+
 	% =========================== debug mode?
 	if tr.debug
-		%if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
-		%sf = kPsychGUIWindow;
-		dummy = false;
-	else
 		if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
-		dummy = false;
+		sf = kPsychGUIWindow;
 	end
 
 	if IsOctave; try pkg load instrument-control; end; end
@@ -27,8 +24,8 @@ function startTraining(tr)
 		% s============================stimuli
 		target = discStimulus('size', 20, 'colour', tr.fg);
 
-		% t============================ouch
-		t = touchManager('isDummy',dummy);
+		% t============================touch
+		t = touchManager('isDummy',tr.dummy);
 		t.window.doNegation = true;
 		t.window.negationBuffer = 1;
 		t.drainEvents = true;
@@ -39,30 +36,32 @@ function startTraining(tr)
 		try open(rM); end
 
 		% ============================steps table
+		sz = linspace(tr.maxSize, tr.minSize, 5);
+
 		pn = 1;
-		p(pn).size = 20; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 15; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 10; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 5; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(pn); p(pn).hold = 0.05; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(pn); p(pn).hold = 0.05; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(pn); p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(pn); p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(pn); p(pn).hold = 0.1; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		% 6
-		p(pn).size = 2; p(pn).hold = 0.2; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = 0.5; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = 1.0; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = 1.5; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = 2.0; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = 0.2; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = 0.5; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = 1.0; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = 1.5; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = 2.0; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 3; p(pn).pos = [0 0]; pn = pn + 1;
 		% 12
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 2; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1.75; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1.5; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1.25; p(pn).pos = [0 0]; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 2; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1.75; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1.5; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1.25; p(pn).pos = [0 0]; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = [0 0]; pn = pn + 1;
 		% 17
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 3; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 5; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 7; pn = pn + 1;
-		p(pn).size = 2; p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 11; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 3; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 5; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 7; pn = pn + 1;
+		p(pn).size = sz(end); p(pn).hold = [1 2]; p(pn).rel = 1; p(pn).pos = 11; pn = pn + 1;
 
 		% ============================setup
 		sv = open(s);
@@ -85,6 +84,7 @@ function startTraining(tr)
 		RestrictKeysForKbCheck([quitKey]);
 		Screen('Preference','Verbosity',4);
 		try Priority(1); end
+		if ~tr.debug; HideCursor; end
 		txt = 'Waiting for touch...';
 		keepRunning = true
 		trialN = 0;
@@ -126,13 +126,14 @@ function startTraining(tr)
 
 			touchStart = false;
 			touchResponse = '';
+			anyTouch = false;
 			txt = '';
 			trialN = trialN + 1;
 			hldtime = false;
 			reset(t);
 			flush(t);
 			vbl = flip(s); vblInit = vbl;
-			while ~touchStart && vbl < vblInit + 5;
+			while ~touchStart && vbl < vblInit + 4;
 				if ~hldtime; draw(target); end
 				if tr.debug && ~isempty(t.x) && ~isempty(t.y)
 					drawText(s, txt);
@@ -140,7 +141,10 @@ function startTraining(tr)
 					Screen('glPoint', s.win, [1 0 0], xy(1), xy(2), 10);
 				end
 				vbl = flip(s);
-				[touchResponse, hld, hldtime, rel, reli, se] = testHoldRelease(t,'yes','no');
+				[touchResponse, hld, hldtime, rel, reli, se, fail, tch] = testHoldRelease(t,'yes','no');
+				if tch
+					anyTouch = true;
+				end
 				txt = sprintf('Step=%i Touch=%i x=%.2f y=%.2f h:%i ht:%i r:%i rs:%i s:%i %.1f Init: %.2f Hold: %.2f Release: %.2f',...
 					phase,touchResponse,t.x,t.y,hld, hldtime, rel, reli, se,...
 					t.window.radius,t.window.init,t.window.hold,t.window.release);
@@ -152,22 +156,30 @@ function startTraining(tr)
 			vblEnd = flip(s);
 			WaitSecs(0.05);
 
-			if strcmp(touchResponse,'yes')
+			if anyTouch == false
+				fprintf('===> TIMEOUT :-)\n');
+				drawText(s,'TIMEOUT!');
+				flip(s);
+				WaitSecs(0.25);
+			elseif strcmp(touchResponse,'yes')
 				update(d,true,phase,trialN,vblEnd-vblInit);
 				phaseN = phaseN + 1;
 				fprintf('===> CORRECT :-)\n');
-				if tr.debug; drawTextNow(s,'CORRECT!'); end
+				drawText(s,'CORRECT!');
+				flip(s);
 				WaitSecs(0.5);
 			elseif strcmp(touchResponse,'no')
 				update(d,false,phase,trialN,vblEnd-vblInit);
 				phaseN = phaseN + 1;
-				drawBackground(s,[1 0 0]);
 				fprintf('===> FAIL :-(\n');
-				if tr.debug; drawTextNow(s,'FAIL!'); end
+				drawBackground(s,[1 0 0]);
+				drawText(s,'FAIL!');
+				flip(s);
 				WaitSecs(timeOut);
 			else
-				fprintf('===> TIMEOUT :-)\n');
-				if tr.debug; drawTextNow(s,'TIMEOUT!'); end
+				fprintf('===> UNKNOWN :-|\n');
+				drawText(s,'UNKNOWN!');
+				flip(s);
 				WaitSecs(0.25);
 			end
 
@@ -201,7 +213,7 @@ function startTraining(tr)
 		save('-v7', saveName, 'd');
 		WaitSecs(0.5);
 
-		ListenChar(0); Priority(0);
+		ListenChar(0); Priority(0); ShowCursor;
 		try reset(target); end
 		try close(s); end
 		try close(t); end

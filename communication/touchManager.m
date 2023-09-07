@@ -319,12 +319,12 @@ classdef touchManager < octickaCore
 			result = false; win = 1; wasEvent = false; xy = [];
 
 			event = getEvent(me);
-			
+
 			while ~isempty(event) && iscell(event); event = event{1}; end
 			if isempty(event); return; end
 
-			wasEvent = true; 
-			
+			wasEvent = true;
+
 			if panelType == 2; event.MappedX = me.screenVals.width - event.MappedX; end
 
 			xy = me.screen.toDegrees([event.MappedX event.MappedY]);
@@ -346,7 +346,7 @@ classdef touchManager < octickaCore
 
 		% ===================================================================
 		%> @fn isHold
-		%> 
+		%>
 		%> This is the main function which runs touch timers and calculates
 		%> the logic of whether the touch is in a region and for how long.
 		%>
