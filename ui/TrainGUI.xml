@@ -23,7 +23,9 @@ tr.density = str2num(get(TouchTraining.Density,'String'));
 tr.debug = logical(get(TouchTraining.Debug,'Value'));
 tr.dummy = logical(get(TouchTraining.Dummy,'Value'));
 
-startTraining(tr)</uiControl>
+startTouchTraining(tr);
+
+</uiControl>
         <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="SubjectName" Position="[10 20 290 47]" String="Test" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the

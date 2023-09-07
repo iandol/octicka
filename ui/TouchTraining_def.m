@@ -38,7 +38,9 @@ tr.density = str2num(get(TouchTraining.Density,'String'));
 tr.debug = logical(get(TouchTraining.Debug,'Value'));
 tr.dummy = logical(get(TouchTraining.Dummy,'Value'));
 
-startTraining(tr)
+startTouchTraining(tr);
+
+
 end
 
 ## @deftypefn  {} {} TouchTraining_Load_doIt (@var{src}, @var{data}, @var{TouchTraining})
