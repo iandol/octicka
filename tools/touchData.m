@@ -61,12 +61,13 @@ classdef touchData < octickaCore
 			ylabel('Correct/Incorrect');
 			subplot(3,1,2);
 			plot(time,in.data.phase);
-			xlabel('Time')
+			xlabel('Task Time')
 			ylabel('Task Step');
 			subplot(3,1,3);
 			plot(time,in.data.rt);
-			xlabel('Time')
+			xlabel('Task Time')
 			ylabel('Trial Time');
+			title(Reaction Time);
 		end
 	end
 
