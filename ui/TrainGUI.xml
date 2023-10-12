@@ -22,6 +22,7 @@ tr.minSize = str2num(get(TouchTraining.MinSize,'String'));
 tr.maxSize = str2num(get(TouchTraining.MaxSize,'String'));
 tr.distance = str2num(get(TouchTraining.Distance,'String'));
 tr.density = str2num(get(TouchTraining.Density,'String'));
+tr.task = get(TouchTraining.Task,'Value');
 tr.debug = logical(get(TouchTraining.Debug,'Value'));
 tr.dummy = logical(get(TouchTraining.Dummy,'Value'));
 
@@ -59,8 +60,10 @@ if isnumeric(f); return; end
 oldp = pwd;
 cd(p);
 load(f);
-
-plot(d.trials,d.result);</uiControl>
+if exist('d','var')
+    td = touchData();
+    td.plot(d);
+end</uiControl>
         <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="startVideo" Position="[240 515 180 56]" String="Start Video" TooltipString="" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
@@ -116,5 +119,7 @@ end</uiControl>
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
         <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_7" Position="[310 335 125 24]" String="Min/Max Size (deg)" TooltipString="" visible="on"/>
+        <uiControl class="cmbCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Consolas" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Task" Position="[10 440 290 47]" String="Standard|Simple" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_8" Position="[310 450 66 24]" String="Task Type" TooltipString="" visible="on"/>
     </uiControl>
 </dialog>

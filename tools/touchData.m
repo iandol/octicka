@@ -51,11 +51,12 @@ classdef touchData < octickaCore
 	methods (Static = true)
 		function plot(in)
 			if isfield(in,'className') && ~strcmp(in.className, 'touchData'); return; end
-			if isempty(d.data.trials); return; end
+			if isempty(in.data.trials); disp('---> No trials in this datafile!'); return; end
 			time = in.data.time - in.data.time(1);
-			figure
+			f = figure;
 			subplot(3,1,1);
 			plot(in.data.trials,in.data.result);
+			title(in.fullName)
 			xlabel('Trial Number')
 			ylabel('Correct/Incorrect');
 			subplot(3,1,2);
