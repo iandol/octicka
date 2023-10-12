@@ -67,7 +67,7 @@ classdef touchData < octickaCore
 			plot(time,in.data.rt);
 			xlabel('Task Time')
 			ylabel('Trial Time');
-			title(Reaction Time);
+			title('Reaction Time');
 		end
 	end
 
