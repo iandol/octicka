@@ -51,7 +51,7 @@ classdef screenManager < octickaCore
 		doubleBuffer			= 1
 		%> Mirror the content to a second window. In this case we need a
 		%> screen 0 and screen 1 and the main output to screen 1. We will get
-		%> an overlay window for this too we can draw to. New PTB feature...
+		%> an overlay window for this too we can draw to.
 		mirrorDisplay			= false
 		%> float precision and bitDepth of framebuffer/output: '8bit' is
 		%> best for old GPUs, but choose 'FloatingPoint32BitIfPossible' for
@@ -111,11 +111,11 @@ classdef screenManager < octickaCore
 		hideFlash					= false
 		%> Details for drawing fonts, either sets defaults if window is closed or
 		%> or updates values if window open...
-		font						= struct('TextSize',24,...
-									'TextColor',[0.9 0.9 0.9 1],...
-									'TextBackgroundColor',[0.15 0.075 0 0.75],...
-									'TextRenderer', 1,...
-									'FontName', 'Source Sans 3');
+		font						= struct('TextSize',16,...
+										'TextColor',[0.95 0.95 0.95 1],...
+										'TextBackgroundColor',[0.2 0.3 0.3 0.8],...
+										'TextRenderer', 1,...
+										'FontName', 'Source Sans 3');
 	end
 
 	properties (SetAccess = private, GetAccess = public, Dependent = true)
@@ -226,7 +226,7 @@ classdef screenManager < octickaCore
 		% ===================================================================
 			args = octickaCore.addDefaults(varargin,struct('name','screenManager'));
 			me=me@octickaCore(args); %superclass constructor
-			me.parseArgs(args,me.allowedProperties);
+			me.parseArgs(args,me.allowedProperties); %check remaining properties from varargin
 			try
 				AssertOpenGL;
 				me.isPTB = true;
@@ -304,6 +304,8 @@ classdef screenManager < octickaCore
 			sv.black			= BlackIndex(me.screen);
 			sv.gray				= GrayIndex(me.screen);
 
+			try sv.isVulkan			= PsychVulkan('Supported'); end
+
 			if IsLinux
 				try
 					sv.display	= Screen('ConfigureDisplay','Scanout',me.screen,0);
@@ -372,13 +374,14 @@ classdef screenManager < octickaCore
 				if debug == true || (length(me.windowed)==1 && me.windowed ~= 0)
 					fprintf('\n---> screenManager: Skipping Sync Tests etc. - ONLY FOR DEVELOPMENT!\n');
 					Screen('Preference','SyncTestSettings', 0.002); %up to 2ms variability
-					if me.disableSyncTests;Screen('Preference', 'SkipSyncTests', 2);end
+					Screen('Preference', 'SkipSyncTests', 2);
 					Screen('Preference', 'VisualDebugLevel', 0);
 					Screen('Preference', 'Verbosity', me.verbosityLevel);
 					Screen('Preference', 'SuppressAllWarnings', 0);
 				else
 					if me.disableSyncTests
 						fprintf('\n---> screenManager: Sync Tests OVERRIDDEN, do not use for real experiments!!!\n');
+						warning('---> screenManager: Sync Tests OVERRIDDEN, do not use for real experiments!!!')
 						Screen('Preference', 'SkipSyncTests', 2);
 					else
 						fprintf('\n---> screenManager: Normal Screen Preferences used.\n');
@@ -412,7 +415,15 @@ classdef screenManager < octickaCore
 				%=== start to set up PTB screen
 				PsychImaging('PrepareConfiguration');
 				PsychImaging('AddTask', 'General', 'UseFastOffscreenWindows');
-				if me.useVulkan; PsychImaging('AddTask', 'General', 'UseVulkanDisplay'); end
+				if me.useVulkan
+					if ~me.screenVals.isVulkan; fprintf('---> screenManager: Probing for Vulkan failed...\n'); end
+					try 
+						PsychImaging('AddTask', 'General', 'UseVulkanDisplay');
+						fprintf('---> screenManager: Vulkan appears to be activated...\n');
+					catch
+						warning('Vulkan failed to be initialised...')
+					end
+				end
 				me.isPlusPlus = screenManager.bitsCheckOpen();
 				fprintf('---> screenManager: Probing for a Display++...');
 				bD = me.bitDepth;
@@ -576,12 +587,14 @@ classdef screenManager < octickaCore
 				end
 
 				%===Linux can give us some more information
-				if IsLinux && ~isHDR
-					d			= Screen('ConfigureDisplay','Scanout',me.screen,0);
-					sv.name		= d.name;
-					sv.widthMM	= d.displayWidthMM;
-					sv.heightMM = d.displayHeightMM;
-					sv.display	= d;
+				if IsLinux && ~isHDR && ~me.useVulkan
+					try
+						d			= Screen('ConfigureDisplay','Scanout',me.screen,0);
+						sv.name		= d.name;
+						sv.widthMM	= d.displayWidthMM;
+						sv.heightMM = d.displayHeightMM;
+						sv.display	= d;
+					end
 				end
 
 				%===get timing info
@@ -684,6 +697,7 @@ classdef screenManager < octickaCore
 
 				me.screenVals = sv;
 			catch ME
+				getReport(ME);
 				close(me);
 				Priority(0);
 				prepareScreen(me);
@@ -709,7 +723,8 @@ classdef screenManager < octickaCore
 		%>
 		% ===================================================================
 			if ~me.isOpen
-				stim = dotsStimulus('mask',true,'size',10,'speed',0,'density',3,'dotSize',0.3);
+				stim = dotsStimulus('mask',true,'size',10,'speed',2,...
+					'density',3,'dotSize',0.3);
 				open(me);
 				disp('--->>> screenManager running a quick demo...');
 				if me.stereoMode > 0
@@ -895,7 +910,7 @@ classdef screenManager < octickaCore
 					Screen('Close',me.win);
 				end
 			catch ME
-					disp(ME.message);
+				getReport(ME);
 			end
 			me.win = [];
 			if isfield(me.screenVals,'win');me.screenVals=rmfield(me.screenVals,'win');end
@@ -1393,7 +1408,7 @@ classdef screenManager < octickaCore
 				ybs = boxsize(2);
 			end
 			for i = 1:size(xy,2)
-					rect(:,i) = [0 0 xbs ybs]';
+				rect(:,i) = [0 0 xbs ybs]';
 				rect(:,i) = CenterRectOnPointd(rect(:,i),xy(1,i),xy(2,i));
 			end
 			Screen('FillRect', me.win, colour, rect);
@@ -1524,11 +1539,11 @@ classdef screenManager < octickaCore
 				[x,y] = mousePosition(me,false);
 				val = [x y];
 				txt = sprintf('X: %+.2f | Y: %+.2f',val(1),val(2));
-				Screen('DrawText',me.win, txt, me.xCenter,5, [0.7 0.7 0.4], [0.5 0.5 0.5]);
+				drawText(me, txt, 0, me.screenVals.topInDegrees);
 			elseif ~isempty(mouseGlobalX) && ~isempty(mouseGlobalY)
 				val = me.toDegrees([mouseGlobalX mouseGlobalY]);
 				txt = sprintf('X: %+.2f | Y: %+.2f',val(1),val(2));
-				Screen('DrawText',me.win,txt, me.xCenter, 5, [0.7 0.7 0.5], [0.5 0.5 0.5]);
+				drawText(me, txt, 0, me.screenVals.topInDegrees);
 			end
 		end
 
@@ -1551,8 +1566,8 @@ classdef screenManager < octickaCore
 		%>
 		%> @param filename optional filename
 		% ===================================================================
-			if ~exist('filename','var')
-				filename=[me.paths.parent filesep 'Shot' datestr(now,'YYYY-mm-DD-HH-MM-SS') '.png'];
+			if ~exist('filename','var') 
+				filename=[me.paths.parent filesep 'Shot' datestr(now,'YYYY-mm-DD-HH-MM-SS') '.png']; 
 			end
 			myImg = Screen('GetImage',me.win);
 			imwrite(myImg, filename);
@@ -1774,7 +1789,7 @@ classdef screenManager < octickaCore
 		% ===================================================================
 		function delete(me)
 			if me.isOpen
-				me.close();
+				close(me);
 				me.logOutput('DELETE method','Screen closed');
 			end
 		end
@@ -1879,10 +1894,12 @@ classdef screenManager < octickaCore
 		%> @brief Run validation for Display++
 		%>
 		% ===================================================================
-		function validateDisplayPlusPlus()
+		function validateDisplayPlusPlus(screen, vulkan)
+			if ~exist('screen','var'); screen = max(Screen('Screens')); end
+			if ~exist('vulkan','var'); vulkan = 0; end
 			screenManager.bitsCheckOpen([], false);
-			BitsPlusImagingPipelineTest(me.screen);
-			BitsPlusIdentityClutTest(me.screen);
+			BitsPlusImagingPipelineTest(screen);
+			BitsPlusIdentityClutTest(screen, [], [], [], vulkan);
 		end
 
 		% ===================================================================

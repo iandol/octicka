@@ -28,13 +28,16 @@ classdef discStimulus < baseStimulus
 	properties (SetAccess = protected, GetAccess = public)
 		%> stimulus family
 		family = 'disc'
+		%> for texture / rect stimuli if we resizes we compute a scale value
+		scale = 1
 	end
 
 	properties (SetAccess = private, GetAccess = public, Hidden = true)
+		%> types
 		typeList = {'simple','flash'}
 	end
 
-	properties (Dependent = true, SetAccess = private, GetAccess = private)
+	properties (Dependent = true, Access = private)
 		%> a dependant property to track when to switch from ON to OFF of
 		%flash.
 		flashSwitch
@@ -58,7 +61,6 @@ classdef discStimulus < baseStimulus
 		colourOutTemp = [1 1 1]
 		flashColourOutTemp = [1 1 1]
 		stopLoop = 0
-		scale = 1
 		allowedProperties = {'type','flashTime','flashOn','flashColour','contrast',...
 			'sigma','useAlpha','smoothMethod'}
 		ignoreProperties = {'flashSwitch','smoothMethod'};
@@ -111,10 +113,11 @@ classdef discStimulus < baseStimulus
 			me.dp = struct;
 			fn = fieldnames(me);
 			for j=1:length(fn)
-				if ~ismember(fn{j}, me.ignoreProperties)
+				pp = fn{j};
+				if ~ismember(pp, me.ignoreProperties)
 					prop = [fn{j} 'Out'];
 					p = addProperty(me, prop);
-					v = me.setOut(p, me.(fn{j})); % our pseudo set method
+					v = me.setOut(p, me.(pp)); % our pseudo set method
 					me.dp.(p) = v; %copy our property value to our tempory copy
 				end
 			end
@@ -317,20 +320,14 @@ classdef discStimulus < baseStimulus
 		%> requirements.
 		% ===================================================================
 		function setRect(me)
+			if isempty(me.texture); me.mvRect = [0 0 100 100]; return; end
 			me.dstRect = ScaleRect(Screen('Rect',me.texture), me.scale, me.scale);
 			if me.mouseOverride && me.mouseValid
-					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
+				me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
 			else
-				if me.isSetup
-					me.dstRect=me.dstRect=CenterRectOnPointd(me.dstRect,me.xFinal,me.yFinal);
-				else
-					[sx, sy]=pol2cart(me.d2r(me.angle),me.startPosition);
-					me.dstRect=me.dstRect=CenterRectOnPointd(me.dstRect,me.sM.xCenter,me.sM.yCenter);
-					me.dstRect=OffsetRect(me.dstRect,me.xPosition*me.ppd+(sx*me.ppd),me.yPosition*me.ppd+(sy*me.ppd));
-				end
+				me.dstRect=CenterRectOnPointd(me.dstRect,me.xFinal,me.yFinal);
 			end
 			me.mvRect=me.dstRect;
-			me.setAnimationDelta();
 		end
 
 		% ===================================================================

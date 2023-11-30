@@ -48,7 +48,7 @@ classdef barStimulus < baseStimulus
 		interpMethodList	= {'nearest','linear','makima','spline','cubic'}
 	end
 	
-	properties (SetAccess = protected, GetAccess = protected)
+	properties (Access = {?baseStimulus})
 		baseColour
 		screenWidth
 		screenHeight
@@ -84,7 +84,7 @@ classdef barStimulus < baseStimulus
 			
 			me.isRect = true; %uses a rect for drawing
 			
-			me.ignoreProperties = ['^(' me.ignorePropertiesBase '|' me.ignoreProperties ')$'];
+			me.ignoreProperties = [me.ignorePropertiesBase me.ignoreProperties];
 			me.logOutput('constructor','Bar Stimulus initialisation complete');
 		end
 		
@@ -96,12 +96,14 @@ classdef barStimulus < baseStimulus
 		function setup(me,sM)
 			
 			reset(me);
-			me.inSetup = true;
-			
+			me.inSetup = true; me.isSetup = false;
+			if isempty(me.isVisible); show(me); end
+
 			me.sM = sM;
-			if ~sM.isOpen; warning('Screen needs to be Open!'); end
-			me.screenVals = sM.screenVals;
+			if ~sM.isOpen; error('Screen needs to be Open!'); end
 			me.ppd = sM.ppd;
+			me.screenVals = sM.screenVals;
+			me.texture = []; %we need to reset this
 			me.baseColour = sM.backgroundColour;
 			me.screenWidth = sM.screenVals.screenWidth;
 			me.screenHeight = sM.screenVals.screenHeight;
@@ -111,34 +113,21 @@ classdef barStimulus < baseStimulus
 				me.barWidth = me.size;
 			end
 			
+			me.dp = struct();
 			fn = fieldnames(me);
 			for j=1:length(fn)
-				if isempty(regexpi(fn{j},me.ignoreProperties, 'once')) && isempty(me.findprop([fn{j} 'Out']))
-					p=me.addprop([fn{j} 'Out']); p.Transient = true;
-					switch fn{j}
-						case 'xPosition'
-							p.SetMethod = @set_xPositionOut;
-						case 'yPosition'
-							p.SetMethod = @set_yPositionOut;
-						case 'size'
-							p.SetMethod = @set_sizeOut;
-						case 'colour'
-							p.SetMethod = @set_colourOut;
-						case 'alpha'
-							p.SetMethod = @set_alphaOut;
-						case 'scale'
-							p.SetMethod = @set_scaleOut;
-					end
-					if isempty(regexpi(fn{j},me.ignoreProperties, 'once'))
-						me.([fn{j} 'Out']) = me.(fn{j}); %copy our property value to our tempory copy
-					end
+				if ~ismember(fn{j}, me.ignoreProperties)
+					prop = [fn{j} 'Out'];
+					p = addProperty(me, prop);
+					v = me.setOut(prop,me.(fn{j})); % our pseudo set method
+					me.dp.(p) = v; %copy our property value to our tempory copy
 				end
 			end
 			
 			addRuntimeProperties(me);
 			
-			if me.barWidthOut > me.screenWidth; me.barWidthOut=me.screenWidth; end
-			if me.barHeightOut > me.screenHeight; me.barHeightOut=me.screenHeight; end
+			if me.dp.barWidthOut > me.screenWidth*3; me.dp.barWidthOut=me.screenWidth*3; end
+			if me.dp.barHeightOut > me.screenHeight*3; me.dp.barHeightOut=me.screenHeight*3; end
 			
 			constructMatrix(me); %make our matrix
 			%tx=Screen('MakeTexture', win, matrix [, optimizeForDrawAngle=0] [, specialFlags=0] [, floatprecision] [, textureOrientation=0] [, textureShader=0]);
@@ -150,52 +139,10 @@ classdef barStimulus < baseStimulus
 				me.phaseCounter = round( me.phaseReverseTime / me.sM.screenVals.ifi );
 			end
 			
-			me.inSetup = false;
+			me.inSetup = false; me.isSetup = true;
 			computePosition(me);
 			setRect(me);
 
-			function set_xPositionOut(me, value)
-				me.xPositionOut = value * me.ppd;
-			end
-			function set_yPositionOut(me,value)
-				me.yPositionOut = value * me.ppd; 
-			end
-			function set_sizeOut(me,value)
-				me.sizeOut = value;
-				if ~me.inSetup
-					me.barHeightOut = me.sizeOut;
-					me.barWidthOut = me.sizeOut;
-				end
-			end
-			function set_scaleOut(me,value)
-				if value < 1; value = 1; end
-				me.scaleOut = round(value);
-			end
-			function set_colourOut(me, value)
-				me.isInSetColour = true;
-				[aold,name] = getP(me,'alpha');
-				if length(value)==4 && value(4) ~= aold
-					alpha = value(4);
-				else
-					alpha = aold;
-				end
-				switch length(value)
-					case 4
-						if alpha ~= aold; me.(name) = alpha; end
-					case 3
-						value = [value(1:3) alpha];
-					case 1
-						value = [value value value alpha];
-				end
-				me.colourOut = value;
-				me.isInSetColour = false;
-			end
-			function set_alphaOut(me, value)
-				if me.isInSetColour; return; end
-				me.alphaOut = value;
-				[v,n] = me.getP('colour');
-				me.(n) = [v(1:3) value];
-			end
 		end
 		
 		% ===================================================================
@@ -205,13 +152,13 @@ classdef barStimulus < baseStimulus
 		% ===================================================================
 		function draw(me)
 			if me.isVisible && me.tick >= me.delayTicks && me.tick < me.offTicks
-				if ~isempty(me.modulateColourOut)
-					colour = me.modulateColourOut;
+				if ~isempty(me.dp.modulateColourOut)
+					colour = me.dp.modulateColourOut;
 				else
 					colour = [];
 				end
 				Screen('DrawTexture',me.sM.win, me.texture,[ ],...
-					me.mvRect, me.angleOut, [], [], colour);
+					me.mvRect, me.dp.angleOut, [], [], colour);
 			end
 			me.tick = me.tick + 1;
 		end
@@ -223,7 +170,7 @@ classdef barStimulus < baseStimulus
 		% ===================================================================
 		function update(me)
 			resetTicks(me);
-			if me.sizeOut > 0; me.barHeightOut = me.sizeOut; me.barWidthOut = me.sizeOut; end
+			if me.dp.sizeOut > 0; me.dp.barHeightOut = me.dp.sizeOut; me.dp.barWidthOut = me.dp.sizeOut; end
 			if me.phaseReverseTime > 0 
 				me.phaseCounter = round( me.phaseReverseTime / me.sM.screenVals.ifi );
 			end
@@ -348,18 +295,61 @@ classdef barStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function sf = getsfOut(me)
-			sf = 0;
-			if ~isempty(me.findprop('sfOut'))
-				sf = me.sfOut;
-			end
+			sf = me.getP('sf');
 		end
 
 		
 	end %---END PUBLIC METHODS---%
 	
 	%=======================================================================
-	methods ( Access = protected ) %-------PROTECTED METHODS-----%
+	methods ( Access = {?baseStimulus} ) %-------PROTECTED METHODS-----%
 	%=======================================================================
+
+		% ===================================================================
+		%> @brief our fake set methods, hooks into dynamicprops subsasgn
+		%>
+		% ===================================================================
+		function v = setOut(me, S, v)
+			if ischar(S)
+				prop = S;
+			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
+				prop = S(1).subs;
+			else
+				return;
+			end
+			switch prop
+				case {'xPositionOut' 'yPositionOut'}
+					v = v * me.ppd;
+				case {'sizeOut'}
+					if v > 0;
+						me.setP('barWidth',v);
+						me.setP('barHeight',v);
+					end
+				case {'scaleOut'}
+					if v < 1; v = 1; end
+					v = round(v);
+				case {'colourOut','colour2Out'}
+					[aold,name] = getP(me,'alpha');
+					if length(v)==4 && v(4) ~= aold
+						alpha = v(4);
+					else
+						alpha = aold;
+					end
+					switch length(v)
+						case 4
+							if alpha ~= aold; me.setP('alpha',alpha); end
+						case 3
+							v = [v(1:3) alpha];
+						case 1
+							v = [v v v alpha];
+					end
+				case {'alphaOut'}
+					if v < 0; v = 0; end
+					if v > 1; v = 1; end
+					[vv,n] = me.getP('colour');
+					me.setP(n,[vv(1:3) v]);
+			end
+		end
 
 		% ===================================================================
 		%> @brief constructMatrix makes the texture matrix to fill the bar with
@@ -374,8 +364,12 @@ classdef barStimulus < baseStimulus
 				alpha = me.getP('alpha');
 				contrast = me.getP('contrast');
 				scale = me.getP('scale');
-				bwpixels = round(me.barWidthOut*me.ppd);
-				blpixels = round(me.barHeightOut*me.ppd);
+				bw = me.getP('barWidth');
+				bl = me.getP('barHeight');
+				if bw == 0; bw = 1; end
+				if bl == 0; bl = 4; end
+				bwpixels = round(bw*me.ppd);
+				blpixels = round(bl*me.ppd);
 				if bwpixels>me.screenWidth*3;bwpixels=me.screenWidth*3;end
 				if blpixels>me.screenHeight*3;blpixels=me.screenHeight*3;end
 	
@@ -395,7 +389,7 @@ classdef barStimulus < baseStimulus
 				
 				switch me.type
 					case 'checkerboard'
-						tmat = me.makeCheckerBoard(blpixels,bwpixels,me.sfOut);
+						tmat = me.makeCheckerBoard(blpixels,bwpixels,me.dp.sfOut);
 					case 'random'
 						rmat=rand(blscale,bwscale);
 						for i=1:3
@@ -441,7 +435,7 @@ classdef barStimulus < baseStimulus
 				if me.phaseReverseTime > 0
 					switch me.type
 						case {'solid','checkerboard'}
-							c2 = me.mix(me.colour2Out);
+							c2 = me.mix(me.dp.colour2Out);
 							out = zeros(size(outmat));
 							for i = 1:3
 								tmp = outmat(:,:,i);
@@ -464,9 +458,9 @@ classdef barStimulus < baseStimulus
 				end
 			catch ME %#ok<CTCH>
 				warning('--->>> barStimulus texture generation failed, making plain texture...')
-				getReport(ME)
-				bwpixels = round(me.barWidthOut*me.ppd);
-				blpixels = round(me.barHeightOut*me.ppd);
+				getReport(ME);
+				bwpixels = round(me.dp.barWidthOut*me.ppd);
+				blpixels = round(me.dp.barHeightOut*me.ppd);
 				if bwpixels>me.screenWidth*3;bwpixels=me.screenWidth*3;end
 				if blpixels>me.screenHeight*3;blpixels=me.screenHeight*3;end
 				me.matrix=ones(blpixels,bwpixels,4);
@@ -478,8 +472,8 @@ classdef barStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function mout = makeCheckerBoard(me,hh,ww,c)
-			c1 = me.mix(me.colourOut);
-			c2 = me.mix(me.colour2Out);
+			c1 = me.mix(me.getP('colour'));
+			c2 = me.mix(me.getP('colour2'));
 			cppd = round(( me.ppd / 2 / c )); %convert to sf cycles per degree
 			if cppd == 1; warning('--->>> Checkerboard at resolution limit of monitor (1px) ...'); end
 			if cppd < 1 || cppd >= max(me.sM.winRect) || cppd == Inf 
@@ -513,7 +507,8 @@ classdef barStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function out = mix(me,c)
-			out = me.baseColour(1:3) * (1 - me.contrastOut) + c(1:3) * me.contrastOut;
+			ct = me.getP('contrast');
+			out = me.baseColour(1:3) * (1 - ct) + c(1:3) * ct;
 		end
 		
 	end

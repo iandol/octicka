@@ -512,7 +512,6 @@ classdef runExperiment < octickaCore
 					close(io);
 				end
 				%profile off; profile clear
-				warning('on')
 				Priority(0);
 				ListenChar(0);
 				ShowCursor;
@@ -825,7 +824,6 @@ classdef runExperiment < octickaCore
 				%===========================take over the keyboard + max priority
 				KbReleaseWait; %make sure keyboard keys are all released
 				if me.debug == false
-					%warning('off'); %#ok<*WNOFF>
 					ListenChar(-1); %2=capture all keystrokes
 				end
 				if ~isdeployed
@@ -972,7 +970,6 @@ classdef runExperiment < octickaCore
 					ListenChar(0);
 					RestrictKeysForKbCheck([]);
 					ShowCursor;
-					warning('on');
 				end
 
 				try updatePlot(bR, me); end %update our behavioural plot for final state
@@ -1056,7 +1053,6 @@ classdef runExperiment < octickaCore
 					close(io);
 				end
 				%profile off; profile clear
-				warning('on') 
 				Priority(0);
 				ListenChar(0); RestrictKeysForKbCheck([]);
 				ShowCursor;

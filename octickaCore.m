@@ -1,11 +1,17 @@
 % ========================================================================
-%> @class octickaCore
-%> @brief octickaCore base class inherited by many other octicka classes.
-%>
-%>
-%> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
-% ========================================================================
 classdef octickaCore < handle
+%> @class octickaCore
+%> @brief octickaCore base class inherited by other octicka classes.
+%>
+%> @section intro Introduction
+%>
+%> octickaCore is itself derived from handle. It provides methods to find
+%> attributes with specific parameters (used in autogenerating UI panels),
+%> clone the object, parse arguments safely on construction and add default
+%> properties such as paths, dateStamp, uuid and name/comment management.
+%>
+%> Copyright ©2014-2023 Ian Max Andolina — released: LGPL3, see LICENCE.md
+% ========================================================================
 
 	%--------------------PUBLIC PROPERTIES----------%
 	properties
@@ -42,12 +48,16 @@ classdef octickaCore < handle
 	properties (Access = protected, Transient = true)
 		%> Octave version number, this is transient so it is not saved
 		oversion  = 0
+		%> sans font
+		sansFont		= 'Ubuntu'
+		%> monoFont
+		monoFont		= 'Ubunto Mono'
 	end
 
 	%--------------------PROTECTED PROPERTIES----------%
 	properties (Access = protected)
 		%> class name
-		className  = ''
+		className = ''
 		%> save prefix generated from clock time
 		savePrefix = ''
 		%> cached full name
@@ -57,7 +67,7 @@ classdef octickaCore < handle
 	%--------------------PRIVATE PROPERTIES----------%
 	properties (Access = private)
 		%> allowed properties passed to object upon construction
-		allowedPropertiesCore  = {'name','comment','cloning'}
+		allowedPropertiesCore = {'name','comment','cloning'}
 	end
 
 	%=======================================================================
@@ -78,6 +88,7 @@ classdef octickaCore < handle
 		% ===================================================================
 			args = octickaCore.addDefaults(varargin);
 			me.parseArgs(args, me.allowedPropertiesCore);
+			warning ("off", "Octave:language-extension");
 			me.dateStamp = clock();
 			me.className = class(me);
 			me.uuid = num2str(dec2hex(floor((now - floor(now))*1e10))); %me.uuid = char(java.util.UUID.randomUUID)%128bit uuid
@@ -85,6 +96,7 @@ classdef octickaCore < handle
 			me.fullName_ = me.fullName;
 			me.oversion = str2double(regexp(version,'^\d\.\d+','match','once'));
 			setPaths(me);
+			getFonts(me);
 		end
 
 		% ===================================================================
@@ -130,7 +142,7 @@ classdef octickaCore < handle
 
 		% ===================================================================
 		function setProp(me, property, value)
-		%> @fn set
+		%> @fn setProp(me, property, value)
 		%> @brief method to fast change a particular value. This is
 		%> useful for use in anonymous functions, like in the state machine.
 		%>
@@ -139,6 +151,44 @@ classdef octickaCore < handle
 		% ===================================================================
 			if isprop(me,property)
 				me.(property) = value;
+			end
+		end
+
+		% ===================================================================
+		function [rM, aM] = initialiseGlobals(me, doReset, doOpen)
+		%> @fn [rM, aM] = initialiseGlobals(me)
+		%> @brief we try no to use globals but for reward and audio, due to
+		%> e.g. eyelink we can't help it, set them up here
+		%>
+		%> @param doReset - try to reset the object?
+		%> @param doOpen  - try to open the object?
+		% ===================================================================
+			global rM aM
+
+			if ~exist('doReset','var'); doReset = false; end
+			if ~exist('doOpen','var'); doOpen = false; end
+
+			%------initialise the rewardManager global object
+			if ~isa(rM,'arduinoManager'); rM = arduinoManager(); end
+			if rM.isOpen && doReset
+				try rM.close; rM.reset; end
+			end
+			if doOpen && ~rM.isOpen; open(rM); end
+
+			%------initialise an audioManager for beeps,playing sounds etc.
+			if ~isa(aM,'audioManager'); aM = audioManager(); end
+			if doReset
+				try
+					aM.silentMode = false;
+					reset(aM);
+				catch
+					warning('Could not reset audio manager!');
+					aM.silentMode = true;
+				end
+			end
+			if doOpen && ~aM.isOpen && ~aM.silentMode
+				open(aM);
+				aM.beep(2000,0.1,0.1);
 			end
 		end
 
@@ -220,6 +270,7 @@ classdef octickaCore < handle
 
 		% ===================================================================
 		function args = makeArgs(args)
+		%> @fn makeArgs
 		%> @brief Converts cell args to structure array
 		%>
 		%>
@@ -246,7 +297,9 @@ classdef octickaCore < handle
 
 		% ===================================================================
 		function args = addDefaults(args, defs)
+		%> @fn addDefaults
 		%> @brief add default options to arg input
+		%>
 		%>
 		%> @param args input structure from varargin
 		%> @param defs extra default settings
@@ -263,6 +316,19 @@ classdef octickaCore < handle
 				if ~any(id)
 					args.(fnameDef{i}) = defs.(fnameDef{i});
 				end
+			end
+		end
+
+		% ===================================================================
+		function result = hasKey(in, key)
+		%> @fn hasKey
+		%> @brief check if a struct / object has a propery / field
+		%>
+		%> @param value name
+		% ===================================================================
+			result = false;
+			if isfield(in, key) || isprop(in, key)
+				result = true;
 			end
 		end
 
@@ -296,13 +362,20 @@ classdef octickaCore < handle
 
 		% ===================================================================
 		function parseArgs(me, args, allowedProperties)
+		%> @fn parseArgs
 		%> @brief Sets properties from a structure or normal arguments pairs,
 		%> ignores invalid or non-allowed properties
 		%>
 		%> @param args input structure
 		%> @param allowedProperties properties possible to set on construction
 		% ===================================================================
+			if ischar(allowedProperties)
+				%we used | for regexp but better use cell array
+				allowedProperties = strsplit(allowedProperties,'|');
+			end
+
 			args = octickaCore.makeArgs(args);
+
 			if isstruct(args)
 				fnames = fieldnames(args); %find our argument names
 				for i=1:length(fnames)
@@ -316,6 +389,7 @@ classdef octickaCore < handle
 					end
 				end
 			end
+
 		end
 
 		% ===================================================================
@@ -367,7 +441,7 @@ classdef octickaCore < handle
 				if status == 0; warning('Could not create SavedData folder'); end
 			end
 			me.paths.protocols = [me.paths.parent filesep 'Protocols'];
-			if ~isfolder(me.paths.savedData)
+			if ~isfolder(me.paths.protocols)
 				status = mkdir(me.paths.protocols);
 				if status == 0; warning('Could not create Protocols folder'); end
 			end
@@ -382,7 +456,43 @@ classdef octickaCore < handle
 		end
 
 		% ===================================================================
+		function getFonts(me)
+		%> @fn getFonts(me)
+		%> @brief Checks OS and assigns a sans and mono font
+			if exist('listfonts','file')
+				lf = listfonts;
+			else
+				lf = {};
+			end
+			if ismac
+				me.sansFont = 'Avenir Next';
+				me.monoFont = 'Menlo';
+			elseif ispc
+				me.sansFont = 'Calibri';
+				me.monoFont = 'Consolas';
+			else %linux
+				me.sansFont = 'Ubuntu';
+				me.monoFont = 'Ubuntu Mono';
+			end
+			if any(strcmpi('Graublau Sans', lf))
+				me.sansFont = 'Graublau Sans';
+			elseif any(strcmpi('Source Sans 3', lf))
+				me.sansFont = 'Source Sans 3';
+			elseif any(strcmpi('Source Sans Pro', lf))
+				me.sansFont = 'Source Sans Pro';
+			end
+			if any(strcmpi('Fira Code', lf))
+				me.monoFont = 'Fira Code';
+			elseif any(strcmpi('Cascadia Code', lf))
+				me.monoFont = 'Cascadia Code';
+			elseif any(strcmpi('JetBrains Mono', lf))
+				me.monoFont = 'JetBrains Mono';
+			end
+		end
+
+		% ===================================================================
 		function out=toStructure(me)
+		%> @fn out=toStructure(me)
 		%> @brief Converts properties to a structure
 		%>
 		%>

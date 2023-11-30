@@ -15,14 +15,21 @@ function startTouchTraining(tr)
 
 	if IsOctave; try pkg load instrument-control; end; end
 
+
 	try
 		% ============================screen
 		s = screenManager('blend',true,'pixelsPerCm',pixelsPerCm, 'distance', distance,...
 		'backgroundColour',tr.bg,'windowed',windowed,'specialFlags',sf);
 
 		% s============================stimuli
-		target = discStimulus('size', tr.maxSize, 'colour', tr.fg);
-
+		if tr.task == 3;
+			im = [getenv("HOME") filesep 'Documents/Monkey-Pictures']
+			target = imageStimulus('size', tr.maxSize, 'fileName', im,'crop','square');
+			tr.task = 2;
+		else
+			target = discStimulus('size', tr.maxSize, 'colour', tr.fg);
+		end
+		
 		% t============================touch
 		t = touchManager('isDummy',tr.dummy);
 		t.window.doNegation = true;
@@ -31,12 +38,13 @@ function startTouchTraining(tr)
 		if tr.debug; t.verbose = true; end
 
 		% ============================reward
-		rM = arduinoManager('port',rewardPort,'shield','new','verbose',false);
+		rM = gpioManager;
+		rM.reward.pin = 27;
+		rM.reward.time = 0.025;
 		try open(rM); end
 
 		% ============================steps table
 		sz = linspace(tr.maxSize, tr.minSize, 5);
-
 
 		if tr.task == 2 % simple task
 			if tr.phase > 9; tr.phase = 9; end
@@ -141,14 +149,16 @@ function startTouchTraining(tr)
 			fprintf('\n===> START TRIAL: %i - PHASE %i\n', trialN, phase);
 			fprintf('===> Size: %.1f Init: %.2f Hold: %.2f Release: %.2f\n', t.window.radius,t.window.init,t.window.hold,t.window.release);
 
-			touchStart = false;
+			res = 0;
+			touchStart = false; keepRunning = true;
 			touchResponse = '';
 			anyTouch = false;
 			txt = '';
 			trialN = trialN + 1;
 			hldtime = false;
 			reset(t);
-			flush(t);
+			flush(t); 
+			WaitSecs(0.01);
 			vbl = flip(s); vblInit = vbl;
 			while ~touchStart && vbl < vblInit + 4;
 				if ~hldtime; draw(target); end
@@ -165,9 +175,9 @@ function startTouchTraining(tr)
 				txt = sprintf('Step=%i Touch=%i x=%.2f y=%.2f h:%i ht:%i r:%i rs:%i s:%i %.1f Init: %.2f Hold: %.2f Release: %.2f',...
 					phase,touchResponse,t.x,t.y,hld, hldtime, rel, reli, se,...
 					t.window.radius,t.window.init,t.window.hold,t.window.release);
-				if ~isempty(touchResponse); touchStart=true; break; end
+				if ~isempty(touchResponse); touchStart = true; break; end
 				[~,~,c] = KbCheck();
-				if c(quitKey); keepRunning=false; break; end
+				if c(quitKey); keepRunning = false; break; end
 			end
 
 			vblEnd = flip(s);
@@ -177,14 +187,16 @@ function startTouchTraining(tr)
 				fprintf('===> TIMEOUT :-)\n');
 				drawText(s,'TIMEOUT!');
 				flip(s);
-				WaitSecs(0.25);
+				WaitSecs(0.5+rand);
 			elseif strcmp(touchResponse,'yes')
+				giveReward(rM);
 				update(d,true,phase,trialN,vblEnd-vblInit);
 				phaseN = phaseN + 1;
 				fprintf('===> CORRECT :-)\n');
 				drawText(s,'CORRECT!');
+				Beeper(3000,0.3,0.2);
 				flip(s);
-				WaitSecs(0.5);
+				WaitSecs(0.5+rand);
 			elseif strcmp(touchResponse,'no')
 				update(d,false,phase,trialN,vblEnd-vblInit);
 				phaseN = phaseN + 1;
@@ -192,27 +204,36 @@ function startTouchTraining(tr)
 				drawBackground(s,[1 0 0]);
 				drawText(s,'FAIL!');
 				flip(s);
+				Beeper(300,1,0.5);
 				WaitSecs(timeOut);
 			else
 				fprintf('===> UNKNOWN :-|\n');
 				drawText(s,'UNKNOWN!');
 				flip(s);
-				WaitSecs(0.25);
+				WaitSecs(0.5+rand);
+			end
+			
+			if isa(target,'imageStimulus')
+				i.selectionOut = randi(target.nImages);
+				update(i);
 			end
 
 			if trialN >= 10
-				if phaseN >= 10 && length(d.data.result)>10
+				if length(d.data.result)>10
 					res = sum(d.data.result(end-9:end));
+				end
+				fprintf('===> Performance: %i Phase: %i\n',res,phase);
+				if phaseN >= 10 && length(d.data.result)>10
 					if res >= 8
 						phase = phase + 1;
 					elseif res <= 2
 						phase = phase - 1;
 					end
-					fprintf('===> Performance: %i Phase: %i\n',res,phase);
 					phaseN = 0;
 					if phase < 1; phase = 1; end
 					if phase > 20; phase = 20; end
 					if tr.task == 2 && phase > 9; phase = 9; end
+					fprintf('===> Phase update: %i\n',phase);
 				end
 			end
 
@@ -239,6 +260,7 @@ function startTouchTraining(tr)
 		sca;
 
 	catch ME
+		getReport(ME);
 		if exist('pid','var') && ~isempty(pid)
 			try system(['pkill ' pid]); end
 		end
@@ -249,10 +271,6 @@ function startTouchTraining(tr)
 		try Priority(0); end
 		try ListenChar(0); end
 		sca;
-		disp(ME);
-		for i = 1:length(ME.stack);
-			disp(ME.stack(i));
-		end
 	end
 
 end

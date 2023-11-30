@@ -602,6 +602,7 @@ classdef touchManager < octickaCore
 				try reset(im); end
 				try close(sM); end
 			catch ME
+				getReport(ME);
 				try reset(im); end
 				try close(sM); end
 				try close(me); end

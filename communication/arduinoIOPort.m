@@ -84,7 +84,7 @@ classdef arduinoIOPort < handle
 			try
 				IOPort('Purge',a.conn);
 			catch ME
-				disp(ME.message)
+				getReport(ME);
 				delete(a.conn);
 				delete(a);
 				error(['Could not use port: ' port]);
@@ -157,6 +157,7 @@ classdef arduinoIOPort < handle
 					IOPort('Close', a.conn); 
 				end
 			catch ME
+				getReport(ME);
 				disp('arduinoIOPort: Proceeding to delete all serial connections!');
 				IOPort('CloseAll');
 				%disp(ME.message);

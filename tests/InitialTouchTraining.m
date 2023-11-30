@@ -195,6 +195,7 @@ try
     sca;
 
 catch ME
+    getReport(ME);
     try reset(m); reset(c1); end
     try close(s); end
     try close(t); end
@@ -202,10 +203,6 @@ catch ME
     try Priority(0); end
     try ListenChar(0); end
     sca;
-    disp(ME);
-    for i = 1:length(ME.stack);
-        disp(ME.stack(i));
-    end
 end
 
 end

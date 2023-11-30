@@ -555,6 +555,7 @@ classdef calibrateLuminance < handle
 				me.isTested = true;
 				plot(me);
 			catch ME %#ok<CTCH>
+				getReport(ME);
 				resetTested(me);
 				if ~IsWin; RestoreCluts; end
 				Screen('CloseAll');
@@ -1134,10 +1135,8 @@ classdef calibrateLuminance < handle
 						if me.verbose; fprintf('!!!>>>Closing Win: %i kind: %i\n',me.win,kind); end
 					end
 				catch ME
+					getReport(ME);
 					%Screen('CloseAll');
-					if me.verbose 
-						getReport(ME);
-					end
 				end
 			end
 		end

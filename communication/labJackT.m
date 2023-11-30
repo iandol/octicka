@@ -181,9 +181,9 @@ classdef labJackT < handle
 			tS=tic;
 			if ~libisloaded(me.libName)
 				try
-					warning off; loadlibrary(me.library,me.header); warning on;
+					loadlibrary(me.library,me.header);
 				catch ME
-					warning on;
+					getReport(ME);
 					warning(['Loading the LJM library failed: ' ME.message]);
 					txt = ME.getReport();
 					fprintf('%s\n',txt);

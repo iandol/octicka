@@ -1,4 +1,6 @@
 % ========================================================================
+classdef baseStimulus < octickaCore
+%> @class baseStimulus
 %> @brief baseStimulus is the superclass for all octicka stimulus objects
 %>
 %> Superclass providing basic structure for all stimulus classes. This is a dynamic properties
@@ -11,9 +13,23 @@
 %>
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
-classdef baseStimulus < octickaCore
 
+	%--------------------ABSTRACT PROPERTIES----------%
+	properties (Abstract = true)
+		%> stimulus type
+		type
+	end
+
+	%--------------------ABSTRACT PROPERTIES----------%
+	properties (Abstract = true, SetAccess = protected)
+		%> the stimulus family (grating, dots etc.)
+		family
+	end
+
+	%--------------------PUBLIC PROPERTIES----------%
 	properties
+		%> true or false, whether to draw() this object
+		isVisible		= true
 		%> X Position ± degrees relative to screen center (0,0)
 		xPosition		= 0
 		%> Y Position ± degrees relative to screen center (0,0)
@@ -44,8 +60,6 @@ classdef baseStimulus < octickaCore
 		animator		= []
 		%> override X and Y position with mouse input? Useful for RF mapping
 		mouseOverride	= false
-		%> true or false, whether to draw() this object
-		isVisible		= true
 		%> show the position on the Eyetracker display?
 		showOnTracker	= true
 		%> Do we print details to the commandline?
@@ -54,16 +68,7 @@ classdef baseStimulus < octickaCore
 		dp				= []
 	end
 
-	properties (Abstract = true)
-		%> general stimulus type, 'flash', 'simple' etc.
-		type
-	end
-
-	properties (Abstract = true, SetAccess = protected)
-		%> the stimulus family (grating, dots etc.)
-		family
-	end
-
+	%--------------------VISIBLE PROPERTIES-----------%
 	properties (SetAccess = protected, GetAccess = public)
 		%> final centered X position in pixel coordinates PTB uses: 0,0 top-left
 		%> see computePosition();
@@ -95,6 +100,8 @@ classdef baseStimulus < octickaCore
 	end
 
 	properties (Hidden = true, Transient = true)
+		%> size in pixels
+		szPx
 		%> Our texture pointers for texture-based stimuli
 		texture		= []
 		buffertex	= []
@@ -108,6 +115,7 @@ classdef baseStimulus < octickaCore
 		isGUI		= false
 	end
 
+	%--------------------PROTECTED PROPERTIES----------%
 	properties (Access = protected)
 		postSet
 		% class fieldnames
@@ -115,41 +123,41 @@ classdef baseStimulus < octickaCore
 		% dp fieldnames
 		fndp
 		% object kinds
-		doDots			= false
-		doMotion		= false
-		doDrift			= false
-		doFlash			= false
+		doDots		= false
+		doMotion	= false
+		doDrift		= false
+		doFlash		= false
 		doAnimator	= false
 		%> is mouse position within screen co-ordinates?
 		mouseValid  = false
 		%> mouse X position
-		mouseX  = 0
+		mouseX		= 0
 		%> mouse Y position
-		mouseY  = 0
+		mouseY		= 0
 		%> delay ticks to wait until display
 		delayTicks  = 0
 		%> ticks before stimulus turns off
-		offTicks  = Inf
+		offTicks	= Inf
 		%>are we setting up?
-		inSetup  = false
+		inSetup		= false
 		%> delta cache
-		delta_ = []
+		delta_		= []
 		%> dX cache
-		dX_ = []
+		dX_			= []
 		%> dY cache
-		dY_ = []
+		dY_			= []
 		% deal with interaction of colour and alpha
-		isInSetColour  = false
-		setLoop = 0
-		%> Which properties to ignore to clone when making transient copies in
-		%> the setup method
-		ignorePropertiesBase  = {'dp','animator','handles','ppd','sM','name','comment','fullName',''...
-			'family','type','dX','dY','delta','verbose','texture','dstRect','xFinal','yFinal',''...
-			'isVisible','dateStamp','paths','uuid','tick','mouseOverride','isRect',''...
-			'dstRect','mvRect','sM','screenVals','isSetup','isGUI','showOnTracker',''...
-			'doDots','doMotion','doDrift','doFlash','doAnimator'}
+		isInSetColour	= false
+		setLoop		= 0
+		%> Which properties to ignore cloning when making transient copies in setup
+		ignorePropertiesBase = {'dp','animator','specialFlags','handles','ppd','sM',...
+			'name','comment','fullName','family','type','dX','dY','delta','verbose',...
+			'texture','dstRect','xFinal','yFinal','isVisible','dateStamp','paths',...
+			'uuid','tick','delayTicks','mouseOverride','isRect','dstRect','mvRect','sM',...
+			'screenVals','isSetup','isGUI','showOnTracker','doDots','doMotion',...
+			'doDrift','doFlash','doAnimator','mouseX','mouseY'}
     	%> properties allowed to be passed on construction
-		allowedPropertiesBase  = {'xPosition','yPosition','size','colour','verbose',''...
+		allowedPropertiesBase  = {'xPosition','yPosition','size','colour','verbose',...
 			'alpha','startPosition','angle','speed','delayTime','mouseOverride','isVisible'...
 			'showOnTracker','animator'}
 	end
@@ -172,9 +180,9 @@ classdef baseStimulus < octickaCore
 			me.fn = fieldnames(me);
 		end
 
-		% ===================================================================
-		% WARNING: only for public properties, use isprop for all properties
-		% this handles public and "dynamic" .dp.name properties
+		%> ===================================================================
+		%> WARNING: ONLY for public properties, use isprop for all properties
+		%> this handles public and "dynamic" .dp.name properties
 		function ret = isProperty(me, prop);
 			if ~isempty(me.fndp)
 				f = [me.fn;me.fndp];
@@ -204,7 +212,7 @@ classdef baseStimulus < octickaCore
 			[varargout{1:nargout}] = builtin('subsref', me, S);
 		end
 
-    	% ===================================================================
+		% ===================================================================
 		function varargout = subsasgn(me, S, v)
 			me.postSet = [];
 			if ismethod(me, 'setOut')
@@ -282,11 +290,9 @@ classdef baseStimulus < octickaCore
 		%> delta is the normalised number of pixels per frame to move a stimulus
 		% ===================================================================
 		function value = get.delta(me)
-			if isProperty(me,'speedOut')
-				value = (me.dp.speedOut * me.ppd) * me.screenVals.ifi;
-			else
-				value = (me.speed * me.ppd) * me.screenVals.ifi;
-			end
+			value = 0;
+			s = getP(me, 'speed');
+			value = (s * me.ppd) * me.screenVals.ifi;
 		end
 
 		% ===================================================================
@@ -332,6 +338,23 @@ classdef baseStimulus < octickaCore
 		end
 
 		% ===================================================================
+		%> @brief set offTime
+		%>
+		% ===================================================================
+		function setOffTime(me, time)
+			me.offTime = time;
+		end
+
+		% ===================================================================
+		%> @brief set offTime
+		%>
+		% ===================================================================
+		function setDelayTime(me, time)
+			me.delayTime = time;
+		end
+
+
+		% ===================================================================
 		%> @brief reset the various tick counters for our stimulus
 		%>
 		% ===================================================================
@@ -357,8 +380,7 @@ classdef baseStimulus < octickaCore
 			else
 				me.offTicks = Inf;
 			end
-			mouseTick = 0; mouseGlobalX = 0; mouseGlobalY = 0; mouseValid = false;
-			me.mouseX = 0; me.mouseY = 0;
+			mouseTick = 0;
 			me.tick = 0;
 			me.drawTick = 0;
 		end
@@ -375,14 +397,14 @@ classdef baseStimulus < octickaCore
 			global mouseTick mouseGlobalX mouseGlobalY mouseValid
 			if me.tick > mouseTick
 				if ~isempty(me.sM) && isa(me.sM,'screenManager') && me.sM.isOpen
-					[me.mouseX,me.mouseY] = GetMouse(me.sM.win);
-					if me.mouseX > -1 && me.mouseY > -1
-						me.mouseValid = true;
-					else
-						me.mouseValid = false;
-					end
+					[me.mouseX, me.mouseY] = GetMouse(me.sM.win);
 				else
-					[me.mouseX,me.mouseY] = GetMouse;
+					[me.mouseX, me.mouseY] = GetMouse;
+				end
+				if me.mouseX > -1 && me.mouseY > -1
+					me.mouseValid = true;
+				else
+					me.mouseValid = false;
 				end
 				mouseTick = me.tick; %set global so no other object with same tick number can call this again
 				mouseValid = me.mouseValid;
@@ -402,7 +424,7 @@ classdef baseStimulus < octickaCore
 		function run(me, benchmark, runtime, s, forceScreen, showVBL)
 		% run(benchmark, runtime, s, forceScreen, showVBL)
 			try
-				warning off
+
 				if ~exist('benchmark','var') || isempty(benchmark)
 					benchmark=false;
 				end
@@ -444,15 +466,10 @@ classdef baseStimulus < octickaCore
 				if ~s.isOpen
 					sv=open(s);
 				end
-				drawPhotoDiodeSquare(s,[0 0 0]);flip(s);
+				sv = s.screenVals;
 				setup(me,s); %setup our stimulus object
 
 				Priority(MaxPriority(s.win)); %bump our priority to maximum allowed
-
-				if ~strcmpi(me.type,'movie'); draw(me); resetTicks(me); end
-				drawGrid(s); %draw +-5 degree dot grid
-				drawScreenCenter(s); %centre spot
-				drawPhotoDiodeSquare(s, [0 0 0]); %for photodiode
 
 				if benchmark
 					drawText(s, 'BENCHMARK: screen won''t update properly, see FPS in command window at end.');
@@ -479,22 +496,20 @@ classdef baseStimulus < octickaCore
 				while notFinished
 					nFrames = nFrames + 1;
 					draw(me); %draw stimulus
-					drawPhotoDiodeSquare(s, [1 1 1]); %for photodiode
-					if s.visualDebug&&~benchmark; drawGrid(s); end
+					if ~benchmark && s.debug; drawGrid(s); end
 					finishDrawing(s); %tell PTB/GPU to draw
  					animate(me); %animate stimulus, will be seen on next draw
 					if benchmark
 						Screen('Flip',s.win,0,2,2);
 						notFinished = nFrames < benchmarkFrames;
 					else
-						vbl(nFrames) = flip(s, lastvbl + sv.halfisi); %flip the buffer
+						vbl(nFrames) = flip(s, lastvbl + sv.halfifi); %flip the buffer
 						lastvbl = vbl(nFrames);
 						% the calculation needs to take into account the
 						% first and last frame times, so we subtract ifi*2
 						notFinished = lastvbl < ( vbl(1) + ( runtime - (sv.ifi * 2) ) );
 					end
 				end
-				drawPhotoDiodeSquare(s, [0 0 0]); %for photodiode
 				endT = flip(s);
 				if ~benchmark;startT = vbl(1);end
 				diffT = endT - startT;
@@ -519,9 +534,8 @@ classdef baseStimulus < octickaCore
 				fprintf('======>>> <strong>SPEED</strong> (%i frames in %.3f secs) = <strong>%g</strong> fps\n\n',nFrames, diffT, fps);
 				if ~benchmark;fprintf('\b======>>> First - Last frame time: %.3f\n\n',vbl(end)-startT);end
 				clear s fps benchmark runtime b bb i vbl; %clear up a bit
-				warning on
 			catch ME
-				warning on
+				getReport(ME);
 				try Priority(0); end
 				if exist('s','var') && isa(s,'screenManager')
 					try close(s); end
@@ -533,7 +547,7 @@ classdef baseStimulus < octickaCore
 		end
 
 		% ===================================================================
-		%> @brief gets a propery copy or original property
+		%> @brief gets a property copy or original property
 		%>
 		%> When stimuli are run, their properties are copied, so e.g. angle
 		%> is copied to angleOut and this is used during the task. This
@@ -545,7 +559,6 @@ classdef baseStimulus < octickaCore
 		%> @return value of property
 		% ===================================================================
 		function [value, name] = getP(me, name, range)
-			value = [];
 			if isProperty(me, name)
 				if isProperty(me, [name 'Out'])
 					name = [name 'Out'];
@@ -556,12 +569,12 @@ classdef baseStimulus < octickaCore
 				if exist('range','var'); value = value(range); end
 			else
 				warning('Property %s doesn''t exist!!!',name)
-				value = [];
+				value = []; name = [];
 			end
 		end
 
 		% ===================================================================
-		%> @brief gets a propery copy or original property
+		%> @brief sets a property copy or original property
 		%>
 		%> When stimuli are run, their properties are copied, so e.g. angle
 		%> is copied to angleOut and this is used during the task. This
@@ -622,12 +635,12 @@ classdef baseStimulus < octickaCore
 		%> @brief updatePosition returns dX and dY given an angle and delta
 		%>
 		% ===================================================================
-		function [dX, dY] = updatePosition(delta,angle)
+		function [dX, dY] = updatePosition(delta, angle)
 		% updatePosition(delta, angle)
 			dX = delta .* cos(baseStimulus.d2r(angle));
-			if abs(dX) < 1e-3; dX = 0; end
+			if length(dX)== 1 && abs(dX) < 1e-3; dX = 0; end
 			dY = delta .* sin(baseStimulus.d2r(angle));
-			if abs(dY) < 1e-3; dY = 0; end
+			if length(dY)==1 && abs(dY) < 1e-3; dY = 0; end
 		end
 
 	end%---END STATIC METHODS---%
@@ -644,12 +657,12 @@ classdef baseStimulus < octickaCore
 			updateRuntimeProperties(me);
 		end
 
-    % ===================================================================
-		%> @brief doProperties
+		% ===================================================================
+		%> @brief updateRuntimeProperties
 		%> these are transient properties that specify actions during runtime
 		% ===================================================================
 		function updateRuntimeProperties(me)
-			me.doDots		  = false;
+			me.doDots		= false;
 			me.doMotion		= false;
 			me.doDrift		= false;
 			me.doFlash		= false;
@@ -665,21 +678,30 @@ classdef baseStimulus < octickaCore
 		end
 
 		% ===================================================================
-		%> @brief setRect
-		%> setRect makes the PsychRect based on the texture and screen
-		%> values, you should call computePosition() first to get xFinal and
-		%> yFinal.
+		%> @brief compute xFinal and yFinal
+		%>
 		% ===================================================================
-		function setRect(me)
-			if ~isempty(me.texture)
-				me.dstRect=Screen('Rect',me.texture);
-				if me.mouseOverride && me.mouseValid
-					me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
+		function computePosition(me)
+			if me.mouseOverride && me.mouseValid
+				me.xFinal = me.mouseX; me.yFinal = me.mouseY;
+			else
+				if isProperty(me, 'direction')
+					a = me.d2r(getP(me,'direction'));
 				else
-					me.dstRect=CenterRectOnPointd(me.dstRect, me.xFinal, me.yFinal);
+					a = me.d2r(getP(me,'angle'));
 				end
-				me.mvRect=me.dstRect;
+				if me.isSetup
+					[dx, dy]=pol2cart(a, me.dp.startPositionOut);
+					me.xFinal = me.dp.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
+					me.yFinal = me.dp.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
+				else
+					[dx, dy]=pol2cart(a, me.startPosition);
+					me.xFinal = me.xPosition + (dx * me.ppd) + me.sM.xCenter;
+					me.yFinal = me.yPosition + (dy * me.ppd) + me.sM.yCenter;
+				end
+				if me.verbose; fprintf('---> computePosition: %s X = %gpx / %gpx / %gdeg | Y = %gpx / %gpx / %gdeg\n',me.fullName, me.xFinal, me.getP('xPosition'), dx, me.yFinal, me.getP('yPosition'), dy); end
 			end
+			setAnimationDelta(me);
 		end
 
 		% ===================================================================
@@ -697,25 +719,24 @@ classdef baseStimulus < octickaCore
 		end
 
 		% ===================================================================
-		%> @brief compute xFinal and yFinal
-		%>
+		%> @brief setRect
+		%> setRect makes the PsychRect based on the texture and screen
+		%> values, you should call computePosition() first to get xFinal and
+		%> yFinal.
 		% ===================================================================
-		function computePosition(me)
-			if me.mouseOverride && me.mouseValid
-				me.xFinal = me.mouseX; me.yFinal = me.mouseY;
+		function setRect(me)
+			if isempty(me.texture); me.mvRect = [0 0 100 100]; return; end
+			if isprop(me,'scale')
+				me.dstRect = ScaleRect(Screen('Rect',me.texture(1)), me.scale, me.scale);
 			else
-				if me.isSetup
-					[dx, dy]=pol2cart(me.d2r(me.dp.angleOut),me.dp.startPositionOut);
-					me.xFinal = me.dp.xPositionOut + (dx * me.ppd) + me.sM.xCenter;
-					me.yFinal = me.dp.yPositionOut + (dy * me.ppd) + me.sM.yCenter;
-				else
-					[dx, dy]=pol2cart(me.d2r(me.angle),me.startPosition);
-					me.xFinal = me.xPosition*me.ppd + (dx * me.ppd) + me.sM.xCenter;
-					me.yFinal = me.yPosition*me.ppd + (dy * me.ppd) + me.sM.yCenter;
-				end
-				if me.verbose; fprintf('---> computePosition: %s X = %gpx / %gpx / %gdeg | Y = %gpx / %gpx / %gdeg\n',me.fullName, me.xFinal, me.dp.xPositionOut, dx, me.yFinal, me.dp.yPositionOut, dy); end
+				me.dstRect=Screen('Rect',me.texture(1));
 			end
-			setAnimationDelta(me);
+			if me.mouseOverride && me.mouseValid
+				me.dstRect = CenterRectOnPointd(me.dstRect, me.mouseX, me.mouseY);
+			else
+				me.dstRect=CenterRectOnPointd(me.dstRect, me.xFinal, me.yFinal);
+			end
+			me.mvRect=me.dstRect;
 		end
 
 		% ===================================================================
@@ -752,6 +773,28 @@ classdef baseStimulus < octickaCore
 				me.fndp = [];
 			end
 		end
+
+		% ===================================================================
+		%> @brief Delete method
+		%>
+		%> @param me
+		%> @return
+		% ===================================================================
+%		function delete(me)
+%			try
+%				if ~isempty(me.texture)
+%					for i = 1:length(me.texture)
+%						if Screen(me.texture, 'WindowKind')~=0 ;try Screen('Close',me.texture); end; end %#ok<*TRYNC>
+%					end
+%				end
+%				if isprop(me,'buffertex') && ~isempty(me.buffertex)
+%					if Screen(me.buffertex, 'WindowKind')~=0 ; try Screen('Close',me.buffertex); end; end
+%				end
+%				if me.verbose; fprintf('--->>> Delete: %s\n',me.fullName); end
+%			catch ME
+%				getReport(ME);
+%			end
+%		end
 
 	end%---END PRIVATE METHODS---%
 end

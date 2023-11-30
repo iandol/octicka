@@ -1,6 +1,7 @@
 % ========================================================================
+classdef metaStimulus < octickaCore
 %> @class metaStimulus
-%> @brief Manager for multiple octicka stimuli.
+%> @brief Manager for multiple stimuli.
 %>
 %> METASTIMULUS manages a collection of stimuli, wrapped in one object. It
 %> allows you to treat this group of heterogenous stimuli as if they are a
@@ -22,7 +23,6 @@
 %>
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
-classdef metaStimulus < octickaCore
 
 	%--------------------PUBLIC PROPERTIES----------%
 	properties
@@ -94,11 +94,12 @@ classdef metaStimulus < octickaCore
 		%> cache our dependent values for a bit more speed...
 		n_
 		nMask_
+		ppd_
 		%> allowed properties passed to object upon construction
-		allowedProperties = {'setChoice','stimulusSets','controlTable',...
-		'showMask','maskStimuli','verbose','stimuli','screen','choice',...
-		'fixationChoice','exclusionChoice','stimulusTable','tableChoice'}
-		sM
+		allowedProperties = {'setChoice', 'stimulusSets', 'controlTable', 'showMask', ...
+		'maskStimuli', 'verbose', 'stimuli', 'screen', 'choice', 'fixationChoice', ...
+		'exclusionChoice', 'stimulusTable', 'tableChoice'}
+		sM 
 	end
 
 	%=======================================================================
@@ -139,6 +140,7 @@ classdef metaStimulus < octickaCore
 				for i = 1:me.nMask
 					setup(me.maskStimuli{i},s);
 				end
+				me.ppd_ = s.ppd;
 			else
 				error('metaStimulus setup: no screenManager has been provided!!!')
 			end
@@ -150,15 +152,13 @@ classdef metaStimulus < octickaCore
 		%> @param choice override a single choice
 		%> @return
 		% ===================================================================
-		function update(me,choice,mask)
+		function update(me, choice)
 			%tic
-			if ~exist('choice','var'); choice = me.choice; end
-			if ~exist('mask','var'); mask = false; end
-			if ~isempty(choice) && isnumeric(choice) %user forces specific stimuli
+			if exist('choice','var') && ~isempty(choice) && isnumeric(choice) %user forces specific stimuli
 				for i = choice
 					update(me.stimuli{i});
 				end
-			elseif mask && me.showMask == true && me.nMask_ > 0 %draw mask instead
+			elseif me.showMask == true && me.nMask_ > 0 %draw mask instead
 				for i = 1:me.nMask
 					update(me.maskStimuli{i});
 				end
@@ -176,7 +176,7 @@ classdef metaStimulus < octickaCore
 		%> @param choice override a single choice
 		%> @return
 		% ===================================================================
-		function draw(me,choice)
+		function draw(me, choice)
 			if exist('choice','var') && isnumeric(choice) %user forces a single stimulus
 
 				for i = choice
@@ -210,7 +210,7 @@ classdef metaStimulus < octickaCore
 		%> @param choice allow a single selected stimulus
 		%> @return
 		% ===================================================================
-		function animate(me,choice)
+		function animate(me, choice)
 			if exist('choice','var') && isnumeric(choice) %user forces a stimulus
 
 				for i = choice
@@ -234,24 +234,60 @@ classdef metaStimulus < octickaCore
 				for i = 1:me.n_
 					animate(me.stimuli{i});
 				end
-
+				
 			end
 		end
-
+		
 		% ===================================================================
 		%> @brief reset ticks wrapper
 		%>
 		%> @param
 		%> @return
 		% ===================================================================
-		function resetTicks(me)
+		function resetTicks(me, choice)
 
-			for i = 1:me.n
-				resetTicks(me.stimuli{i});
+			if exist('choice','var') && isnumeric(choice) %user forces a stimulus
+				for i = choice
+					resetTicks(me.stimuli{i});
+				end
+			else
+				for i = 1:me.n_
+					resetTicks(me.stimuli{i});
+				end
 			end
 
-			for i = 1:me.nMask
-				resetTicks(me.maskStimuli{i});
+			if me.showMask == true && me.nMask_ > 0
+				for i = 1:me.nMask
+					resetTicks(me.maskStimuli{i});
+				end
+			end
+			
+		end
+
+		% ===================================================================
+		%> @brief reset log wrapper
+		%>
+		%> @param
+		%> @return
+		% ===================================================================
+		function resetLog(me)
+
+			for i = 1:me.n
+				if ismethod(me.stimuli{i},'resetLog');resetLog(me.stimuli{i});end
+			end
+			
+		end
+
+		% ===================================================================
+		%> @brief add tag wrapper
+		%>
+		%> @param
+		%> @return
+		% ===================================================================
+		function addTag(me, tag)
+			if ~exist('tag','var'); return; end
+			for i = 1:me.n
+				if ismethod(me.stimuli{i},'addTag');addTag(me.stimuli{i},tag);end
 			end
 
 		end
@@ -306,16 +342,24 @@ classdef metaStimulus < octickaCore
 
 					for j=1:length(stims)
 						if strcmpi(name,'xyPosition')
-							me.stimuli{stims(j)}.xPositionOut = values(1);
-							me.stimuli{stims(j)}.yPositionOut = values(2);
+							me.stimuli{stims(j)}.dp.xPositionOut = values(1);
+							me.stimuli{stims(j)}.dp.yPositionOut = values(2);
 							me.lastXPosition = values(1);
 							me.lastYPosition = values(2);
 							logs = [logs 'XY: ' num2str(stims(j)) ];
-						elseif isprop(me.stimuli{stims(j)}, [name 'Out'])
-							me.stimuli{stims(j)}.([name 'Out']) = values;
-							logs = [logs ' || ' name 'Out: ' num2str(values)];
+						elseif strcmpi(name,'colourBoth')
+							me.stimuli{stims(j)}.dp.colourOut = values(1:3);
+							me.stimuli{stims(j)}.dp.colour2Out = values(4:6);
+							logs = [logs ' || colourBoth: ' num2str(values)];
 							if ~isempty(offset)
 								me.stimuli{offset(1)}.([name 'Out']) = values + offset(2);
+								logs = [logs ' || OFFSETcolourBoth: ' num2str(values + offset(2))];
+							end
+						elseif isprop(me.stimuli{stims(j)}, [name 'Out'])
+							me.stimuli{stims(j)}.dp.([name 'Out']) = values;
+							logs = [logs ' || ' name 'Out: ' num2str(values)];
+							if ~isempty(offset)
+								me.stimuli{offset(1)}.dp.([name 'Out']) = values + offset(2);
 								logs = [logs ' || OFFSET' name 'Out: ' num2str(values + offset(2))];
 							end
 						end
@@ -323,6 +367,7 @@ classdef metaStimulus < octickaCore
 
 				end
 			end
+			update(me);
 			me.logOutput(logs);
 		end
 
@@ -396,8 +441,8 @@ classdef metaStimulus < octickaCore
 			if ~isempty(me.fixationChoice)
 				x=zeros(length(me.fixationChoice),1); y = x;
 				for i=1:length(me.fixationChoice)
-					x(i) = me.stimuli{me.fixationChoice(i)}.xPositionOut / me.screen.ppd;
-					y(i) = me.stimuli{me.fixationChoice(i)}.yPositionOut / me.screen.ppd;
+					x(i) = me.stimuli{me.fixationChoice(i)}.xPositionOut / me.ppd_;
+					y(i) = me.stimuli{me.fixationChoice(i)}.yPositionOut / me.ppd_;
 				end
 				me.lastXPosition = x;
 				me.lastYPosition = y;
@@ -416,8 +461,8 @@ classdef metaStimulus < octickaCore
 			if ~isempty(me.exclusionChoice)
 				x=zeros(length(me.exclusionChoice),1); y = x;
 				for i=1:length(me.exclusionChoice)
-					x(i) = me.stimuli{me.exclusionChoice(i)}.xPositionOut / me.screen.ppd;
-					y(i) = me.stimuli{me.exclusionChoice(i)}.yPositionOut / me.screen.ppd;
+					x(i) = me.stimuli{me.exclusionChoice(i)}.xPositionOut / me.ppd_;
+					y(i) = me.stimuli{me.exclusionChoice(i)}.yPositionOut / me.ppd_;
 				end
 				me.lastXExclusion = x;
 				me.lastYExclusion = y;
@@ -436,39 +481,38 @@ classdef metaStimulus < octickaCore
 		%> @param ignoreVisible [false] ignore the visibility status of stims
 		%> @return out copy of the stimulusPositions structure
 		% ===================================================================
-		function out = getStimulusPositions(me, ignoreVisible)
+		function out = getStimulusPositions(me, ignoreVisible, toDegrees)
 			if ~exist('ignoreVisible','var'); ignoreVisible=false; end
+			if ~exist('toDegrees','var'); toDegrees = true; end
 			a=1;
 			out = [];
-			me.stimulusPositions = out;
 			for i = 1:me.n_
 				if ignoreVisible; check = true; else; check = me.stimuli{i}.isVisible; end
 				if check && me.stimuli{i}.showOnTracker == true
-					if isprop(me.stimuli{i},'sizeOut')
-						if ~isempty(me.stimuli{i}.xFinal)
-							me.stimulusPositions(a).x = me.stimuli{i}.xFinal;
-							me.stimulusPositions(a).y = me.stimuli{i}.yFinal;
-						elseif ~isempty(me.stimuli{i}.mvRect)
-							r = me.stimuli{i}.mvRect;
-							me.stimulusPositions(a).x = r(3)-r(1);
-							me.stimulusPositions(a).y = r(4)-r(2);
-						else
-							me.stimulusPositions(a).x = me.stimuli{i}.xPositionOut;
-							me.stimulusPositions(a).y = me.stimuli{i}.yPositionOut;
-						end
-						me.stimulusPositions(a).size = me.stimuli{i}.sizeOut;
-						if any(me.fixationChoice == i)
-							me.stimulusPositions(a).selected = true;
-						else
-							me.stimulusPositions(a).selected = false;
-						end
-						a = a + 1;
+					if isprop(me.stimuli{i},'xFinal')
+						xy = [me.stimuli{i}.xFinal me.stimuli{i}.yFinal];
+						if toDegrees; xy = me.screen.toDegrees(xy,'xy'); end
+					else
+						xy = [me.stimuli{i}.xPositionOut me.stimuli{i}.yPositionOut];
 					end
+					out(a).x = xy(1); out(a).y = xy(2);
+					if ~isempty(me.stimuli{i}.szPx)
+						out(a).size = me.stimuli{i}.szPx / me.ppd_; 
+					else
+						out(a).size = me.stimuli{i}.sizeOut * me.ppd_;
+					end
+					if any(me.fixationChoice == i) 
+						out(a).selected = true;
+					else
+						out(a).selected = false;
+					end
+					out(a).w = me.screen.screenVals.width;
+					out(a).h = me.screen.screenVals.height;
+					out(a).ppd = me.ppd_;
+					a = a + 1;
 				end
 			end
-			if ~isempty(me.stimulusPositions)
-				out = me.stimulusPositions;
-			end
+			me.stimulusPositions = out;
 		end
 
 		% ===================================================================
@@ -478,7 +522,6 @@ classdef metaStimulus < octickaCore
 		function run(me, benchmark, runtime, s, forceScreen, showVBL)
 		% run(benchmark, runtime, screenManager, forceFullscreen)
 			try
-				warning off
 				if ~exist('benchmark','var') || isempty(benchmark)
 					benchmark=false;
 				end
@@ -505,7 +548,6 @@ classdef metaStimulus < octickaCore
 					end
 				end
 				prepareScreen(s);
-
 
 				if benchmark
 					s.windowed = false;
@@ -563,7 +605,6 @@ classdef metaStimulus < octickaCore
 						% first and last frame times, so we subtract ifi*2
 						notFinished = lastvbl < ( vbl(1) + ( runtime - (sv.ifi * 2) ) );
 					end
-
 				end
 				endT = flip(s);
 				if ~benchmark;startT = vbl(1);end
@@ -591,16 +632,15 @@ classdef metaStimulus < octickaCore
 				fprintf('======>>> <strong>SPEED</strong> (%i frames in %.3f secs) = <strong>%.2f</strong> fps\n\n',nFrames, diffT, fps);
 				if ~benchmark;fprintf('\b======>>> First - Last frame time: %.3f\n\n',vbl(end)-startT);end
 				clear s fps benchmark runtime b bb i vbl; %clear up a bit
-				warning on
 			catch ME
-				warning on
+				getReport(ME);
 				try Priority(0); end
 				if exist('s','var') && isa(s,'screenManager')
 					try close(s); end
 				end
 				clear fps benchmark runtime b bb i; %clear up a bit
 				reset(me); %reset our stimulus ready for use again
-                                disp(ME);
+				rethrow(ME);
 			end
 		end
 
@@ -644,9 +684,9 @@ classdef metaStimulus < octickaCore
 		end
 
 		% ===================================================================
-		%> @brief get nMask dependent method
+		%> @brief getTypes
 		%> @param
-		%> @return nMask number of mask stimuli
+		%> @return typeList types of stimuli
 		% ===================================================================
 		function typeList = getTypes(me)
 			typeList = {};
@@ -730,10 +770,4 @@ classdef metaStimulus < octickaCore
 		end
 	end%-------------------------END PUBLIC METHODS--------------------------------%
 
-	%=======================================================================
-	methods (Access = private) %------------------PRIVATE METHODS
-	%=======================================================================
-
-	end
 end
-
