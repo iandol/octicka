@@ -23,13 +23,13 @@ function startTouchTraining(tr)
 
 		% s============================stimuli
 		if tr.task == 3;
-			im = [getenv("HOME") filesep 'Documents/Monkey-Pictures']
-			target = imageStimulus('size', tr.maxSize, 'fileName', im,'crop','square');
+			target = imageStimulus('size', tr.maxSize, 'fileName', tr.folder, 'crop', 'square');
 			tr.task = 2;
 		else
 			target = discStimulus('size', tr.maxSize, 'colour', tr.fg);
 		end
-		
+    if tr.debug; target.verbose = true; end
+
 		% t============================touch
 		t = touchManager('isDummy',tr.dummy);
 		t.window.doNegation = true;
@@ -40,7 +40,8 @@ function startTouchTraining(tr)
 		% ============================reward
 		rM = gpioManager;
 		rM.reward.pin = 27;
-		rM.reward.time = 0.025;
+		rM.reward.time = 250; % 250ms
+    if tr.debug; rM.verbose = true; end
 		try open(rM); end
 
 		% ============================steps table
@@ -116,6 +117,7 @@ function startTouchTraining(tr)
 		phaseN = 0;
 		timeOut = 2;
 		phase = tr.phase;
+    stimulus = 1;
 
 		while keepRunning
 			if phase > length(p); phase = length(p); end
@@ -143,10 +145,13 @@ function startTouchTraining(tr)
 			target.xPositionOut = x;
 			target.yPositionOut = y;
 			target.sizeOut = p(phase).size;
-
+      if isa(target,'imageStimulus')
+				target.selectionOut = randi(target.nImages);
+        stimulus = target.selectionOut;
+			end
 			update(target);
 
-			fprintf('\n===> START TRIAL: %i - PHASE %i\n', trialN, phase);
+			fprintf('\n===> START TRIAL: %i - PHASE %i STIM %i\n', trialN, phase, stimulus);
 			fprintf('===> Size: %.1f Init: %.2f Hold: %.2f Release: %.2f\n', t.window.radius,t.window.init,t.window.hold,t.window.release);
 
 			res = 0;
@@ -157,7 +162,7 @@ function startTouchTraining(tr)
 			trialN = trialN + 1;
 			hldtime = false;
 			reset(t);
-			flush(t); 
+			flush(t);
 			WaitSecs(0.01);
 			vbl = flip(s); vblInit = vbl;
 			while ~touchStart && vbl < vblInit + 4;
@@ -211,11 +216,6 @@ function startTouchTraining(tr)
 				drawText(s,'UNKNOWN!');
 				flip(s);
 				WaitSecs(0.5+rand);
-			end
-			
-			if isa(target,'imageStimulus')
-				i.selectionOut = randi(target.nImages);
-				update(i);
 			end
 
 			if trialN >= 10

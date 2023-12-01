@@ -104,6 +104,13 @@ classdef touchManager < octickaCore
 
 			try [me.devices,me.names,me.allInfo] = GetTouchDeviceIndices([], 1); end %#ok<*TRYNC>
 			me.hold = me.holdTemplate;
+      try
+        if IsLinux
+          [~,r] = system('xinput');
+          disp('Input Device List:');
+          disp(r);
+         end
+      end
 		end
 
 		% ===================================================================SETUP

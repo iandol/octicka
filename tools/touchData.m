@@ -11,7 +11,7 @@ classdef touchData < octickaCore
 	end
 
 	properties (Access = protected)
-		dataTemplate = struct('date',[],'comment',[],'phase',[],'time',[],'trials',[],'result',[],'rt',[])
+		dataTemplate = struct('date',[],'comment',[],'phase',[],'time',[],'trials',[],'result',[],'rt',[],'stimulus',[])
 		allowedProperties = {'subject'}
 	end
 
@@ -28,7 +28,7 @@ classdef touchData < octickaCore
 
 		end
 
-		function update(me,result,phase,trials,rt)
+		function update(me,result,phase,trials,rt,stimulus)
 			if ~exist('result','var'); return; end
 			if isempty(me.nData) || me.nData == 0
 				me.data = me.dataTemplate
@@ -43,6 +43,7 @@ classdef touchData < octickaCore
 			if exist('phase','var'); me.data.phase(n) = phase; end
 			if exist('trials','var'); me.data.trials(n) = trials; end
 			if exist('rt','var'); me.data.rt(n) = rt; end
+      if exist('stimulus','var'); me.data.stimulus(n) = stimulus; end
 			me.nData = n;
 		end
 

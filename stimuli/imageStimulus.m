@@ -190,14 +190,13 @@ classdef imageStimulus < baseStimulus
 				me.currentImage = '';
 			elseif ~isempty(me.fileNames)
 				% try to load from fileNames
-				if me.selection > 0 && me.selection <= length(me.fileNames)
-					i = me.selection;
-				else
-					i = randi(length(me.fileNames));
+        im = me.getP('selection');
+				if im < 1 || im > me.nImages
+					im = randi(length(me.fileNames));
 				end
-				if exist(me.fileNames{i},'file')
-					[me.matrix, ~, ialpha] = imread(me.fileNames{i});
-					me.currentImage = me.fileNames{i};
+				if exist(me.fileNames{im},'file')
+					[me.matrix, ~, ialpha] = imread(me.fileNames{im});
+					me.currentImage = me.fileNames{im};
 				end
 			else
 				if me.dp.sizeOut <= 0; sz = 2; else; sz = me.dp.sizeOut; end
@@ -212,7 +211,7 @@ classdef imageStimulus < baseStimulus
 			me.matrix = me.matrix .* me.dp.contrastOut;
 			w = size(me.matrix,2);
 			h = size(me.matrix,1);
-			
+
 			switch me.crop
 				case 'square'
 					if w < h
@@ -233,7 +232,7 @@ classdef imageStimulus < baseStimulus
 						me.matrix = me.matrix(:, p+1:h+p, :);
 					end
 			end
-			
+
 			me.width = size(me.matrix,2);
 			me.height = size(me.matrix,1);
 

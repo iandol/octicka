@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<dialog Color="[0.937 0.937 0.937]" HPosition="center" Name="TouchTraining" Position="[290 1375 929 750]" Resize="off" VPosition="center" windowStyle="normal">
+<dialog Color="[0.937 0.937 0.937]" HPosition="center" Name="TouchTraining" Position="[1 346 929 733]" Resize="off" VPosition="center" windowStyle="normal">
     <GlobalSrc>%
 % The source code written here will be executed when
 % windows load. Works like 'onLoad' event of other languages.
@@ -7,9 +7,9 @@
 
 
 </GlobalSrc>
-    <uiControl class="buttonGroup" BackgroundColor="[0.937 0.937 0.937]" BorderWidth="1" FontAngle="normal" FontName="Source Sans 3" FontSize="16" FontWeight="bold" ForegroundColor="[0.000 0.000 0.000]" Name="Settings" Position="[5 0 902 663]" Title="Touch Training Settings" TitlePosition="righttop" visible="on">
+    <uiControl class="buttonGroup" BackgroundColor="[0.937 0.937 0.937]" BorderWidth="1" FontAngle="italic" FontName="Source Sans 3" FontSize="18" FontWeight="bold" ForegroundColor="[0.490 0.490 0.490]" Name="Settings" Position="[45 -5 902 691]" Title="Touch Training Settings" TitlePosition="righttop" visible="on">
         <ContainerSrc/>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="bold" ForegroundColor="[0.643 0.000 0.000]" GenerateCallBack="true" icon="" Name="StartButton" Position="[700 598 190 59]" String="Start!" TooltipString="" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="bold" ForegroundColor="[0.643 0.000 0.000]" GenerateCallBack="true" icon="" Name="StartButton" Position="[700 623 190 59]" String="Start!" TooltipString="" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -23,6 +23,7 @@ tr.maxSize = str2num(get(TouchTraining.MaxSize,'String'));
 tr.distance = str2num(get(TouchTraining.Distance,'String'));
 tr.density = str2num(get(TouchTraining.Density,'String'));
 tr.task = get(TouchTraining.Task,'Value');
+tr.folder = get(TouchTraining.Folder,'string');
 tr.random = str2num(get(TouchTraining.Density,'String'));
 tr.debug = logical(get(TouchTraining.Debug,'Value'));
 tr.dummy = logical(get(TouchTraining.Dummy,'Value'));
@@ -30,28 +31,28 @@ tr.dummy = logical(get(TouchTraining.Dummy,'Value'));
 startTouchTraining(tr);
 
 </uiControl>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="SubjectName" Position="[10 50 290 47]" String="Test" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="SubjectName" Position="[10 25 290 47]" String="Test" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Phase" Position="[10 110 290 47]" String="1" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Phase" Position="[10 85 290 47]" String="1" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="BackgroundColour" Position="[10 230 290 47]" String="[0.2 0.2 0.2]" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="BackgroundColour" Position="[10 205 290 47]" String="[0.2 0.2 0.2]" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="TouchColour" Position="[10 290 290 47]" String="[1 1 1]" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="TouchColour" Position="[10 265 290 47]" String="[1 1 1]" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_1" Position="[305 50 187 46]" String="Subject Name" TooltipString="" visible="on"/>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_2" Position="[305 110 280 46]" String="Training Phase (1-20)" TooltipString="" visible="on"/>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_3" Position="[305 230 258 46]" String="Background Colour" TooltipString="" visible="on"/>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_4" Position="[305 290 178 46]" String="Touch Colour" TooltipString="" visible="on"/>
-        <uiControl class="checkBoxCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Debug" Position="[705 550 184 40]" String="Debug" TooltipString="" Value="deselect" visible="on"/>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="Load" Position="[10 600 180 56]" String="Load" TooltipString="" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_1" Position="[305 35 93 22]" String="Subject Name" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_2" Position="[305 95 140 22]" String="Training Phase (1-20)" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_3" Position="[305 215 129 22]" String="Background Colour" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_4" Position="[305 275 89 22]" String="Touch Colour" TooltipString="" visible="on"/>
+        <uiControl class="checkBoxCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Debug" Position="[705 580 184 40]" String="Debug" TooltipString="" Value="deselect" visible="on"/>
+        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="Load" Position="[10 625 180 56]" String="Load" TooltipString="" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -65,7 +66,7 @@ if exist('d','var')
     td = touchData();
     td.plot(d);
 end</uiControl>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="startVideo" Position="[240 600 180 56]" String="Start Video" TooltipString="" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="startVideo" Position="[240 625 180 56]" String="Start Video" TooltipString="" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -79,7 +80,7 @@ if ~isempty(pid);
 	set(TouchTraining.startVideo,'TooltipString',sprintf('%i',pid));
 end
 </uiControl>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="stopVideo" Position="[475 600 180 56]" String="Stop Video" TooltipString="" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="buttonCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="stopVideo" Position="[475 625 180 56]" String="Stop Video" TooltipString="" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -96,36 +97,45 @@ if exist('pid','var') &amp;&amp; ~isempty(pid)
 	set(TouchTraining.startVideo,'String',sprintf('Start Video',pid));
 	set(TouchTraining.startVideo,'Tooltipstring','');
 end</uiControl>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Density" Position="[160 410 140 47]" String="80" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Density" Position="[160 385 140 47]" String="80" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Distance" Position="[10 410 140 47]" String="25" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Distance" Position="[10 385 140 47]" String="25" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_5" Position="[305 410 413 46]" String="Distance (cm) / Density (px/cm)" TooltipString="" visible="on"/>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Timeout" Position="[10 170 290 47]" String="2" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_5" Position="[305 395 206 22]" String="Distance (cm) / Density (px/cm)" TooltipString="" visible="on"/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Timeout" Position="[10 145 290 47]" String="2" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_6" Position="[305 170 196 46]" String="Timeout (secs)" TooltipString="" visible="on"/>
-        <uiControl class="checkBoxCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="10" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Dummy" Position="[705 500 184 40]" String="Dummy" TooltipString="" Value="deselect" visible="on"/>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="MaxSize" Position="[160 350 140 47]" String="35" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_6" Position="[305 155 98 22]" String="Timeout (secs)" TooltipString="" visible="on"/>
+        <uiControl class="checkBoxCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Dummy" Position="[705 535 184 40]" String="Dummy" TooltipString="" Value="deselect" visible="on"/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="MaxSize" Position="[160 325 140 47]" String="35" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="MinSize" Position="[10 350 140 47]" String="4" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="MinSize" Position="[10 325 140 47]" String="4" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_7" Position="[305 350 250 46]" String="Min/Max Size (deg)" TooltipString="" visible="on"/>
-        <uiControl class="cmbCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="italic" FontName="Consolas" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Task" Position="[10 470 290 47]" String="Standard|Simple|Pictures" TooltipString="" visible="on"/>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_8" Position="[305 470 131 46]" String="Task Type" TooltipString="" visible="on"/>
-        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Consolas" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Random" Position="[10 530 290 47]" String="0" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_7" Position="[305 335 125 22]" String="Min/Max Size (deg)" TooltipString="" visible="on"/>
+        <uiControl class="cmbCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="italic" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Task" Position="[10 445 290 47]" String="Standard|Simple|Pictures" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_8" Position="[305 455 66 22]" String="Task Type" TooltipString="" visible="on"/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Random" Position="[10 565 140 47]" String="0" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_9" Position="[305 530 312 39]" String="Random Reward (secs)" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.937 0.937 0.937]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_9" Position="[305 575 152 22]" String="Random Reward (secs)" TooltipString="" visible="on"/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="center" Name="Folder" Position="[10 505 290 47]" String="/media/cog/data/Media/MP" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+% been changed or when press the enter key
+% As default, all events are deactivated, to activate must set the
+% property 'generateCallBack' from the properties editor</uiControl>
+        <uiControl class="textCtrl" BackgroundColor="[0.929 0.929 0.929]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_10" Position="[305 515 122 22]" String="Folder for Pictures" TooltipString="" visible="on"/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="14" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="center" Name="Volume" Position="[160 565 140 47]" String="250" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+% been changed or when press the enter key
+% As default, all events are deactivated, to activate must set the
+% property 'generateCallBack' from the properties editor</uiControl>
     </uiControl>
 </dialog>
