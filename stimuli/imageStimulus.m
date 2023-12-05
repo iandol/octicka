@@ -190,7 +190,7 @@ classdef imageStimulus < baseStimulus
 				me.currentImage = '';
 			elseif ~isempty(me.fileNames)
 				% try to load from fileNames
-        im = me.getP('selection');
+				im = me.getP('selection');
 				if im < 1 || im > me.nImages
 					im = randi(length(me.fileNames));
 				end
@@ -264,7 +264,7 @@ classdef imageStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function update(me)
-			s = me.getP('selection')
+			s = me.getP('selection');
 			if s > 0 && ~strcmp(me.currentImage,me.fileNames{s})
 				if ~isempty(me.texture) && me.texture > 0 && Screen(me.texture,'WindowKind') == -1
 					try Screen('Close',me.texture); end %#ok<*TRYNC>

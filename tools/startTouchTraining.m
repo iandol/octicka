@@ -3,18 +3,15 @@ function startTouchTraining(tr)
 	distance = tr.distance;
 	timeOut = tr.timeOut;
 	rewardPort = '/dev/ttyACM0';
-	negation = false;
 	windowed = [];
 	sf = [];
 
 	% =========================== debug mode?
 	if tr.debug
-		if max(Screen('Screens'))==0; windowed = [0 0 1600 800]; end
-		sf = kPsychGUIWindow;
+		if max(Screen('Screens'))==0; sf = kPsychGUIWindow; windowed = [0 0 1600 800]; end
 	end
 
-	if IsOctave; try pkg load instrument-control; end; end
-
+	%if IsOctave; try pkg load instrument-control; end; end
 
 	try
 		% ============================screen
@@ -22,32 +19,40 @@ function startTouchTraining(tr)
 		'backgroundColour',tr.bg,'windowed',windowed,'specialFlags',sf);
 
 		% s============================stimuli
-		if tr.task == 3;
+		rtarget = imageStimulus('size', 10, 'colour', [0 1 0], 'fileName', [s.paths.root filesep 'stimuli' filesep 'star.png']);
+		if tr.stimulus == 2;
 			target = imageStimulus('size', tr.maxSize, 'fileName', tr.folder, 'crop', 'square');
-			tr.task = 2;
 		else
 			target = discStimulus('size', tr.maxSize, 'colour', tr.fg);
 		end
-    if tr.debug; target.verbose = true; end
+		if tr.debug; target.verbose = true; end
 
-		% t============================touch
+		% ============================audio
+		a = audioManager;
+		setup(a);
+		beep(a,2000,0.1,0.1);
+		WaitSecs(0.1);
+		beep(a,300,0.5,0.5);
+
+		% ============================touch
 		t = touchManager('isDummy',tr.dummy);
 		t.window.doNegation = true;
-		t.window.negationBuffer = 1;
+		t.window.negationBuffer = 1.5;
 		t.drainEvents = true;
+		t.verbose=true;
 		if tr.debug; t.verbose = true; end
 
 		% ============================reward
 		rM = gpioManager;
 		rM.reward.pin = 27;
-		rM.reward.time = 250; % 250ms
-    if tr.debug; rM.verbose = true; end
+		rM.reward.time = tr.volume; % 250ms
+		if tr.debug; rM.verbose = true; end
 		try open(rM); end
 
 		% ============================steps table
 		sz = linspace(tr.maxSize, tr.minSize, 5);
 
-		if tr.task == 2 % simple task
+		if tr.task == 1 % simple task
 			if tr.phase > 9; tr.phase = 9; end
 			pn = 1;
 			%size
@@ -91,7 +96,9 @@ function startTouchTraining(tr)
 
 		% ============================setup
 		sv = open(s);
+		drawText(s,'Initialising...');flip(s);
 		aspect = sv.width / sv.height;
+		setup(rtarget, s);
 		setup(target, s);
 		setup(t, s);
 		createQueue(t);
@@ -101,9 +108,11 @@ function startTouchTraining(tr)
 		svn = initialiseSaveFile(s);
 		mkdir([s.paths.savedData filesep tr.name]);
 		saveName = [ s.paths.savedData filesep tr.name filesep 'TouchT-' tr.name '-' svn '.mat'];
-		d = touchData;
-		d.name = saveName;
-		d.subject = tr.name;
+		dt = touchData;
+		dt.name = saveName;
+		dt.subject = tr.name;
+		dt.data.random = 0;
+		dt.data.rewards = 0;
 
 		% ============================settings
 		quitKey = KbName('escape');
@@ -117,7 +126,9 @@ function startTouchTraining(tr)
 		phaseN = 0;
 		timeOut = 2;
 		phase = tr.phase;
-    stimulus = 1;
+		stimulus = 1;
+		rTime = GetSecs;
+		rRect = rtarget.mvRect;
 
 		while keepRunning
 			if phase > length(p); phase = length(p); end
@@ -145,9 +156,9 @@ function startTouchTraining(tr)
 			target.xPositionOut = x;
 			target.yPositionOut = y;
 			target.sizeOut = p(phase).size;
-      if isa(target,'imageStimulus')
+			if isa(target,'imageStimulus')
 				target.selectionOut = randi(target.nImages);
-        stimulus = target.selectionOut;
+				stimulus = target.selectionOut;
 			end
 			update(target);
 
@@ -189,27 +200,53 @@ function startTouchTraining(tr)
 			WaitSecs(0.05);
 
 			if anyTouch == false
+			tt = vblEnd - rTime;
+			if tr.random > 0 && tt > tr.random && rand > 0.25
+				drawBackground(s);
+				WaitSecs(rand/2);
+				for i = 0:round(s.screenVals.fps/3)
+					draw(rtarget);
+					flip(s);
+					inc = sin(i*0.2)/2 + 1;
+					if inc <=0; inc =0.01; end
+					rtarget.angleOut = rtarget.angleOut+0.5;
+					rtarget.mvRect = ScaleRect(rRect, inc, inc);
+					rtarget.mvRect = CenterRect(rtarget.mvRect,s.screenVals.winRect);
+				end
+				flip(s);
+				giveReward(rM);
+				dt.data.rewards = dt.data.rewards + 1;
+				dt.data.random = dt.data.random + 1;
+				fprintf('===> RANDOM REWARD :-)\n');
+				beep(a,2000,0.1,0.1);
+				WaitSecs(0.75+rand);
+				rTime = GetSecs;
+			else
 				fprintf('===> TIMEOUT :-)\n');
 				drawText(s,'TIMEOUT!');
 				flip(s);
-				WaitSecs(0.5+rand);
+				WaitSecs(0.75+rand);
+			end
+
 			elseif strcmp(touchResponse,'yes')
 				giveReward(rM);
-				update(d,true,phase,trialN,vblEnd-vblInit);
-				phaseN = phaseN + 1;
+				dt.data.rewards = dt.data.rewards + 1;
 				fprintf('===> CORRECT :-)\n');
-				drawText(s,'CORRECT!');
-				Beeper(3000,0.3,0.2);
+				beep(a,2000,0.1,0.1);
+				update(dt,true,phase,trialN,vblEnd-vblInit);
+				phaseN = phaseN + 1;
+				drawText(s,['CORRECT! phase: ' num2str(phase)]);
 				flip(s);
 				WaitSecs(0.5+rand);
+				rTime = GetSecs;
 			elseif strcmp(touchResponse,'no')
-				update(d,false,phase,trialN,vblEnd-vblInit);
+				update(dt,false,phase,trialN,vblEnd-vblInit);
 				phaseN = phaseN + 1;
 				fprintf('===> FAIL :-(\n');
 				drawBackground(s,[1 0 0]);
-				drawText(s,'FAIL!');
+				drawText(s,['FAIL! phase: ' num2str(phase)]);
 				flip(s);
-				Beeper(300,1,0.5);
+				beep(a,300,0.5,0.5);
 				WaitSecs(timeOut);
 			else
 				fprintf('===> UNKNOWN :-|\n');
@@ -219,11 +256,11 @@ function startTouchTraining(tr)
 			end
 
 			if trialN >= 10
-				if length(d.data.result)>10
-					res = sum(d.data.result(end-9:end));
+				if length(dt.data.result)>10
+					res = sum(dt.data.result(end-9:end));
 				end
 				fprintf('===> Performance: %i Phase: %i\n',res,phase);
-				if phaseN >= 10 && length(d.data.result)>10
+				if phaseN >= 10 && length(dt.data.result)>10
 					if res >= 8
 						phase = phase + 1;
 					elseif res <= 2
@@ -232,7 +269,7 @@ function startTouchTraining(tr)
 					phaseN = 0;
 					if phase < 1; phase = 1; end
 					if phase > 20; phase = 20; end
-					if tr.task == 2 && phase > 9; phase = 9; end
+					if tr.task == 1 && phase > 9; phase = 9; end
 					fprintf('===> Phase update: %i\n',phase);
 				end
 			end
@@ -245,18 +282,38 @@ function startTouchTraining(tr)
 		drawText(s, 'FINISHED!');
 		flip(s);
 
-		% save trial data
-		disp('=======================================');
-		fprintf('===> Saving data to %s\n',saveName)
-		disp('=======================================');
-		save('-v7', saveName, 'd');
-		WaitSecs(0.5);
-
-		ListenChar(0); Priority(0); ShowCursor;
+		try ListenChar(0); Priority(0); ShowCursor; end
 		try reset(target); end
+		try reset(rtarget); end
 		try close(s); end
 		try close(t); end
 		try close(rM); end
+
+		% save trial data
+		disp('');
+		disp('=========================================');
+		fprintf('===> Data for %s\n',saveName)
+		disp('=========================================');
+		tVol = (9.38e-4 * tr.volume) * dt.data.rewards;
+		fVol = (9.38e-4 * tr.volume) * dt.data.random;
+		cor = sum(dt.data.result==true);
+		incor = sum(dt.data.result==false);
+		fprintf('  Total Trials: %i\n',trialN);
+		fprintf('  Correct Trials: %i\n',cor);
+		fprintf('  Incorrect Trials: %i\n',cor);
+		fprintf('  Free Rewards: %i\n',dt.data.random);
+		fprintf('  Correct Volume: %.2f ml\n',tVol);
+		fprintf('  Free Volume: %i ml\n\n\n',fVol);
+		try dt.plot(dt); end
+
+		% save trial data
+		disp('=========================================');
+		fprintf('===> Saving data to %s\n',saveName)
+		disp('=========================================');
+		save('-v7', saveName, 'dt');
+		disp('Done!!!');
+		disp('');disp('');disp('');
+		WaitSecs(0.5);
 		sca;
 
 	catch ME

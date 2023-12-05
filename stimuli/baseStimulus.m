@@ -70,16 +70,8 @@ classdef baseStimulus < octickaCore
 
 	%--------------------VISIBLE PROPERTIES-----------%
 	properties (SetAccess = protected, GetAccess = public)
-		%> final centered X position in pixel coordinates PTB uses: 0,0 top-left
-		%> see computePosition();
-		xFinal		= []
-		%> final centerd Y position in pixel coordinates PTB uses: 0,0 top-left
-		%> see computePosition();
-		yFinal		= []
 		%> initial screen rectangle position [LEFT TOP RIGHT BOTTOM]
 		dstRect		= []
-		%> current screen rectangle position [LEFT TOP RIGHT BOTTOM]
-		mvRect		= []
 		%> tick updates +1 on each call of draw (even if delay or off is true and no stimulus is drawn, resets on each update
 		tick		= 0
 		%> draw tick only updates when a draw command is called, resets on each update
@@ -90,6 +82,7 @@ classdef baseStimulus < octickaCore
 		isRect		= true
 	end
 
+  %--------------------DEPENDENT PROPERTIES-----------%
 	properties (Dependent = true, SetAccess = protected, GetAccess = public)
 		%> What our per-frame motion delta is
 		delta
@@ -99,7 +92,16 @@ classdef baseStimulus < octickaCore
 		dY
 	end
 
+  %--------------------HIDDEN PROPERTIES-----------%
 	properties (Hidden = true, Transient = true)
+    %> final centered X position in pixel coordinates PTB uses: 0,0 top-left
+		%> see computePosition();
+		xFinal		= []
+		%> final centerd Y position in pixel coordinates PTB uses: 0,0 top-left
+		%> see computePosition();
+		yFinal		= []
+    %> current screen rectangle position [LEFT TOP RIGHT BOTTOM]
+	  mvRect		= []
 		%> size in pixels
 		szPx
 		%> Our texture pointers for texture-based stimuli

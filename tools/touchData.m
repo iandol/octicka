@@ -11,7 +11,8 @@ classdef touchData < octickaCore
 	end
 
 	properties (Access = protected)
-		dataTemplate = struct('date',[],'comment',[],'phase',[],'time',[],'trials',[],'result',[],'rt',[],'stimulus',[])
+		dataTemplate = struct('date',[],'comment',[],'phase',[],'time',[],...
+			'trials',[],'result',[],'rt',[],'stimulus',[],'random',0,'rewards',0)
 		allowedProperties = {'subject'}
 	end
 
@@ -24,14 +25,15 @@ classdef touchData < octickaCore
 
 			if isempty(me.data)
 				me.data = me.dataTemplate;
+				me.nData = 0;
 			end
 
 		end
 
 		function update(me,result,phase,trials,rt,stimulus)
 			if ~exist('result','var'); return; end
-			if isempty(me.nData) || me.nData == 0
-				me.data = me.dataTemplate
+			if me.nData == 0
+				if isempty(me.data); me.data = me.dataTemplate; end
 				me.data(1).date = clock;
 				n = 1;
 			else
@@ -43,7 +45,7 @@ classdef touchData < octickaCore
 			if exist('phase','var'); me.data.phase(n) = phase; end
 			if exist('trials','var'); me.data.trials(n) = trials; end
 			if exist('rt','var'); me.data.rt(n) = rt; end
-      if exist('stimulus','var'); me.data.stimulus(n) = stimulus; end
+			if exist('stimulus','var'); me.data.stimulus(n) = stimulus; end
 			me.nData = n;
 		end
 
@@ -51,6 +53,7 @@ classdef touchData < octickaCore
 
 	methods (Static = true)
 		function plot(in)
+			if ~exist('in','var'); return; end
 			if isfield(in,'className') && ~strcmp(in.className, 'touchData'); return; end
 			if isempty(in.data.trials); disp('---> No trials in this datafile!'); return; end
 			time = in.data.time - in.data.time(1);
