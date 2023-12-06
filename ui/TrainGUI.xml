@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<dialog Color="[0.940 0.940 0.940]" HPosition="right" Name="TouchTraining" Position="[1 432 1000 648]" Resize="off" VPosition="top" windowStyle="normal">
+<dialog Color="[0.902 0.902 0.902]" HPosition="right" Name="TouchTraining" Position="[1 427 1008 652]" Resize="off" VPosition="top" windowStyle="normal">
     <GlobalSrc>%
 % The source code written here will be executed when
 % windows load. Works like 'onLoad' event of other languages.
 %
-ver = 1.08;
+ver = 1.09;
 v = 9.38e-4;
 vol = str2num(get(TouchTraining.Volume,'String'));
 vv = vol * v;
@@ -15,10 +15,11 @@ set(TouchTraining.figure,'name',['Touch Training V' num2str(ver)]);
 
 
 
+
 </GlobalSrc>
-    <uiControl class="buttonGroup" BackgroundColor="[0.940 0.940 0.940]" BorderWidth="1" FontAngle="italic" FontName="Source Sans 3" FontSize="18" FontWeight="bold" ForegroundColor="[0.490 0.490 0.490]" Name="Settings" Position="[0 -5 986 614]" Title="Touch Training Settings" TitlePosition="righttop" visible="on">
+    <uiControl class="buttonGroup" BackgroundColor="[0.940 0.940 0.940]" BorderWidth="1" FontAngle="italic" FontName="Source Sans 3" FontSize="18" FontWeight="bold" ForegroundColor="[0.490 0.490 0.490]" Name="Settings" Position="[5 0 986 614]" Title="Touch Training Settings" TitlePosition="righttop" visible="on">
         <ContainerSrc/>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="bold" ForegroundColor="[0.643 0.000 0.000]" GenerateCallBack="true" icon="" Name="StartButton" Position="[785 543 190 59]" String="Start!" TooltipString="Start training session" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="buttonCtrl" BackgroundColor="[0.902 0.902 0.902]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="bold" ForegroundColor="[0.643 0.000 0.000]" GenerateCallBack="true" icon="" Name="StartButton" Position="[785 543 190 59]" String="Start!" TooltipString="Start training session" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -33,6 +34,7 @@ tr.distance = str2num(get(TouchTraining.Distance,'String'));
 tr.density = str2num(get(TouchTraining.Density,'String'));
 tr.volume = str2num(get(TouchTraining.Volume,'String'));
 tr.random = str2num(get(TouchTraining.Random,'String'));
+tr.soundvol = str2num(get(TouchTraining.SoundVol,'String'));
 tr.task = get(TouchTraining.Task,'Value');
 tr.stimulus = get(TouchTraining.Stimulus,'Value');
 tr.folder = get(TouchTraining.Folder,'string');
@@ -61,9 +63,9 @@ startTouchTraining(tr);
         <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_1" Position="[299 50 93 22]" String="Subject Name" TooltipString="" visible="on"/>
         <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_2" Position="[755 50 140 22]" String="Training Phase (1-20)" TooltipString="" visible="on"/>
         <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_3" Position="[300 190 129 22]" String="Background Colour" TooltipString="" visible="on"/>
-        <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_4" Position="[755 185 198 22]" String="Touch Colour" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_4" Position="[755 185 89 22]" String="Touch Colour" TooltipString="" visible="on"/>
         <uiControl class="checkBoxCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Debug" Position="[790 495 184 40]" String="Debug" TooltipString="for debugging" Value="deselect" visible="on"/>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="Load" Position="[10 545 180 56]" String="Load" TooltipString="Load previous data" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="buttonCtrl" BackgroundColor="[0.902 0.902 0.902]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="Load" Position="[10 545 180 56]" String="Load Data" TooltipString="Load previous data" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -77,7 +79,7 @@ if exist('d','var')
     td = touchData();
     td.plot(d);
 end</uiControl>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="startVideo" Position="[305 545 180 56]" String="Start Video" TooltipString="Start RPi camera" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="buttonCtrl" BackgroundColor="[0.902 0.902 0.902]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="startVideo" Position="[305 545 180 56]" String="Start Video" TooltipString="Start RPi camera" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -91,7 +93,7 @@ if ~isempty(pid);
 	set(TouchTraining.startVideo,'TooltipString',sprintf('%i',pid));
 end
 </uiControl>
-        <uiControl class="buttonCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="stopVideo" Position="[500 545 180 56]" String="Stop Video" TooltipString="Stop Rpi camera" visible="on">% This code will be executed when user click the button control.
+        <uiControl class="buttonCtrl" BackgroundColor="[0.902 0.902 0.902]" FontAngle="normal" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="true" icon="" Name="stopVideo" Position="[500 545 180 56]" String="Stop Video" TooltipString="Stop Rpi camera" visible="on">% This code will be executed when user click the button control.
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallback' from the properties editor
 
@@ -132,7 +134,7 @@ end</uiControl>
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
         <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_7" Position="[300 255 125 22]" String="Min/Max Size (deg)" TooltipString="" visible="on"/>
-        <uiControl class="cmbCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="italic" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Task" Position="[5 315 290 47]" String="Simple|Standard" TooltipString="Task difficulty - simple=9 phases | standard = 20 phases" visible="on"/>
+        <uiControl class="cmbCtrl" BackgroundColor="[0.902 0.902 0.902]" FontAngle="italic" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" Name="Task" Position="[5 315 290 47]" String="Simple|Standard" TooltipString="Task difficulty - simple=9 phases | standard = 20 phases" visible="on"/>
         <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_8" Position="[300 330 93 22]" String="Task Difficulty" TooltipString="" visible="on"/>
         <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="14" FontWeight="normal" ForegroundColor="[0.000 0.000 0.000]" GenerateCallBack="false" HorizontalAlignment="center" Name="Random" Position="[460 105 140 47]" String="0" TooltipString="Time to give random reward (secs)" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
@@ -143,7 +145,7 @@ end</uiControl>
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
 % property 'generateCallBack' from the properties editor</uiControl>
-        <uiControl class="textCtrl" BackgroundColor="[0.929 0.929 0.929]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_10" Position="[300 400 122 22]" String="Folder for Pictures" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_10" Position="[300 400 122 22]" String="Folder for Pictures" TooltipString="" visible="on"/>
         <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="14" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="true" HorizontalAlignment="center" Name="Volume" Position="[610 105 140 47]" String="250" TooltipString="Time to drive reward pump" visible="on">% This code will be executed when de control lost focus and text has
 % been changed or when press the enter key
 % As default, all events are deactivated, to activate must set the
@@ -154,8 +156,13 @@ vol = str2num(get(TouchTraining.Volume,'String'));
 vv = vol * v;
 set(TouchTraining.volamount,'String',[num2str(vv) ' ml']);
 </uiControl>
-        <uiControl class="cmbCtrl" BackgroundColor="[0.929 0.929 0.929]" FontAngle="italic" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" Name="Stimulus" Position="[460 315 290 47]" String="Disc|Picture" TooltipString="Disc or Picture stimulus" visible="on"/>
-        <uiControl class="textCtrl" BackgroundColor="[0.929 0.929 0.929]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_11" Position="[755 325 94 22]" String="Stimulus Type" TooltipString="" visible="on"/>
-        <uiControl class="textCtrl" BackgroundColor="[0.929 0.929 0.929]" FontAngle="normal" FontName="Source Sans 3" FontSize="11" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="volamount" Position="[755 130 112 20]" String="0.23333333333 ml" TooltipString="Estimated volume of reward" visible="on"/>
+        <uiControl class="cmbCtrl" BackgroundColor="[0.902 0.902 0.902]" FontAngle="italic" FontName="Source Sans 3" FontSize="14" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" Name="Stimulus" Position="[460 315 290 47]" String="Disc|Picture" TooltipString="Disc or Picture stimulus" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_11" Position="[755 325 94 22]" String="Stimulus Type" TooltipString="" visible="on"/>
+        <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="11" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="volamount" Position="[755 130 112 20]" String="0.23333333333 ml" TooltipString="Estimated volume of reward" visible="on"/>
+        <uiControl class="editCtrl" BackgroundColor="[1.000 1.000 1.000]" FontAngle="normal" FontName="Fira Code" FontSize="13" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="center" Name="SoundVol" Position="[460 385 290 47]" String="0.75" TooltipString="" visible="on">% This code will be executed when de control lost focus and text has
+% been changed or when press the enter key
+% As default, all events are deactivated, to activate must set the
+% property 'generateCallBack' from the properties editor</uiControl>
+        <uiControl class="textCtrl" BackgroundColor="[0.940 0.940 0.940]" FontAngle="normal" FontName="Source Sans 3" FontSize="12" FontWeight="normal" ForegroundColor="[0.192 0.216 0.224]" GenerateCallBack="false" HorizontalAlignment="left" isAutoSize="true" Name="Label_13" Position="[755 400 126 22]" String="Audio Volume (0-1)" TooltipString="" visible="on"/>
     </uiControl>
 </dialog>

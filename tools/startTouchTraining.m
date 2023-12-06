@@ -29,10 +29,12 @@ function startTouchTraining(tr)
 
 		% ============================audio
 		a = audioManager;
+		if tr.debug; a.verbose = true; end
+		if tr.soundvol == 0; a.silentMode = true; end
 		setup(a);
-		beep(a,2000,0.1,0.1);
+		beep(a,2000,0.1,tr.soundvol/2);
 		WaitSecs(0.1);
-		beep(a,300,0.5,0.5);
+		beep(a,300,0.5,tr.soundvol/2);
 
 		% ============================touch
 		t = touchManager('isDummy',tr.dummy);
@@ -246,7 +248,7 @@ function startTouchTraining(tr)
 				drawBackground(s,[1 0 0]);
 				drawText(s,['FAIL! phase: ' num2str(phase)]);
 				flip(s);
-				beep(a,300,0.5,0.5);
+				beep(a,250,0.3,0.8);
 				WaitSecs(timeOut);
 			else
 				fprintf('===> UNKNOWN :-|\n');

@@ -104,13 +104,13 @@ classdef touchManager < octickaCore
 
 			try [me.devices,me.names,me.allInfo] = GetTouchDeviceIndices([], 1); end %#ok<*TRYNC>
 			me.hold = me.holdTemplate;
-      try
-        if IsLinux
-          [~,r] = system('xinput');
-          disp('Input Device List:');
-          disp(r);
-         end
-      end
+			try
+				if IsLinux
+					[~,r] = system('xinput');
+					disp('Input Device List:');
+					disp(r);
+				end
+			end
 		end
 
 		% ===================================================================SETUP
@@ -530,12 +530,13 @@ classdef touchManager < octickaCore
 		end
 
 		% ===================================================================
-		function demo(me)
+		function demo(me,useaudio)
 		%> @fn demo
 		%>
 		%> @param
 		%> @return
 		% ===================================================================
+			if ~exist('useaudio','var'); useaudio=false; end
 			if isempty(me.screen); me.screen = screenManager(); end
 			sM = me.screen;
 			windowed=[]; sf=[];
@@ -545,6 +546,8 @@ classdef touchManager < octickaCore
 			oldWin = me.window;
 			oldVerbose = me.verbose;
 			me.verbose = true;
+
+			if useaudio;a=audioManager();open(a);beep(a,3000,0.1,0.1);WaitSecs(0.2);beep(a,250,0.3,0.8);end
 
 			if ~sM.isOpen; open(sM); end
 			WaitSecs(2);
@@ -567,6 +570,7 @@ classdef touchManager < octickaCore
 					me.window.Y = ty;
 					me.window.radius = im.size/2;
 					update(im);
+					if useaudio;beep(a,1000,0.1,0.1);end
 					fprintf('\n\nTRIAL %i -- X = %i Y = %i R = %.2f\n',i,me.window.X,me.window.Y,me.window.radius);
 					rect = toDegrees(sM, im.mvRect, 'rect');
 					reset(me);
@@ -591,21 +595,25 @@ classdef touchManager < octickaCore
 						if ~me.wasHeld; draw(im); end
 						vbl = flip(sM);
 						if strcmp(r,'yes')
+							if useaudio;beep(a,3000,0.1,0.1);end
 							result = 'CORRECT!!!'; break;
 						elseif strcmp(r,'no')
+							if useaudio;beep(a,250,0.3,0.8);end
 							result = 'INCORRECT!!!'; break;
 						end
 						[pressed,~,keys] = octickaCore.getKeys([]);
 						if pressed && any(keys(quitKey)); doQuit = true; break; end
 					end
 					drawTextNow(sM, result);
-					fprintf('RESULT: %s - \n',result);
+					tend = vbl - ts;
+					fprintf('RESULT: %s in %.2f \n',result,tend);
 					disp(me.hold);
 					WaitSecs(2);
 				end
 				stop(me); close(me); %===================!!! stop and close
 				me.window = oldWin;
 				me.verbose = oldVerbose;
+				if useaudio; try reset(a); end; end
 				try reset(im); end
 				try close(sM); end
 			catch ME

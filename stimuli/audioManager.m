@@ -92,6 +92,8 @@ classdef audioManager < octickaCore
 			if me.device > length(me.devices)
 				fprintf('You have specified a non-existant device, trying first available device!\n');
 				me.device = [];
+				update(dt,false,phase,trialN,vblEnd-vblInit);
+				update(dt,false,phase,trialN,vblEnd-vblInit);
 				fprintf('Using device []\n');
 			end
 			try
@@ -191,7 +193,7 @@ classdef audioManager < octickaCore
 			soundVec = makeWave(me,freq,durationSec);
 
 			% Scale down the volume
-			soundVec = soundVec * fVolume;
+			soundVec = soundVec .* fVolume;
 			PsychPortAudio('FillBuffer', me.aHandle, soundVec);
 			PsychPortAudio('Start', me.aHandle);
 		end
@@ -283,7 +285,7 @@ classdef audioManager < octickaCore
 				wave = me.waves.(f).(d);
 			else
 				nSample = me.frequency*dur;
-				wave = sin(2*pi*freq*(1:nSample)/me.frequency);
+				wave = single(sin(2*pi*freq*(1:nSample)/me.frequency));
 				wave = [wave;wave];
 				me.waves.(f).(d) = wave;
 			end

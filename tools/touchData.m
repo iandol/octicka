@@ -60,17 +60,22 @@ classdef touchData < octickaCore
 			f = figure;
 			subplot(3,1,1);
 			plot(in.data.trials,in.data.result);
+			ylim([-0.2 1.2]);
+			xlim([0 max(in.data.trials)]);
 			title(in.fullName)
 			xlabel('Trial Number')
 			ylabel('Correct/Incorrect');
 			subplot(3,1,2);
 			plot(time,in.data.phase);
+			ylim([0 max(in.data.phase)+1]);
+			xlim([0 max(time)])
 			xlabel('Task Time')
 			ylabel('Task Step');
 			subplot(3,1,3);
 			plot(time,in.data.rt);
+			xlim([0 max(time)])
 			xlabel('Task Time')
-			ylabel('Trial Time');
+			ylabel('Trial Time (s)');
 			title('Reaction Time');
 		end
 	end
