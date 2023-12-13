@@ -5,6 +5,8 @@ classdef gpioManager < octickaCore
 	properties
 		%> board type
 		board					= 'RPi'
+		%> legacy, wiringpi, pigpio
+		mode					= 'pigpiod'
 		%> run with no gpio used, useful for debugging
 		silentMode				= false
 		%> output logging info
@@ -21,7 +23,7 @@ classdef gpioManager < octickaCore
   endproperties
 
 	properties (Access = protected)
-		allowedProperties = {'reward','silentMode','verbose'}
+		allowedProperties = {'mode','board','reward','silentMode','verbose'}
 	end
 
 	methods%------------------PUBLIC METHODS--------------%
@@ -35,45 +37,76 @@ classdef gpioManager < octickaCore
 			reset(me);
 		end
 
-    %=======================================
+		%=======================================
 		function giveReward(me)
 			if me.silentMode; return; end
 			try
-				RPiGPIOMex(1, me.reward.pin, 1);
-				WaitSecs('YieldSecs', me.reward.time/1e3);
-				RPiGPIOMex(1, me.reward.pin, 0);
+				switch me.mode
+				case 'pigpiod'
+					RPiGPIOMex2(1, me.reward.pin, 1);
+					WaitSecs('YieldSecs', me.reward.time/1e3);
+					RPiGPIOMex2(1, me.reward.pin, 0);
+				case 'wiringpi'
+					RPiGPIOMex(1, me.reward.pin, 1);
+					WaitSecs('YieldSecs', me.reward.time/1e3);
+					RPiGPIOMex(1, me.reward.pin, 0);
+				otherwise
+					system(['raspi-gpio set ' num2str(me.reward.pin) ' dh']);
+					WaitSecs('YieldSecs', me.reward.time/1e3);
+					system(['raspi-gpio set ' num2str(me.reward.pin) ' dl']);
+				end
 			end
 		end
 
-    %=======================================
+		%=======================================
 		function open(me)
 			reset(me);
 		end
 
-    %=======================================
+		%=======================================
 		function close(me)
-      reset(me);
+			reset(me);
 		end
 
-    %=======================================
+		%=======================================
 		function reset(me)
-			s = exist('RPiGPIOMex', 'file')
-			if s == 0
-				me.silentMode = true;
+			s = exist('RPiGPIOMex', 'file');
+			if s == 0 && strcmp(me.mode,'wiringpi')
+				fprintf('\nProblem with WiringPi, will try Pigpiod...\n');
+				me.mode = 'pigpiod';
+			end
+			[~,ss] = system('pidof pigpiod');
+			if isempty(ss) && strcmp(me.mode,'pigpiod')
+				fprintf('\nYou MUST run `sudo pigpiod` BEFORE using this function\n');
+				me.mode = 'legacy';
 			end
 			if me.silentMode; return; end
 			try
-        RPiGPIOMex(3, me.reward.controlPin, 1); % set as output
-        RPiGPIOMex(1, me.reward.controlPin, 0);
-				RPiGPIOMex(3, me.reward.pin, 1); % set as output
-        RPiGPIOMex(1, me.reward.pin, 0);
-        if me.verbose
-          [~,x]=system('gpio readall');
-          disp(x);
-        end
-      catch ME
-        getReport(ME);
-        me.silentMode = true; return;
+				switch me.mode
+				case 'pigpiod'
+					RPiGPIOMex2(3, me.reward.controlPin, 1); % set as output
+					RPiGPIOMex2(1, me.reward.controlPin, 0);
+					RPiGPIOMex2(3, me.reward.pin, 1); % set as output
+					RPiGPIOMex2(1, me.reward.pin, 0);
+				case 'wiringpi'
+					RPiGPIOMex(3, me.reward.controlPin, 1); % set as output
+					RPiGPIOMex(1, me.reward.controlPin, 0);
+					RPiGPIOMex(3, me.reward.pin, 1); % set as output
+					RPiGPIOMex(1, me.reward.pin, 0);
+				otherwise
+					system(['raspi-gpio set ' num2str(me.reward.controlPin) ' op']);
+					system(['raspi-gpio set ' num2str(me.reward.pin) ' op']);
+					system(['raspi-gpio set ' num2str(me.reward.controlPin) ' dl']);
+					system(['raspi-gpio set ' num2str(me.reward.pin) ' dl']);
+				end
+
+				if me.verbose
+				  [~,x]=system('gpio readall');
+				  disp(x);
+				end
+			catch ME
+				getReport(ME);
+				me.silentMode = true; return;
 			end
 		end
 
