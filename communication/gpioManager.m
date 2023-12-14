@@ -71,16 +71,19 @@ classdef gpioManager < octickaCore
 		%=======================================
 		function reset(me)
 			s = exist('RPiGPIOMex', 'file');
-			if s == 0 && strcmp(me.mode,'wiringpi')
+			if s == 0 && strcmpi(me.mode,'wiringpi')
 				fprintf('\nProblem with WiringPi, will try Pigpiod...\n');
 				me.mode = 'pigpiod';
 			end
 			[~,ss] = system('pidof pigpiod');
-			if isempty(ss) && strcmp(me.mode,'pigpiod')
-				fprintf('\nYou MUST run `sudo pigpiod` BEFORE using this function\n');
+			if isempty(ss) && strcmpi(me.mode,'pigpiod')
+				fprintf('\nYou MUST run `sudo pigpiod` BEFORE using this function, switching to legacy mode\n');
 				me.mode = 'legacy';
 			end
 			if me.silentMode; return; end
+			if me.verbose
+				fprintf('--->>> gpioManager: using %s mode -- pin %i @ %.2fms\n',me.mode,me.reward.pin,me.reward.time);
+			end
 			try
 				switch me.mode
 				case 'pigpiod'
@@ -93,16 +96,15 @@ classdef gpioManager < octickaCore
 					RPiGPIOMex(1, me.reward.controlPin, 0);
 					RPiGPIOMex(3, me.reward.pin, 1); % set as output
 					RPiGPIOMex(1, me.reward.pin, 0);
+					if me.verbose
+						[~,x]=system('gpio readall');
+						disp(x);
+					end
 				otherwise
 					system(['raspi-gpio set ' num2str(me.reward.controlPin) ' op']);
 					system(['raspi-gpio set ' num2str(me.reward.pin) ' op']);
 					system(['raspi-gpio set ' num2str(me.reward.controlPin) ' dl']);
 					system(['raspi-gpio set ' num2str(me.reward.pin) ' dl']);
-				end
-
-				if me.verbose
-				  [~,x]=system('gpio readall');
-				  disp(x);
 				end
 			catch ME
 				getReport(ME);

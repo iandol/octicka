@@ -71,6 +71,7 @@ classdef touchManager < octickaCore
 	end
 
 	properties (Access = private)
+		lastPressed			= false
 		pressed				= false
 		ppd					= 36
 		screen				= []
@@ -239,19 +240,17 @@ classdef touchManager < octickaCore
 		%> @param
 		%> @return event structure
 		% ===================================================================
-			persistent lastPressed
-			if isempty(lastPressed); lastPressed = false; end
 			event = [];
 			if me.isDummy
 				[mx, my, b] = GetMouse(me.swin);
-				if any(b) && ~lastPressed
-					type = 2; motion = false; press = true;  lastPressed = true;
-				elseif any(b) && lastPressed
-					type = 3; motion = true; press = true;  lastPressed = true;
-				elseif lastPressed && ~any(b)
-					type = 4; motion = false; press = false; lastPressed = false;
+				if any(b) && ~me.lastPressed
+					type = 2; motion = false; press = true;  me.lastPressed = true;
+				elseif any(b) && me.lastPressed
+					type = 3; motion = true; press = true;  me.lastPressed = true;
+				elseif me.lastPressed && ~any(b)
+					type = 4; motion = false; press = false; me.lastPressed = false;
 				else
-					type = -1; motion = false; press = 0;  lastPressed = false;
+					type = -1; motion = false; press = 0;  me.lastPressed = false;
 				end
 				if type > 0
 					event = struct('Type',type,'Time',GetSecs,...
@@ -295,6 +294,7 @@ classdef touchManager < octickaCore
 		%> @param
 		%> @return
 		% ===================================================================
+			me.lastPressed 	= false;
 			me.hold			= me.holdTemplate;
 			me.x			= [];
 			me.y			= [];

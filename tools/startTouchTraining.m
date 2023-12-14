@@ -46,6 +46,7 @@ function startTouchTraining(tr)
 
 		% ============================reward
 		rM = gpioManager;
+		rM.mode = tr.rewardmode;
 		rM.reward.pin = 27;
 		rM.reward.time = tr.volume; % 250ms
 		if tr.debug; rM.verbose = true; end
