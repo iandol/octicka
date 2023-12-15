@@ -175,6 +175,7 @@ classdef imageStimulus < baseStimulus
 		% ===================================================================
 		function loadImage(me,in)
 			ialpha = [];
+			tt = tic;
 			if ~exist('in','var'); in = []; end
 			if ~isempty(in) && ischar(in)
 				% assume a file path
@@ -182,8 +183,8 @@ classdef imageStimulus < baseStimulus
 				me.currentImage = in;
 			elseif ~isempty(in) && isnumeric(in) && max(size(in))==1 && ~isempty(me.fileNames) && in <= length(me.fileNames)
 				% assume an index to fileNames
-				[me.matrix, ~, ialpha] = imread(me.fileNames{in});
 				me.currentImage = me.fileNames{in};
+				[me.matrix, ~, ialpha] = imread(me.currentImage);
 			elseif ~isempty(in) && isnumeric(in) && size(in,3)==3
 				% assume a raw matrix
 				me.matrix = in;
@@ -195,8 +196,9 @@ classdef imageStimulus < baseStimulus
 					im = randi(length(me.fileNames));
 				end
 				if exist(me.fileNames{im},'file')
-					[me.matrix, ~, ialpha] = imread(me.fileNames{im});
 					me.currentImage = me.fileNames{im};
+					fprintf('File %s\n',me.currentImage);
+					[me.matrix, ~, ialpha] = imread(me.currentImage);
 				end
 			else
 				if me.dp.sizeOut <= 0; sz = 2; else; sz = me.dp.sizeOut; end
@@ -217,19 +219,31 @@ classdef imageStimulus < baseStimulus
 					if w < h
 						p = floor((h - w)/2);
 						me.matrix = me.matrix(p+1:w+p, :, :);
+						if ~isempty(ialpha)
+							ialpha = ialpha(p+1:w+p, :);
+						end
 					elseif w > h
 						p = floor((w - h)/2);
 						me.matrix = me.matrix(:, p+1:h+p, :);
+						if ~isempty(ialpha)
+							ialpha = ialpha(:, p+1:h+p);
+						end
 					end
 				case 'vertical'
 					if w < h
 						p = floor((h - w)/2);
 						me.matrix = me.matrix(p+1:w+p, :, :);
+						if ~isempty(ialpha)
+							ialpha = ialpha(p+1:w+p, :);
+						end
 					end
 				case 'horizontal'
 					if w > h
 						p = floor((w - h)/2);
 						me.matrix = me.matrix(:, p+1:h+p, :);
+						if ~isempty(ialpha)
+							ialpha = ialpha(:, p+1:h+p);
+						end
 					end
 			end
 
@@ -255,8 +269,8 @@ classdef imageStimulus < baseStimulus
 			end
 			if ~isempty(me.sM) && me.sM.isOpen == true
 				me.texture = Screen('MakeTexture', me.sM.win, me.matrix, 1, me.specialFlags, me.precision);
-				me.logOutput('loadImage',['Load: ' regexprep(me.currentImage,'\\','/')]);
 			end
+			me.logOutput('loadImage',['Load: ' regexprep(me.currentImage,'\\','/') 'in ' num2str(toc(tt)) ' secs']);
 		end
 
 		% ===================================================================

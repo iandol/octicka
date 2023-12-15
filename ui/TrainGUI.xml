@@ -38,7 +38,7 @@ tr.density = str2num(get(TouchTraining.Density,'String'));
 tr.volume = str2num(get(TouchTraining.Volume,'String'));
 tr.random = str2num(get(TouchTraining.Random,'String'));
 tr.soundvol = str2num(get(TouchTraining.SoundVol,'String'));
-tr.useaudio = logical(get(TouchTraining.AudioEnabled,'Value'));
+tr.audio = logical(get(TouchTraining.AudioEnabled,'Value'));
 tr.task = get(TouchTraining.Task,'Value');
 tr.stimulus = get(TouchTraining.Stimulus,'Value');
 tr.folder = get(TouchTraining.Folder,'string');
@@ -202,6 +202,7 @@ end
 if audio
 	aM = audioManager;
 	aM.open;
+	aM.beep;
 end
 rM = gpioManager('mode', mode);
 rM.open;
