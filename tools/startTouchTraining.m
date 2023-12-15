@@ -116,13 +116,14 @@ function startTouchTraining(tr)
 		dt.subject = tr.name;
 		dt.data.random = 0;
 		dt.data.rewards = 0;
+		dt.data.tr = tr;
 
 		% ============================settings
 		quitKey = KbName('escape');
 		RestrictKeysForKbCheck([quitKey]);
 		Screen('Preference','Verbosity',4);
 		try Priority(1); end
-		if ~tr.debug; HideCursor; end
+		if ~tr.debug || ~tr.dummy; HideCursor; end
 		txt = 'Waiting for touch...';
 		keepRunning = true
 		trialN = 0;
@@ -236,14 +237,14 @@ function startTouchTraining(tr)
 				dt.data.rewards = dt.data.rewards + 1;
 				fprintf('===> CORRECT :-)\n');
 				beep(a,2000,0.1,0.1);
-				update(dt,true,phase,trialN,vblEnd-vblInit);
+				update(dt, true, phase, trialN, vblEnd-vblInit, stimulus);
 				phaseN = phaseN + 1;
 				drawText(s,['CORRECT! phase: ' num2str(phase)]);
 				flip(s);
 				WaitSecs(0.5+rand);
 				rTime = GetSecs;
 			elseif strcmp(touchResponse,'no')
-				update(dt,false,phase,trialN,vblEnd-vblInit);
+				update(dt, false, phase, trialN, vblEnd-vblInit, stimulus);
 				phaseN = phaseN + 1;
 				fprintf('===> FAIL :-(\n');
 				drawBackground(s,[1 0 0]);
