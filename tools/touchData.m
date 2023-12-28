@@ -11,8 +11,8 @@ classdef touchData < octickaCore
 	end
 
 	properties (Access = protected)
-		dataTemplate = struct('date',[],'comment',[],'phase',[],'time',[],...
-			'trials',[],'result',[],'rt',[],'stimulus',[],'random',0,'rewards',0)
+		dataTemplate = struct('date',[],'startTime',NaN,'comment',[],'phase',[],'time',[],...
+			'trials',[],'result',[],'rt',[],'stimulus',[],'timeOut',[],'random',0,'rewards',0)
 		allowedProperties = {'subject'}
 	end
 
@@ -56,27 +56,31 @@ classdef touchData < octickaCore
 			if ~exist('in','var'); return; end
 			if isfield(in,'className') && ~strcmp(in.className, 'touchData'); return; end
 			if isempty(in.data.trials); disp('---> No trials in this datafile!'); return; end
-			time = in.data.time - in.data.time(1);
+			if isfield(in.data,'startTime')
+				time = in.data.time - in.data.startTime;
+			else
+				time = in.data.time - in.data.time(1);
+			end
 			f = figure;
 			subplot(3,1,1);
-			plot(in.data.trials,in.data.result);
+			plot(in.data.trials,in.data.result,'ko-','MarkerFaceColor',[0 0 0]);
 			ylim([-0.2 1.2]);
-			xlim([0 max(in.data.trials)]);
-			title(in.fullName)
-			xlabel('Trial Number')
-			ylabel('Correct/Incorrect');
+			xlim([0.9 max(in.data.trials)]);
+			title(in.fullName);
+			xlabel('Trial Number');
+			ylabel('Correct (1) / Incorrect (0)');
 			subplot(3,1,2);
-			plot(time,in.data.phase);
-			ylim([0 max(in.data.phase)+1]);
-			xlim([0 max(time)])
-			xlabel('Task Time')
-			ylabel('Task Step');
-			subplot(3,1,3);
-			plot(time,in.data.rt);
-			xlim([0 max(time)])
-			xlabel('Task Time')
-			ylabel('Trial Time (s)');
+			plot(in.data.trials,in.data.rt,'ko-','MarkerFaceColor',[0 0 0]);
+			xlim([0 max(in.data.trials)]);
+			xlabel('Trial Number');
+			ylabel('Reaction Time (s)');
 			title('Reaction Time');
+			subplot(3,1,3);
+			plot(time,in.data.phase,'ko-','MarkerFaceColor',[0 0 0]);
+			ylim([0 max(in.data.phase)+1]);
+			xlim([0.9 max(time)]);
+			xlabel('Task Time (s)');
+			ylabel('Task Phase / Step');
 		end
 	end
 

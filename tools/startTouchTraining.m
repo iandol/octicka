@@ -152,7 +152,11 @@ function startTouchTraining(tr)
 			else
 				t.window.hold = p(phase).hold(1);
 			end
-			t.window.radius = p(phase).size / 2;
+			if isa(target,'imageStimulus')
+				t.window.radius = [p(phase).size/2 p(phase).size/2];
+			else
+				t.window.radius = p(phase).size / 2;
+			end
 			t.window.init = 3;
 			t.window.release = p(phase).rel;
 			t.window.X = x;
@@ -167,9 +171,6 @@ function startTouchTraining(tr)
 			end
 			update(target);
 
-			fprintf('\n===> START TRIAL: %i - PHASE %i STIM %i\n', trialN, phase, stimulus);
-			fprintf('===> Size: %.1f Init: %.2f Hold: %.2f Release: %.2f\n', t.window.radius,t.window.init,t.window.hold,t.window.release);
-
 			res = 0;
 			touchStart = false; keepRunning = true;
 			touchResponse = '';
@@ -177,8 +178,15 @@ function startTouchTraining(tr)
 			txt = '';
 			trialN = trialN + 1;
 			hldtime = false;
+			
+			fprintf('\n===> START TRIAL: %i - PHASE %i STIM %i\n', trialN, phase, stimulus);
+			fprintf('===> Size: %.1f Init: %.2f Hold: %.2f Release: %.2f\n', t.window.radius,t.window.init,t.window.hold,t.window.release);
+
+			if trialN == 1; dt.data.startTime = GetSecs; end
+			
 			reset(t);
 			flush(t);
+			
 			WaitSecs(0.01);
 			vbl = flip(s); vblInit = vbl;
 			while ~touchStart && vbl < vblInit + 4;
@@ -205,34 +213,33 @@ function startTouchTraining(tr)
 			WaitSecs(0.05);
 
 			if anyTouch == false
-			tt = vblEnd - rTime;
-			if tr.random > 0 && tt > tr.random && rand > 0.25
-				drawBackground(s);
-				WaitSecs(rand/2);
-				for i = 0:round(s.screenVals.fps/3)
-					draw(rtarget);
+				tt = vblEnd - rTime;
+				if tr.random > 0 && tt > tr.random && rand > 0.25
+					drawBackground(s);
+					WaitSecs(rand/2);
+					for i = 0:round(s.screenVals.fps/3)
+						draw(rtarget);
+						flip(s);
+						inc = sin(i*0.2)/2 + 1;
+						if inc <=0; inc =0.01; end
+						rtarget.angleOut = rtarget.angleOut+0.5;
+						rtarget.mvRect = ScaleRect(rRect, inc, inc);
+						rtarget.mvRect = CenterRect(rtarget.mvRect,s.screenVals.winRect);
+					end
 					flip(s);
-					inc = sin(i*0.2)/2 + 1;
-					if inc <=0; inc =0.01; end
-					rtarget.angleOut = rtarget.angleOut+0.5;
-					rtarget.mvRect = ScaleRect(rRect, inc, inc);
-					rtarget.mvRect = CenterRect(rtarget.mvRect,s.screenVals.winRect);
+					giveReward(rM);
+					dt.data.rewards = dt.data.rewards + 1;
+					dt.data.random = dt.data.random + 1;
+					fprintf('===> RANDOM REWARD :-)\n');
+					beep(a,2000,0.1,0.1);
+					WaitSecs(0.75+rand);
+					rTime = GetSecs;
+				else
+					fprintf('===> TIMEOUT :-)\n');
+					drawText(s,'TIMEOUT!');
+					flip(s);
+					WaitSecs(0.75+rand);
 				end
-				flip(s);
-				giveReward(rM);
-				dt.data.rewards = dt.data.rewards + 1;
-				dt.data.random = dt.data.random + 1;
-				fprintf('===> RANDOM REWARD :-)\n');
-				beep(a,2000,0.1,0.1);
-				WaitSecs(0.75+rand);
-				rTime = GetSecs;
-			else
-				fprintf('===> TIMEOUT :-)\n');
-				drawText(s,'TIMEOUT!');
-				flip(s);
-				WaitSecs(0.75+rand);
-			end
-
 			elseif strcmp(touchResponse,'yes')
 				giveReward(rM);
 				dt.data.rewards = dt.data.rewards + 1;
