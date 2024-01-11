@@ -69,6 +69,7 @@ classdef touchManager < octickaCore
 		names				= []
 		allInfo				= []
 		event				= []
+		latestEvents		= {}
 	end
 
 	properties (Access = private)
@@ -301,6 +302,30 @@ classdef touchManager < octickaCore
 		end
 
 		% ===================================================================
+		function collectEvents(me)
+		%> @fn collectEvents
+		%>
+		%> @param
+		%> @return
+		% ===================================================================
+			if me.verbose; tt=tic; end
+			evts = {};
+			a = 1;
+			olddrain = me.drainEvents;
+			me.drainEvents = false;
+			while eventAvail(me)
+				e = getEvent(me);
+				if ~isempty(e);
+					evts{a} = e;
+					a = a + 1;
+				end
+			end
+			me.latestEvents = evts;
+			me.drainEvents = olddrain;
+			if me.verbose; toc(tt); end
+		end
+
+		% ===================================================================
 		function reset(me)
 		%> @fn reset
 		%>
@@ -323,6 +348,7 @@ classdef touchManager < octickaCore
 			me.eventID 		= [];
 			me.eventType	= [];
 			me.event		= [];
+			me.latestEvents	= {};
 		end
 
 		% ===================================================================
