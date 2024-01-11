@@ -73,7 +73,7 @@ classdef screenManager < octickaCore
 		%> background RGBA of display during stimulus presentation
 		backgroundColour			= [0.5 0.5 0.5 1.0]
 		%> use OpenGL blending mode
-		blend						= false
+		blend						= true
 		%> OpenGL blending source mode 'GL_ZERO'; 'GL_ONE';'GL_DST_COLOR'; 'GL_ONE_MINUS_DST_COLOR';'GL_SRC_ALPHA'; 'GL_ONE_MINUS_SRC_ALPHA'; 'GL_DST_ALPHA';'GL_ONE_MINUS_DST_ALPHA'; 'GL_SRC_ALPHA_SATURATE'
 		srcMode 					= 'GL_SRC_ALPHA'
 		%> OpenGL blending dst mode
@@ -87,8 +87,12 @@ classdef screenManager < octickaCore
 		%> gamma correction info saved as a calibrateLuminance object
 		gammaTable
 		%> settings for movie output
-		movieSettings				= []
-		%> populated on window open; useful screen info, initial gamma tables
+		%> type 1 = video file, 2 = mat array, 3 = single pictures
+		movieSettings						= struct('record',false,'type',1,'loop',inf,...
+											'size',[600 600],'fps',30,'quality',0.7,...
+											'keyframe',5,'nFrames', inf,...
+											'prefix','Movie','codec','x264enc')
+		%> populated on window open; useful screen info, initial gamma tables 
 		%> and the like
 		screenVals					= struct('ifi',1/60,'fps',60,...
 											'winRect',[0 0 1920 1080])
@@ -195,7 +199,9 @@ classdef screenManager < octickaCore
 			'debug','photoDiode','verbose','hideFlash',...
 			'stereoMode','anaglyphLeft','anaglyphRight'}
 		%> the photoDiode rectangle in pixel values
-		photoDiodeRect						= [0, 0, 45, 45]
+		photoDiodeRect(1,4)				= [0, 0, 45, 45]
+		%> colour of the grid dots
+		gridColour							= [0 0 0 1]
 		%> the values computed to draw the 1deg dotted grid in visualDebug mode
 		grid
 		%> the movie pointer
@@ -230,11 +236,14 @@ classdef screenManager < octickaCore
 			try
 				AssertOpenGL;
 				me.isPTB = true;
-				me.logOutput('PTB + OpenGL supported!');
+				logOutput(me,'PTB + OpenGL supported!');
 			catch %#ok<*CTCH>
 				me.isPTB = false;
-				me.logOutput('CONSTRUCTOR','OpenGL support needed for PTB!!!',true);
+				logOutput(me, 'CONSTRUCTOR','OpenGL support needed for PTB!!!',true);
 			end
+
+			me.font.FontName = me.monoFont;
+
 			prepareScreen(me);
 		end
 
@@ -285,10 +294,7 @@ classdef screenManager < octickaCore
 			end
 			sv.ifi				= 1/sv.fps;
 
-			% initialise our movie settings
-			me.movieSettings = struct('record',false,'loop',inf,'size',[600 600],...
-				'fps',30,'quality',0.7,'keyframe',5,...
-				'nFrames',sv.fps * 2,'type',1,'codec','x264enc');
+			me.movieSettings.fps = sv.fps;
 
 			if me.debug == true %we yoke these together but they can then be overridden
 				me.visualDebug	= true;
@@ -299,6 +305,11 @@ classdef screenManager < octickaCore
 
 			me.ppd; %generate our dependent propertie and caches it to ppd_ for speed
 			me.makeGrid; %our visualDebug size grid
+			if mean(me.backgroundColour) > 0.5
+				me.gridColour = [0.0 0 0.2];
+			else
+				me.gridColour = [0.7 1 0.7];
+			end
 
 			sv.white			= WhiteIndex(me.screen);
 			sv.black			= BlackIndex(me.screen);
@@ -690,6 +701,14 @@ classdef screenManager < octickaCore
 
 				% set up text defaults
 				updateFontValues(me);
+
+				sv.ppd = me.ppd; %generate our dependent propertie and caches it to ppd_ for speed
+				me.makeGrid; %our visualDebug size grid
+				if mean(me.backgroundColour(1:3)) > 0.6
+					me.gridColour = [0 0 0.2];
+				else
+					me.gridColour = [1 1 0.8];
+				end
 
 				sv.white = WhiteIndex(me.screen);
 				sv.black = BlackIndex(me.screen);
@@ -1510,8 +1529,8 @@ classdef screenManager < octickaCore
 		%> @return
 		% ===================================================================
 		function drawGrid(me)
-			if me.useRetina; sz=2; else; sz = 1; end
-			Screen('DrawDots',me.win,me.grid,sz,[1 0.5 0 1],[me.xCenter me.yCenter],1);
+			if me.useRetina; sz=3; else; sz = 2; end
+			Screen('DrawDots',me.win,me.grid,sz,me.gridColour,[me.xCenter me.yCenter],0);
 		end
 
 		% ===================================================================
@@ -1622,7 +1641,11 @@ classdef screenManager < octickaCore
 		function prepareMovie(me)
 			% Set up the movie settings
 			if me.movieSettings.record == true
-				me.movieSettings.outsize=CenterRect([0 0 me.movieSettings.size(1) me.movieSettings.size(2)],me.winRect);
+				if length(me.movieSettings.size) == 2
+					me.movieSettings.size=CenterRect([0 0 me.movieSettings.size(1) me.movieSettings.size(2)],me.winRect);
+				elseif isempty(me.movieSettings.size)
+					me.movieSettings.size = me.winRect;
+				end
 				me.movieSettings.loop=1;
 				if ismac || isunix
 					oldp = cd('~');
@@ -1632,11 +1655,11 @@ classdef screenManager < octickaCore
 					homep = 'c:';
 				end
 				if ~exist([me.paths.parent filesep 'Movie' filesep],'dir')
-					mkdir([me.paths.parent filesep 'Movie' filesep])
+					try mkdir([me.paths.parent filesep 'Movie' filesep]); end
 				end
 				me.movieSettings.moviepath = [me.paths.parent filesep 'Movie' filesep];
 				switch me.movieSettings.type
-					case 1
+					case {'movie',1}
 						if isempty(me.movieSettings.codec)
 							settings = sprintf(':CodecSettings= Profile=3 Keyframe=%g Videoquality=%g',...
 								me.movieSettings.keyframe, me.movieSettings.quality);
@@ -1644,16 +1667,20 @@ classdef screenManager < octickaCore
 							settings = sprintf(':CodecType=%s Profile=3 Keyframe=%g Videoquality=%g',...
 								me.movieSettings.codec, me.movieSettings.keyframe, me.movieSettings.quality);
 						end
-						me.movieSettings.movieFile = [me.movieSettings.moviepath 'Movie' datestr(now,'dd-mm-yyyy-HH-MM-SS') '.mov'];
+						me.movieSettings.movieFile = [me.movieSettings.moviepath me.movieSettings.prefix datestr(now,'dd-mm-yyyy-HH-MM-SS') '.mp4'];
 						me.moviePtr = Screen('CreateMovie', me.win,...
 							me.movieSettings.movieFile,...
 							me.movieSettings.size(1), me.movieSettings.size(2),...
 							me.movieSettings.fps, settings);
-						fprintf('\n---> screenManager: Movie [enc:%s] [rect:%s] will be saved to:\n\t%s\n',settings,...
-							num2str(me.movieSettings.outsize),me.movieSettings.movieFile);
-					case 2
-						me.movieMat = zeros(me.movieSettings.size(2),me.movieSettings.size(1),3,me.movieSettings.nFrames);
+					case {'mat',2}
+						settings = 'mat';
+						me.movieMat = zeros(RectHeight(me.movieSettings.size),RectWidth(me.movieSettings.size),3,me.movieSettings.nFrames);
+					case {'image','png','jpg',3}
+						settings = 'png';
+						me.movieSettings.movieFile = [me.movieSettings.moviepath me.movieSettings.prefix '_' datestr(now,'dd-mm-yyyy-HH-MM-SS')];
 				end
+				fprintf('\n---> screenManager: Movie [enc:%s] [rect:%s] will be saved to:\n\t%s\n',settings,...
+				  num2str(me.movieSettings.size),me.movieSettings.movieFile);
 			end
 		end
 
@@ -1667,11 +1694,18 @@ classdef screenManager < octickaCore
 			if me.movieSettings.record == true
 				if me.movieSettings.loop <= me.movieSettings.nFrames
 					switch me.movieSettings.type
-						case 1
-							Screen('AddFrameToMovie', me.win, me.movieSettings.outsize, 'frontBuffer', me.moviePtr);
-						case 2
+						case {'movie',1}
+							Screen('AddFrameToMovie', me.win, me.movieSettings.size, 'frontBuffer', me.moviePtr);
+						case {'mat',2}
 							me.movieMat(:,:,:,me.movieSettings.loop)=Screen('GetImage', me.win,...
-								me.movieSettings.outsize, 'frontBuffer', me.movieSettings.quality, 3);
+								me.movieSettings.size, 'frontBuffer', me.movieSettings.quality, 3);
+						otherwise
+							try
+								m = Screen('GetImage', me.win, me.movieSettings.size);
+								imwrite(m,[me.movieSettings.movieFile '_' num2str(me.movieSettings.loop) '.png']);
+							catch ME
+								getReport(ME)
+							end
 					end
 					me.movieSettings.loop=me.movieSettings.loop+1;
 				end
@@ -1692,13 +1726,10 @@ classdef screenManager < octickaCore
 						if ~isempty(me.moviePtr)
 							Screen('FinalizeMovie', me.moviePtr);
 							fprintf(['\n---> screenManager: movie saved to ' me.movieSettings.movieFile '\n']);
+							Screen('CloseMovie', me.moviePtr);
 						end
-					case 2
-% 						if wasError == true
-%
-% 						else
-% 							save([me.movieSettings.moviepath 'Movie' datestr(clock) '.mat'],'mimg');
-% 						end
+					otherwise
+
 				end
 			end
 			me.movieSettings.loop = 1;
@@ -1724,7 +1755,7 @@ classdef screenManager < octickaCore
 					clear mimg;
 				end
 			else
-				me.logOutput('playMovie method','Playing failed!',true);
+				logOutput(me,'playMovie method','Playing failed!',true);
 			end
 		end
 
@@ -1816,8 +1847,16 @@ classdef screenManager < octickaCore
 		function delete(me)
 			if me.isOpen
 				close(me);
-				me.logOutput('DELETE method','Screen closed');
+				logOutput(me, 'DELETE method', 'Screen closed');
 			end
+		end
+	end
+
+	%=======================================================================
+	methods (Hidden = true) %------------------HIDDEN METHODS
+	%=======================================================================
+		function drawPhotoDiode(me,colour)
+			Screen('FillRect',me.win,colour,me.photoDiodeRect);
 		end
 	end
 
