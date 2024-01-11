@@ -10,9 +10,9 @@ classdef imageStimulus < baseStimulus
 	properties %--------------------PUBLIC PROPERTIES----------%
 		type						= 'picture'
 		%> filename to load, if it is a directory use all images within
-		fileName					= ''
+		filePath					= ''
 		%> selection if N > 0, then this is a number of images from 1:N, e.g.
-		%> fileName = base.jpg, selection=5, then base1.jpg - base5.jpg
+		%> filePath = base.jpg, selection=5, then base1.jpg - base5.jpg
 		%> update() will randomly select one from this group.
 		selection					= 0
 		%> contrast multiplier
@@ -49,13 +49,13 @@ classdef imageStimulus < baseStimulus
 		filter						= 1
 		%> crop: none or vertical or horizontal
 		crop						= 'none'
+		%> direction for motion, different to angle
+		direction					= []
 	end
 
 	properties (SetAccess = protected, GetAccess = public)
 		%> list of imagenames if selection > 0
-		fileNames					= {};
-		%> number of images
-		nImages						= 0;
+		filePaths					= {};
 		%> current randomly selected image
 		currentImage				= ''
 		%> scale is set by size
@@ -70,22 +70,25 @@ classdef imageStimulus < baseStimulus
 		height
 	end
 
+	properties(Dependent)
+		%> number of images
+		nImages						= 0;
+	end
+
 	properties (SetAccess = protected, GetAccess = public, Hidden = true)
 		typeList			= {'picture'}
-		fileNameList		= 'filerequestor';
+		filePathList		= 'filerequestor';
 		interpMethodList	= {'nearest','linear','spline','cubic'}
-		%> list of imagenames if multipleImages > 0
-		fileNames			= {};
 		%> properties to ignore in the UI
 		ignorePropertiesUI	= {}
 	end
 
 	properties (Access = protected)
 		%> allowed properties passed to object upon construction
-		allowedProperties = {'type', 'fileName', 'selection', 'contrast', ...
+		allowedProperties = {'type', 'filePath', 'selection', 'contrast', ...
 			'precision','filter','crop'}
 		%>properties to not create transient copies of during setup phase
-		ignoreProperties = {'type', 'scale', 'fileName'}
+		ignoreProperties = {'type', 'scale', 'filePath'}
 	end
 
 	%=======================================================================
@@ -109,7 +112,7 @@ classdef imageStimulus < baseStimulus
 
 			me.isRect = true; %uses a rect for drawing
 
-			checkFileName(me);
+			checkfilePath(me);
 
 			me.ignoreProperties = [me.ignorePropertiesBase me.ignoreProperties];
 			me.logOutput('constructor','Image Stimulus initialisation complete');
@@ -137,13 +140,15 @@ classdef imageStimulus < baseStimulus
 			me.inSetup = true; me.isSetup = false;
 			if isempty(me.isVisible); show(me); end
 
-			checkFileName(me);
+			checkfilePath(me);
 
 			me.sM = sM;
 			if ~sM.isOpen; error('Screen needs to be Open!'); end
 			me.ppd = sM.ppd;
 			me.screenVals = sM.screenVals;
 			me.texture = []; %we need to reset this
+
+			if isempty(me.direction); me.direction = me.angle; end
 
 			me.dp = struct;
 			fn = fieldnames(me);
@@ -165,6 +170,9 @@ classdef imageStimulus < baseStimulus
 				me.scale = me.dp.sizeOut / (me.width / me.ppd);
 			end
 			computePosition(me);
+			if me.doAnimator
+				setup(me.animator, me);
+			end
 			setRect(me);
 
 		end
@@ -174,31 +182,34 @@ classdef imageStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function loadImage(me,in)
-			ialpha = [];
+			ialpha = uint8([]);
 			tt = tic;
 			if ~exist('in','var'); in = []; end
 			if ~isempty(in) && ischar(in)
 				% assume a file path
 				[me.matrix, ~, ialpha] = imread(in);
 				me.currentImage = in;
-			elseif ~isempty(in) && isnumeric(in) && max(size(in))==1 && ~isempty(me.fileNames) && in <= length(me.fileNames)
-				% assume an index to fileNames
-				me.currentImage = me.fileNames{in};
+			elseif ~isempty(in) && isnumeric(in) && max(size(in))==1 && ~isempty(me.filePaths) && in <= length(me.filePaths)
+				% assume an index to filePaths
+				me.currentImage = me.filePaths{in};
 				[me.matrix, ~, ialpha] = imread(me.currentImage);
 			elseif ~isempty(in) && isnumeric(in) && size(in,3)==3
 				% assume a raw matrix
 				me.matrix = in;
 				me.currentImage = '';
-			elseif ~isempty(me.fileNames)
-				% try to load from fileNames
+			elseif ~isempty(me.filePaths)
+				% try to load from filePaths
 				im = me.getP('selection');
 				if im < 1 || im > me.nImages
-					im = randi(length(me.fileNames));
+					im = randi(length(me.filePaths));
 				end
-				if exist(me.fileNames{im},'file')
-					me.currentImage = me.fileNames{im};
+				if exist(me.filePaths{im},'file')
+					me.currentImage = me.filePaths{im};
 					fprintf('File %s\n',me.currentImage);
 					[me.matrix, ~, ialpha] = imread(me.currentImage);
+					if isinteger(me.matrix) && isfloat(ialpha)
+						ialpha = uint8(ialpha .* 255);
+					end
 				end
 			else
 				if me.dp.sizeOut <= 0; sz = 2; else; sz = me.dp.sizeOut; end
@@ -279,7 +290,7 @@ classdef imageStimulus < baseStimulus
 		% ===================================================================
 		function update(me)
 			s = me.getP('selection');
-			if s > 0 && ~strcmp(me.currentImage,me.fileNames{s})
+			if s > 0 && ~strcmp(me.currentImage,me.filePaths{s})
 				if ~isempty(me.texture) && me.texture > 0 && Screen(me.texture,'WindowKind') == -1
 					try Screen('Close',me.texture); end %#ok<*TRYNC>
 				end
@@ -320,7 +331,11 @@ classdef imageStimulus < baseStimulus
 						me.mvRect = CenterRectOnPointd(me.mvRect, me.mouseX, me.mouseY);
 					end
 				end
-				if me.doMotion == 1
+				if me.doAnimator
+					animate(me.animator);
+					me.updateXY(me.animator.x, me.animator.y, true);
+					me.angleOut = -rad2deg(me.animator.angle);
+				elseif me.doMotion == 1
 					me.mvRect=OffsetRect(me.mvRect,me.dX_,me.dY_);
 				end
 			end
@@ -334,6 +349,7 @@ classdef imageStimulus < baseStimulus
 			if ~isempty(me.texture) && me.texture > 0 && Screen(me.texture,'WindowKind') == -1
 				try Screen('Close',me.texture); end %#ok<*TRYNC>
 			end
+			if isprop(me,'doAnimator') && me.doAnimator; reset(me.animator); end
 			resetTicks(me);
 			me.texture=[];
 			me.scale = 1;
@@ -342,79 +358,47 @@ classdef imageStimulus < baseStimulus
 			removeTmpProperties(me);
 		end
 
+		% ===================================================================
+		%> @brief nImages
+		%>
+		% ===================================================================
+		function out = get.nImages(me)
+			out = length(me.filePaths);
+		end
+
 	end %---END PUBLIC METHODS---%
-
-	%=======================================================================
-	methods (Hidden = true ) %-------HIDDEN METHODS-----%
-	%=======================================================================
-
-		% ===================================================================
-		%> @brief checkFileName - loads a file or sets up a directory
-		%>
-		% ===================================================================
-		function checkFileName(me)
-			if isempty(me.fileName) || (me.selection==0 &&	exist(me.fileName,'file') ~= 2 && exist(me.fileName,'file') ~= 7)%use our default
-				p = mfilename('fullpath');
-				p = fileparts(p);
-				me.fileName = [p filesep 'Bosch.jpeg'];
-				me.fileNames{1} = me.fileName;
-				me.selection = 1;
-			elseif exist(me.fileName,'dir') == 7
-				findFiles(me);
-			elseif me.selection > 1
-				[p,f,e]=fileparts(me.fileName);
-				for i = 1:me.selection
-					me.fileNames{i} = [p filesep f num2str(i) e];
-					if ~exist(me.fileNames{i},'file')
-						warning('Image %s not available!',me.fileNames{i})
-					end
-				end
-			elseif exist(me.fileName,'file') == 2
-				me.fileNames{1} = me.fileName;
-			end
-			me.nImages = length(me.fileNames);
-		end
-
-		% ===================================================================
-		%> @brief our fake set methods, hooks into dynamicprops subsasgn
-		%>
-		% ===================================================================
-		function v = setOut(me, S, v)
-			if ischar(S)
-				prop = S;
-			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
-				prop = S(1).subs;
-			else
-				return;
-			end
-			switch prop
-				case {'xPositionOut' 'yPositionOut'}
-					v = v * me.ppd;
-				case {'contrastOut'}
-					if iscell(v); v = v{1}; end
-					if ~me.inSetup && ~me.stopLoop && v < 1
-						computeColour(me);
-					end
-			end
-		end
-
-		% ===================================================================
-		%> @brief Update only position info, faster and doesn't reset image
-		%>
-		% ===================================================================
-		function updatePositions(me,x,y)
-			me.xFinal = x;
-			me.yFinal = y;
-			if length(me.mvRect) == 4
-				me.mvRect=CenterRectOnPointd(me.mvRect, me.xFinal, me.yFinal);
-			end
-		end
-
-	end
 
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
 	%=======================================================================
+
+		% ===================================================================
+		%> @brief checkfilePath - loads a file or sets up a directory
+		%>
+		% ===================================================================
+		function checkfilePath(me)
+			if isempty(me.filePath) || (me.selection==0 && exist(me.filePath,'file') ~= 2 && exist(me.filePath,'file') ~= 7)%use our default
+				p = mfilename('fullpath');
+				p = fileparts(p);
+				me.filePath = [p filesep 'Bosch.jpeg'];
+				me.filePaths{1} = me.filePath;
+				me.selection = 1;
+			elseif exist(me.filePath,'dir') == 7
+				findFiles(me);
+			elseif me.selection > 1
+				[p,f,e]=fileparts(me.filePath);
+				for i = 1:me.selection
+					me.filePaths{i} = [p filesep f num2str(i) e];
+					if ~exist(me.filePaths{i},'file');warning('Image %s not available!',me.filePaths{i});end
+				end
+			elseif exist(me.filePath,'file') == 2
+				me.filePath = regexprep(me.filePath,'\~',getenv('HOME'));
+				me.filePath = which(me.filePath);
+				me.filePaths{1} = me.filePath;
+				me.selection = 1;
+			end
+			me.currentImage = me.filePaths{me.selection};
+		end
 
 		% ===================================================================
 		%> @brief setRect
@@ -447,23 +431,50 @@ classdef imageStimulus < baseStimulus
 		%>
 		% ===================================================================
 		function findFiles(me)
-			if exist(me.fileName,'dir') == 7
-				d = dir(me.fileName);
+			if exist(me.filePath,'dir') == 7
+				d = dir(me.filePath);
 				n = 0;
 				for i = 1: length(d)
-					if d(i).isdir;continue;end
+					if d(i).isdir; continue; end
 					[~,f,e]=fileparts(d(i).name);
-					if regexpi(e,'png|jpeg|jpg|bmp|tif')
+					if regexpi(e,'png|jpeg|jpg|bmp|tif|tiff')
 						n = n + 1;
-						me.fileNames{n} = [me.fileName filesep f e];
-						me.fileNames{n} = regexprep(me.fileNames{n},'\/\/','/');
+						me.filePaths{n} = [me.filePath filesep f e];
+						me.filePaths{n} = regexprep(me.filePaths{n},'\/\/','/');
 					end
 				end
-				me.nImages = length(me.fileNames);
-				me.selection = 1;
+				if me.selection < 1 || me.selection > me.nImages; me.selection = 1; end
 			end
 		end
 
+	end
+
+	%=======================================================================
+	methods (Hidden = true ) %-------HIDDEN METHODS-----%
+	%=======================================================================
+
+		% ===================================================================
+		%> @brief our fake set methods, hooks into dynamicprops subsasgn
+		%>
+		% ===================================================================
+		function v = setOut(me, S, v)
+			if ischar(S)
+				prop = S;
+			elseif isstruct(S) && strcmp(S(1).type, '.') && isfield(S,'subs')
+				prop = S(1).subs;
+			else
+				return;
+			end
+			switch prop
+				case {'xPositionOut' 'yPositionOut'}
+					v = v * me.ppd;
+				case {'contrastOut'}
+					if iscell(v); v = v{1}; end
+					if ~me.inSetup && ~me.stopLoop && v < 1
+						computeColour(me);
+					end
+			end
+		end
 	end
 
 end
