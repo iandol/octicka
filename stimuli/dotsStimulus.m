@@ -6,7 +6,7 @@
 %> Copyright ©2014-2022 Ian Max Andolina — released: LGPL3, see LICENCE.md
 % ========================================================================
 classdef dotsStimulus < baseStimulus
-	
+
 	properties %--------------------PUBLIC PROPERTIES----------%
 		%> dot type, only simple supported at present
 		type				= 'simple'
@@ -39,12 +39,12 @@ classdef dotsStimulus < baseStimulus
 		msrcMode			= 'GL_SRC_ALPHA'
 		mdstMode			= 'GL_ONE_MINUS_SRC_ALPHA'
 	end
-	
+
 	properties (Dependent = true, SetAccess = private, GetAccess = public)
 		%> number of dots
 		nDots
 	end
-	
+
 	properties (SetAccess = protected, GetAccess = public)
 		%> stimulus family
 		family				= 'dots'
@@ -55,7 +55,7 @@ classdef dotsStimulus < baseStimulus
 		%> colour for each dot
 		colours
 	end
-	
+
 	properties (SetAccess = private, GetAccess = public, Hidden = true, Transient = true)
 		%> allows makePanel method to offer a UI menu of settings
 		typeList = {'simple'}
@@ -68,7 +68,7 @@ classdef dotsStimulus < baseStimulus
 		mdstModeList = {'GL_ZERO','GL_ONE','GL_DST_COLOR','GL_ONE_MINUS_DST_COLOR',...
 			'GL_SRC_ALPHA','GL_ONE_MINUS_SRC_ALPHA'}
 	end
-	
+
 	properties (SetAccess = private, GetAccess = private)
 		%nDots cache
 		nDots_
@@ -101,11 +101,11 @@ classdef dotsStimulus < baseStimulus
 			'maskTexture', 'maskIsProcedural', 'maskColour', 'colourType', ...
 			'msrcMode', 'mdstMode'}
 	end
-	
+
 	%=======================================================================
 	methods %------------------PUBLIC METHODS
 	%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief Class constructor
 		%>
@@ -116,33 +116,33 @@ classdef dotsStimulus < baseStimulus
 		%> @return instance of class.
 		% ===================================================================
 		function me = dotsStimulus(varargin)
-			args = optickaCore.addDefaults(varargin,...
+			args = octickaCore.addDefaults(varargin,...
 				struct('name','dots','colour',[1 1 1],'speed',2));
 			me=me@baseStimulus(args); %we call the superclass constructor first
 			me.parseArgs(args, me.allowedProperties);
-			
+
 			me.isRect = false; %uses a point for drawing
-			
+
 			me.ignoreProperties = [me.ignorePropertiesBase me.ignoreProperties];
-			me.salutation('constructor','Dots Stimulus initialisation complete');
+			me.logOutput('constructor','Dots Stimulus initialisation complete');
 		end
-		
+
 		% ===================================================================
 		%> @brief Setup the stimulus object
 		%>
 		%> @param sM screenManager object for reference
 		% ===================================================================
 		function setup(me,sM)
-			
+
 			reset(me);
 			me.inSetup = true; me.isSetup = false;
 			if isempty(me.isVisible); me.show; end
-			
+
 			me.sM = sM;
 			if ~sM.isOpen; warning('Screen needs to be Open!'); end
 			me.screenVals = sM.screenVals;
 			me.ppd = sM.ppd;
-			
+
 			fn = sort(fieldnames(me));
 			for j=1:length(fn)
 				if ~matches(fn{j}, me.ignoreProperties) %create a temporary dynamic property
@@ -155,14 +155,14 @@ classdef dotsStimulus < baseStimulus
 					me.([fn{j} 'Out']) = me.(fn{j}); %copy our property value to our tempory copy
 				end
 			end
-			
+
 			addRuntimeProperties(me);
-			
+
 			%build the mask
 			if me.mask
 				makeMask(me);
 			end
-			
+
 			me.inSetup = false; me.isSetup = true;
 			computePosition(me);
 			setRect(me);
@@ -191,9 +191,9 @@ classdef dotsStimulus < baseStimulus
 				me.densityOut = value;
 				me.nDots; %remake our cache
 			end
-			
+
 		end
-		
+
 		% ===================================================================
 		%> @brief Update object
 		%>  We update the object once per trial (if we change parameters
@@ -205,7 +205,7 @@ classdef dotsStimulus < baseStimulus
 			setRect(me);
 			updateDots(me);
 		end
-		
+
 		% ===================================================================
 		%> @brief Draw our stimulus structure
 		%>
@@ -230,7 +230,7 @@ classdef dotsStimulus < baseStimulus
 			end
 			me.tick = me.tick + 1;
 		end
-		
+
 		% ===================================================================
 		%> @brief Animate this object by one frame
 		%>
@@ -271,7 +271,7 @@ classdef dotsStimulus < baseStimulus
 				end
 			end
 		end
-		
+
 		% ===================================================================
 		%> @brief reset the object, deleting the temporary .Out properties
 		%>
@@ -288,7 +288,7 @@ classdef dotsStimulus < baseStimulus
 			me.colours = [];
 			resetTicks(me);
 		end
-		
+
 		% ===================================================================
 		%> @brief density set method
 		%>
@@ -298,28 +298,30 @@ classdef dotsStimulus < baseStimulus
 			me.density = value;
 			me.nDots; %#ok<MCSUP>
 		end
-		
+
 		% ===================================================================
 		%> @brief nDots is dependant property, this get method also caches
 		%> the value in me.nDots_ fo speed
 		%>
 		% ===================================================================
 		function value = get.nDots(me)
-			if ~me.inSetup && isprop(me,'sizeOut')
-				sz = me.sizeOut + me.maskSmoothing - (me.dotSizeOut*1.5);
-				me.nDots_ = round(me.densityOut * (sz/me.ppd)^2);
-			else
-				me.nDots_ = round(me.density * me.size^2);
+			sz = me.getP('size');
+			if ~me.inSetup && ~isempty(sz) && sz > 0
+				dn = me.getP('density');
+				ds = me.getP('dotSize');
+				ms = me.getP('maskSmoothing');
+				sz = sz + ms - (ds*1.5);
+				me.nDots_ = round(dn * (sz/me.ppd)^2);
 			end
 			value = me.nDots_;
 		end
-		
+
 	end %---END PUBLIC METHODS---%
-	
+
 	%=======================================================================
 	methods ( Access = protected ) %-------PROTECTED METHODS-----%
 		%=======================================================================
-		
+
 		% ===================================================================
 		%> @brief setRect
 		%> setRect makes the PsychRect based on the texture and screen
@@ -361,7 +363,7 @@ classdef dotsStimulus < baseStimulus
 			[me.dxs, me.dys] = me.updatePosition(repmat(me.delta,size(me.angles)),me.angles);
 			me.dxdy=[me.dxs';me.dys'];
 		end
-		
+
 		% ===================================================================
 		%> @brief Make colour matrix for dots
 		%>
@@ -399,9 +401,9 @@ classdef dotsStimulus < baseStimulus
 					me.colours(4,:) = me.alphaOut;
 			end
 		end
-		
+
 		% ===================================================================
-		%> @brief Make circular mask 
+		%> @brief Make circular mask
 		%>
 		% ===================================================================
 		function makeMask(me)
@@ -440,7 +442,7 @@ classdef dotsStimulus < baseStimulus
 						ktmp = load([p filesep 'gaussian52kernel.mat']); %'gaussian73kernel.mat' 'disk5kernel.mat'
 						me.kernel = ktmp.kernel;
 						me.shader = EXPCreateStatic2DConvolutionShader(me.kernel, 4, 4, 0, 2);
-						me.salutation('No fspecial, had to use precompiled kernel');
+						me.logOutput('No fspecial, had to use precompiled kernel');
 					end
 				else
 					me.kernel = [];
@@ -448,6 +450,6 @@ classdef dotsStimulus < baseStimulus
 				end
 			end
 		end
-		
+
 	end
 end

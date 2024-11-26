@@ -12,3 +12,6 @@ Junk
 .bzrignore
 .vscode
 doxygen.log
+# pixi environments
+.pixi
+*.egg-info
